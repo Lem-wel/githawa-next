@@ -35,6 +35,46 @@ export default function BookPage() {
     setRooms(r ?? []);
     setStaff(st ?? []);
   }
+  async function awardBadges(userId: string) {
+  // Count total appointments for this user
+  const { data: appts, error: apptErr } = await supabase
+    .from("appointments")
+    .select("id")
+    .eq("user_id", userId);
+
+  if (apptErr) {
+    console.error("Badge check error:", apptErr.message);
+    return;
+  }
+
+  const count = appts?.length ?? 0;
+
+  // Helper: award a badge by code
+  async function give(code: string) {
+    const { data: badge, error: badgeErr } = await supabase
+      .from("badges")
+      .select("id")
+      .eq("code", code)
+      .single();
+
+    if (badgeErr || !badge?.id) {
+      console.error("Badge not found:", code, badgeErr?.message);
+      return;
+    }
+
+    // Insert if not already earned (unique constraint handles duplicates)
+    const { error: earnErr } = await supabase.from("user_badges").upsert(
+      { user_id: userId, badge_id: badge.id },
+      { onConflict: "user_id,badge_id" }
+    );
+
+    if (earnErr) console.error("Earn badge error:", earnErr.message);
+  }
+
+  // Badge rules
+  if (count >= 2) await give("BOOKED_2_TOTAL");
+  if (count >= 2) await give("BOOKED_2_IN_A_ROW"); // simple streak version
+}
 
   async function book() {
     setMsg("");
@@ -51,6 +91,7 @@ export default function BookPage() {
       setMsg("Please complete all fields");
       return;
     }
+    
 
     // get selected service duration
     const service = services.find(s => s.id === Number(serviceId));
@@ -95,10 +136,14 @@ export default function BookPage() {
     if (error) {
       setMsg(error.message);
       return;
+      
     }
+    await awardBadges(user.id);
+setMsg("Appointment booked successfully! Badges updated ✅");
 
     setMsg("Appointment booked successfully!");
   }
+  
 
   return (
     <main style={{ maxWidth: 700, margin: "40px auto", fontFamily: "Arial" }}>
@@ -141,4 +186,5 @@ export default function BookPage() {
       </div>
     </main>
   );
+  
 }
