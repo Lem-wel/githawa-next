@@ -3,29 +3,27 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
-type Appt = {
+type Row = {
   id: number;
   appt_date: string;
   appt_time: string;
   duration_minutes: number;
-  notes: string | null;
-  rooms: { name: string } | null;
-  services: { name: string } | null;
+  service_name: string | null;
+  room_name: string | null;
+  customer_name: string | null;
 };
 
 export default function StaffPage() {
   const router = useRouter();
   const [msg, setMsg] = useState("");
-  const [name, setName] = useState("");
-  const [rows, setRows] = useState<Appt[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
 
   useEffect(() => {
     (async () => {
       setMsg("");
 
-      // 1) must be logged in
+      // must be logged in
       const { data: auth } = await supabase.auth.getUser();
       const user = auth.user;
       if (!user) {
@@ -33,10 +31,10 @@ export default function StaffPage() {
         return;
       }
 
-      // 2) must be staff + must have staff_id
+      // must be staff and must have staff_id
       const { data: profile, error: pErr } = await supabase
         .from("profiles")
-        .select("full_name, role, staff_id")
+        .select("role, staff_id")
         .eq("id", user.id)
         .single();
 
@@ -45,32 +43,31 @@ export default function StaffPage() {
         return;
       }
 
-      setName(profile.full_name ?? "Staff");
-
       if (profile.role !== "staff") {
         router.push("/dashboard");
         return;
       }
 
       if (!profile.staff_id) {
-        setMsg("This staff account is not linked yet (profiles.staff_id is empty).");
+        setMsg("This staff account is not linked yet (profiles.staff_id missing).");
         return;
       }
 
-      // 3) load staff appointments
-      const { data: appts, error: aErr } = await supabase
-        .from("appointments")
-        .select("id, appt_date, appt_time, duration_minutes, notes, rooms(name), services(name)")
+      // Load appointments assigned to this staff
+      // NOTE: This expects you have a view called staff_schedule_view (Step 2 below).
+      const { data, error } = await supabase
+        .from("staff_schedule_view")
+        .select("*")
         .eq("staff_id", profile.staff_id)
         .order("appt_date", { ascending: true })
         .order("appt_time", { ascending: true });
 
-      if (aErr) {
-        setMsg(aErr.message);
+      if (error) {
+        setMsg(error.message);
         return;
       }
 
-      setRows((appts as any) ?? []);
+      setRows((data as any) ?? []);
     })();
   }, [router]);
 
@@ -80,47 +77,47 @@ export default function StaffPage() {
   }
 
   return (
-    <main style={{ maxWidth: 1000, margin: "40px auto", fontFamily: "Arial" }}>
-      <h2>Staff Panel</h2>
-      <p style={{ color: "#666" }}>Welcome, <b>{name}</b></p>
+    <main style={{ maxWidth: 980, margin: "40px auto", fontFamily: "Arial" }}>
+      <h2 style={{ marginBottom: 10 }}>My Schedule</h2>
 
-      {/* Staff-only tabs */}
-      <nav style={{ display: "flex", gap: 12, flexWrap: "wrap", margin: "14px 0 18px" }}>
-        <Link href="/staff">My Schedule</Link>
-        <Link href="/services">Services</Link>
-        <button onClick={logout} style={{ padding: "6px 10px" }}>Logout</button>
-      </nav>
+      <a href="#" onClick={(e) => { e.preventDefault(); logout(); }} style={{ color: "#6b21a8" }}>
+        Logout
+      </a>
 
-      {msg && <p style={{ color: "crimson" }}>{msg}</p>}
+      {msg && <p style={{ color: "crimson", marginTop: 14 }}>{msg}</p>}
 
-      {!msg && rows.length === 0 && <p>No appointments assigned yet.</p>}
-
-      {rows.length > 0 && (
-        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 10 }}>
+      <div style={{ marginTop: 18, border: "1px solid #eee", borderRadius: 14, padding: 14, background: "#fff" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr>
-              <th align="left">Date</th>
-              <th align="left">Time</th>
-              <th align="left">Service</th>
-              <th align="left">Room</th>
-              <th align="left">Duration</th>
-              <th align="left">Notes</th>
+            <tr style={{ textAlign: "left" }}>
+              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Date</th>
+              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Time</th>
+              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Customer</th>
+              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Service</th>
+              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Room</th>
+              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Duration</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td style={{ padding: 10, borderTop: "1px solid #eee" }}>{r.appt_date}</td>
-                <td style={{ padding: 10, borderTop: "1px solid #eee" }}>{String(r.appt_time).slice(0, 5)}</td>
-                <td style={{ padding: 10, borderTop: "1px solid #eee" }}>{r.services?.name ?? "—"}</td>
-                <td style={{ padding: 10, borderTop: "1px solid #eee" }}>{r.rooms?.name ?? "—"}</td>
-                <td style={{ padding: 10, borderTop: "1px solid #eee" }}>{r.duration_minutes} min</td>
-                <td style={{ padding: 10, borderTop: "1px solid #eee" }}>{r.notes ?? ""}</td>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ padding: 12 }}>No appointments assigned.</td>
               </tr>
-            ))}
+            ) : (
+              rows.map((r) => (
+                <tr key={r.id}>
+                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.appt_date}</td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{String(r.appt_time).slice(0, 5)}</td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.customer_name ?? "—"}</td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.service_name ?? "—"}</td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.room_name ?? "—"}</td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.duration_minutes} min</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
-      )}
+      </div>
     </main>
   );
 }
