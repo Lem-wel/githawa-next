@@ -18,6 +18,7 @@ export default function StaffPage() {
   const router = useRouter();
   const [msg, setMsg] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
+  const [staffName, setStaffName] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -33,15 +34,17 @@ export default function StaffPage() {
 
       // must be staff and must have staff_id
       const { data: profile, error: pErr } = await supabase
-        .from("profiles")
-        .select("role, staff_id")
-        .eq("id", user.id)
-        .single();
+  .from("profiles")
+  .select("full_name, role, staff_id")
+  .eq("id", user.id)
+  .single();
 
-      if (pErr || !profile) {
-        setMsg("Profile not found.");
-        return;
-      }
+if (pErr || !profile) {
+  setMsg("Profile not found.");
+  return;
+}
+
+setStaffName(profile.full_name ?? "Staff");
 
       if (profile.role !== "staff") {
         router.push("/dashboard");
@@ -78,7 +81,9 @@ export default function StaffPage() {
 
   return (
     <main style={{ maxWidth: 980, margin: "40px auto", fontFamily: "Arial" }}>
-      <h2 style={{ marginBottom: 10 }}>My Schedule</h2>
+      <h2 style={{ marginBottom: 10 }}>My Schedule</h2><p style={{ marginTop: 4, color: "#555" }}>
+  Hello, <b>{staffName}</b>
+</p>
 
       <a href="#" onClick={(e) => { e.preventDefault(); logout(); }} style={{ color: "#6b21a8" }}>
         Logout
