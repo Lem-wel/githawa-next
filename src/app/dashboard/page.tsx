@@ -24,12 +24,17 @@ export default function DashboardPage() {
 
       // optional: load profile name
       const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .single();
+  .from("profiles")
+  .select("full_name, role")
+  .eq("id", user.id)
+  .single();
 
-      setName(profile?.full_name ?? "Customer");
+if (profile?.role === "staff") {
+  router.push("/staff");
+  return;
+}
+
+setName(profile?.full_name ?? "Customer");
     })();
   }, [router]);
 

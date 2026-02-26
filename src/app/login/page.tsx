@@ -11,9 +11,39 @@ export default function LoginPage() {
 
   async function login() {
     setMsg("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return setMsg(error.message);
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) return setMsg(error.message);
+
+  // ✅ Get logged in user
+  const { data: authData, error: userError } =
+    await supabase.auth.getUser();
+
+  if (userError || !authData?.user) {
+    return setMsg("Login failed.");
+  }
+
+  const user = authData.user;
+
+  // ✅ Get role from profiles table
+  const { data: profile, error: pErr } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (pErr) return setMsg(pErr.message);
+
+  // ✅ Redirect based on role
+  if (profile?.role === "staff") {
+    router.push("/staff");
+  } else {
     router.push("/dashboard");
+  }
   }
 
   return (
