@@ -15,73 +15,69 @@ type Row = {
   customer_name: string | null;
 };
 
-export default function StaffPage() {
+export default function AttendantPage() {
   const router = useRouter();
   const [msg, setMsg] = useState("");
-  const [staffName, setStaffName] = useState("");
+  const [name, setName] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
 
   useEffect(() => {
     (async () => {
       setMsg("");
 
-      // 1) Must be logged in
-      const { data: authData, error: authErr } = await supabase.auth.getUser();
-      const user = authData?.user;
-
-      if (authErr || !user) {
+      const { data: auth } = await supabase.auth.getUser();
+      const user = auth.user;
+      if (!user) {
         router.push("/login");
         return;
       }
 
-      // 2) Load profile (role + staff_id)
-      const { data: profile, error: pErr } = await supabase
+      // profile
+      const { data: prof, error: pErr } = await supabase
         .from("profiles")
         .select("full_name, role, staff_id")
         .eq("id", user.id)
         .single();
 
-      if (pErr || !profile) {
+      if (pErr || !prof) {
         setMsg("Profile not found.");
         return;
       }
 
-      if (profile.role !== "staff") {
+      if (prof.role !== "staff") {
         router.push("/dashboard");
         return;
       }
 
-      if (!profile.staff_id) {
-        setMsg("This staff account is not linked yet (profiles.staff_id is null).");
+      if (!prof.staff_id) {
+        setMsg("Staff account not linked (profiles.staff_id is null).");
         return;
       }
 
-      // 3) Get staff position + name
-      const { data: st, error: stErr } = await supabase
+      // staff position check
+      const { data: st, error: sErr } = await supabase
         .from("staff")
         .select("name, position")
-        .eq("id", profile.staff_id)
+        .eq("id", prof.staff_id)
         .single();
 
-      if (stErr || !st) {
+      if (sErr || !st) {
         setMsg("Staff record missing.");
         return;
       }
 
-      const position = String(st.position || "").trim().toLowerCase();
-
-      // ✅ PUT THIS HERE: Role-based redirect for non-therapists
-      if (position !== "massage_therapist") {
+      const position = (st.position || "").trim().toLowerCase();
+      if (position !== "spa_attendant") {
+        // send other staff to their proper pages
         if (position === "manager") router.push("/manager");
         else if (position === "receptionist") router.push("/receptionist");
-        else if (position === "spa_attendant") router.push("/attendant");
-        else router.push("/dashboard");
+        else router.push("/staff");
         return;
       }
 
-      setStaffName(st.name || profile.full_name || "Massage Therapist");
+      setName(st.name || prof.full_name || "Spa Attendant");
 
-      // 4) Load ONLY Massage Therapies appointments assigned to this therapist
+      // Load ONLY non-massage services assigned to this attendant
       const { data: appts, error: aErr } = await supabase
         .from("appointments")
         .select(`
@@ -93,8 +89,8 @@ export default function StaffPage() {
           services(name, category),
           customer:profiles!appointments_user_id_profiles_fkey(full_name)
         `)
-        .eq("staff_id", profile.staff_id)
-        .eq("services.category", "Massage Therapies")
+        .eq("staff_id", prof.staff_id)
+        .neq("services.category", "Massage Therapies")
         .order("appt_date", { ascending: true })
         .order("appt_time", { ascending: true });
 
@@ -127,7 +123,7 @@ export default function StaffPage() {
     <main style={{ maxWidth: 980, margin: "40px auto", fontFamily: "Arial" }}>
       <h2>My Schedule</h2>
       <p style={{ marginTop: 4, color: "#555" }}>
-        Hello, <b>{staffName}</b> (Massage Therapist)
+        Hello, <b>{name}</b> (Spa Attendant)
       </p>
 
       <button onClick={logout} style={{ padding: "6px 10px", marginTop: 8 }}>
@@ -144,6 +140,7 @@ export default function StaffPage() {
               <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Time</th>
               <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Customer</th>
               <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Service</th>
+              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Category</th>
               <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Room</th>
               <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Duration</th>
             </tr>
@@ -151,7 +148,7 @@ export default function StaffPage() {
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ padding: 12 }}>No massage appointments assigned.</td>
+                <td colSpan={7} style={{ padding: 12 }}>No assigned non-massage appointments.</td>
               </tr>
             ) : (
               rows.map((r) => (
@@ -160,6 +157,7 @@ export default function StaffPage() {
                   <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.appt_time}</td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.customer_name ?? "—"}</td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.service_name ?? "—"}</td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.category ?? "—"}</td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.room_name ?? "—"}</td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.duration_minutes} min</td>
                 </tr>

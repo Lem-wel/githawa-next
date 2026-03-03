@@ -29,7 +29,8 @@ export default function BookPage() {
   async function loadData() {
     const { data: s } = await supabase.from("services").select("*");
     const { data: r } = await supabase.from("rooms").select("*");
-    const { data: st } = await supabase.from("staff").select("*");
+    const { data: st } = await supabase.from("staff").select("id, name, position");
+setStaff(st ?? []);
 
     setServices(s ?? []);
     setRooms(r ?? []);
