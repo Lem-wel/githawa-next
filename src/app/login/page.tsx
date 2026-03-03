@@ -38,8 +38,6 @@ export default function LoginPage() {
 
 if (who?.role !== "staff") router.push("/dashboard");
 else if (who?.position === "manager") router.push("/manager");
-else if (who?.position === "receptionist") router.push("/receptionist");
-else if (who?.position === "spa_attendant") router.push("/attendant");
 else router.push("/staff");
   }
 
