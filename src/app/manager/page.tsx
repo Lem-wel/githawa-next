@@ -115,33 +115,43 @@ export default function ManagerPage() {
   }
 
   async function save(apptId: number, vals: { appt_date: string; appt_time: string; staff_id: number; room_id: number }) {
-    setMsg("");
+  setMsg("");
 
-    const ok = confirm("Save changes to this appointment?");
-    if (!ok) return;
+  const ok = confirm("Save changes to this appointment?");
+  if (!ok) return;
 
-    const res = await fetch("/api/manager/reschedule", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        appointmentId: apptId,
-        appt_date: vals.appt_date,
-        appt_time: vals.appt_time,
-        staff_id: vals.staff_id,
-        room_id: vals.room_id,
-      }),
-    });
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
 
-    const json = await res.json();
-    if (!res.ok) {
-      setMsg(json.error || "Failed to update");
-      return;
-    }
-
-    setMsg("Appointment updated ✅");
-    await loadData();
+  if (!token) {
+    setMsg("Unauthorized (no session token). Please logout/login again.");
+    return;
   }
+
+  const res = await fetch("/api/manager/reschedule", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      appointmentId: apptId,
+      appt_date: vals.appt_date,
+      appt_time: vals.appt_time,
+      staff_id: vals.staff_id,
+      room_id: vals.room_id,
+    }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    setMsg(json.error || "Failed to update");
+    return;
+  }
+
+  setMsg("Appointment updated ✅");
+  await loadData();
+}
 
   return (
     <main style={{ maxWidth: 1050, margin: "40px auto", fontFamily: "Arial" }}>
