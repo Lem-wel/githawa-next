@@ -30,22 +30,28 @@ export default function ManagerPage() {
     (async () => {
       // verify logged in + position using staff_identity_view
       const { data: auth } = await supabase.auth.getUser();
-      const user = auth.user;
-      if (!user) {
-        router.push("/login");
-        return;
-      }
+const user = auth.user;
+if (!user) { router.push("/login"); return; }
 
-      const { data: who } = await supabase
-        .from("staff_identity_view")
-        .select("position, user_id")
-        .eq("user_id", user.id)
-        .single();
+const { data: prof, error: perr } = await supabase
+  .from("profiles")
+  .select("role, staff_id")
+  .eq("id", user.id)
+  .single();
 
-      if (!who || who.position !== "manager") {
-        router.push("/dashboard");
-        return;
-      }
+if (perr || !prof) { router.push("/dashboard"); return; }
+if (prof.role !== "staff" || !prof.staff_id) { router.push("/dashboard"); return; }
+
+const { data: st, error: serr } = await supabase
+  .from("staff")
+  .select("position")
+  .eq("id", prof.staff_id)
+  .single();
+
+if (serr || !st || st.position !== "manager") {
+  router.push("/staff");
+  return;
+}
 
       await loadData();
     })();
