@@ -30,20 +30,17 @@ export default function LoginPage() {
   const user = authData.user;
 
   // ✅ Get role from profiles table
-  const { data: profile, error: pErr } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const { data: who } = await supabase
+  .from("staff_identity_view")
+  .select("role, position")
+  .eq("user_id", user.id)
+  .single();
 
-  if (pErr) return setMsg(pErr.message);
-
-  // ✅ Redirect based on role
-  if (profile?.role === "staff") {
-    router.push("/staff");
-  } else {
-    router.push("/dashboard");
-  }
+if (who?.role !== "staff") router.push("/dashboard");
+else if (who?.position === "manager") router.push("/manager");
+else if (who?.position === "receptionist") router.push("/receptionist");
+else if (who?.position === "spa_attendant") router.push("/attendant");
+else router.push("/staff");
   }
 
   return (
