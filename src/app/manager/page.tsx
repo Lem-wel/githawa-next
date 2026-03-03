@@ -64,9 +64,19 @@ if (serr || !st || st.position !== "manager") {
 
     
 
-   const { data } = await supabase
-  .from("manager_appointments_view")
-  .select("*")
+  const { data, error } = await supabase
+  .from("appointments")
+  .select(`
+    id,
+    appt_date,
+    appt_time,
+    duration_minutes,
+    staff_id,
+    room_id,
+    services(name),
+    rooms(name),
+    customer:profiles!appointments_user_id_fkey(full_name)
+  `)
   .order("appt_date", { ascending: true })
   .order("appt_time", { ascending: true });
 
