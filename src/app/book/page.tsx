@@ -1,191 +1,203 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
-type Service = { id: number; name: string; duration_minutes: number };
+type Service = { id: number; name: string; category: string; duration_minutes: number; price: number; video_url?: string | null };
+type Staff = { id: number; name: string; position: string };
 type Room = { id: number; name: string };
-type Staff = { id: number; name: string };
 
 export default function BookPage() {
   const router = useRouter();
 
-  const [services, setServices] = useState<Service[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [staff, setStaff] = useState<Staff[]>([]);
   const [msg, setMsg] = useState("");
 
-  const [serviceId, setServiceId] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [roomId, setRoomId] = useState("");
-  const [staffId, setStaffId] = useState("");
+  const [services, setServices] = useState<Service[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+
+  const [serviceId, setServiceId] = useState<string>("");
+  const [staffId, setStaffId] = useState<string>("");
+  const [roomId, setRoomId] = useState<string>("");
+
+  const [apptDate, setApptDate] = useState("");
+  const [apptTime, setApptTime] = useState("");
 
   useEffect(() => {
-    loadData();
-  }, []);
+    (async () => {
+      setMsg("");
 
-  async function loadData() {
-    const { data: s } = await supabase.from("services").select("*");
-    const { data: r } = await supabase.from("rooms").select("*");
-    const { data: st } = await supabase.from("staff").select("id, name, position");
-setStaff(st ?? []);
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) {
+        router.push("/login");
+        return;
+      }
 
-    setServices(s ?? []);
-    setRooms(r ?? []);
-    setStaff(st ?? []);
-  }
-  async function awardBadges(userId: string) {
-  // Count total appointments for this user
-  const { data: appts, error: apptErr } = await supabase
-    .from("appointments")
-    .select("id")
-    .eq("user_id", userId);
+      const { data: svc, error: sErr } = await supabase
+        .from("services")
+        .select("id, name, category, duration_minutes, price, video_url")
+        .order("category", { ascending: true });
 
-  if (apptErr) {
-    console.error("Badge check error:", apptErr.message);
-    return;
-  }
+      if (sErr) setMsg(sErr.message);
 
-  const count = appts?.length ?? 0;
+      const { data: st, error: stErr } = await supabase
+        .from("staff")
+        .select("id, name, position")
+        .order("id", { ascending: true });
 
-  // Helper: award a badge by code
-  async function give(code: string) {
-    const { data: badge, error: badgeErr } = await supabase
-      .from("badges")
-      .select("id")
-      .eq("code", code)
-      .single();
+      if (stErr) setMsg((m) => (m ? m + " | " : "") + stErr.message);
 
-    if (badgeErr || !badge?.id) {
-      console.error("Badge not found:", code, badgeErr?.message);
-      return;
-    }
+      const { data: rm, error: rErr } = await supabase
+        .from("rooms")
+        .select("id, name")
+        .order("id", { ascending: true });
 
-    // Insert if not already earned (unique constraint handles duplicates)
-    const { error: earnErr } = await supabase.from("user_badges").upsert(
-      { user_id: userId, badge_id: badge.id },
-      { onConflict: "user_id,badge_id" }
-    );
+      if (rErr) setMsg((m) => (m ? m + " | " : "") + rErr.message);
 
-    if (earnErr) console.error("Earn badge error:", earnErr.message);
-  }
+      setServices((svc ?? []) as Service[]);
+      setStaff((st ?? []) as Staff[]);
+      setRooms((rm ?? []) as Room[]);
+    })();
+  }, [router]);
 
-  // Badge rules
-  if (count >= 2) await give("BOOKED_2_TOTAL");
-  if (count >= 2) await give("BOOKED_2_IN_A_ROW"); // simple streak version
-}
+  // ✅ Find selected service
+  const selectedService = useMemo(() => {
+    const idNum = Number(serviceId);
+    return services.find((s) => s.id === idNum) || null;
+  }, [serviceId, services]);
 
-  async function book() {
+  // ✅ Massage vs Non-massage
+  const isMassage = (selectedService?.category || "") === "Massage Therapies";
+
+  // ✅ Filter staff based on service category
+  const compatibleStaff = useMemo(() => {
+    return staff.filter((s) => {
+      const pos = String(s.position || "").trim().toLowerCase();
+      if (isMassage) return pos === "massage_therapist";
+      return pos === "spa_attendant";
+    });
+  }, [staff, isMassage]);
+
+  // ✅ Reset selected staff when service changes (prevents wrong staff)
+  useEffect(() => {
+    setStaffId("");
+  }, [serviceId]);
+
+  async function bookNow() {
     setMsg("");
 
     const { data: auth } = await supabase.auth.getUser();
-    const user = auth.user;
-
-    if (!user) {
+    if (!auth.user) {
       router.push("/login");
       return;
     }
 
-    if (!serviceId || !date || !time || !roomId || !staffId) {
-      setMsg("Please complete all fields");
+    if (!serviceId || !staffId || !roomId || !apptDate || !apptTime) {
+      setMsg("Please complete all fields.");
       return;
     }
-    
 
-    // get selected service duration
-    const service = services.find(s => s.id === Number(serviceId));
-    const duration = service?.duration_minutes ?? 60;
+    // use duration from selected service
+    const duration = selectedService?.duration_minutes ?? 60;
 
-    // check conflict
-    const { data: existing } = await supabase
-      .from("appointments")
-      .select("appt_time, duration_minutes")
-      .eq("appt_date", date)
-      .or(`room_id.eq.${roomId},staff_id.eq.${staffId}`);
-
-    function toMinutes(t: string) {
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + m;
-    }
-
-    const newStart = toMinutes(time);
-
-    for (const e of existing ?? []) {
-      const oldStart = toMinutes(String(e.appt_time).slice(0,5));
-      const oldEnd = oldStart + e.duration_minutes;
-      const newEnd = newStart + duration;
-
-      if (newStart < oldEnd && oldStart < newEnd) {
-        setMsg("Conflict: room or staff already booked at this time.");
-        return;
-      }
-    }
-
-    // insert appointment
     const { error } = await supabase.from("appointments").insert({
-      user_id: user.id,
+      user_id: auth.user.id,
       service_id: Number(serviceId),
-      appt_date: date,
-      appt_time: time,
-      duration_minutes: duration,
-      room_id: Number(roomId),
       staff_id: Number(staffId),
+      room_id: Number(roomId),
+      appt_date: apptDate,
+      appt_time: apptTime,
+      duration_minutes: duration,
+      status: "scheduled",
     });
 
     if (error) {
       setMsg(error.message);
       return;
-      
     }
-    await awardBadges(user.id);
-setMsg("Appointment booked successfully! Badges updated ✅");
 
-    setMsg("Appointment booked successfully!");
+    setMsg("Booked successfully ✅");
   }
-  
 
   return (
-    <main style={{ maxWidth: 700, margin: "40px auto", fontFamily: "Arial" }}>
+    <main style={{ maxWidth: 800, margin: "40px auto", fontFamily: "Arial" }}>
       <h2>Book Appointment</h2>
+      {msg && <p style={{ color: msg.includes("✅") ? "green" : "crimson" }}>{msg}</p>}
 
-      {msg && <p style={{ color: msg.includes("success") ? "green" : "crimson" }}>{msg}</p>}
-
+      {/* Service */}
       <label>Service</label>
-      <select value={serviceId} onChange={e=>setServiceId(e.target.value)}>
-        <option value="">Select</option>
-        {services.map(s=>(
-          <option key={s.id} value={s.id}>{s.name} ({s.duration_minutes}min)</option>
+      <select
+        style={{ width: "100%", padding: 10, margin: "6px 0 14px" }}
+        value={serviceId}
+        onChange={(e) => setServiceId(e.target.value)}
+      >
+        <option value="">Select service</option>
+        {services.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name} — ₱{s.price} ({s.category})
+          </option>
         ))}
       </select>
 
+      {/* Show rule */}
+      {selectedService && (
+        <p style={{ color: "#666", marginTop: -6, marginBottom: 14 }}>
+          Staff required: <b>{isMassage ? "Massage Therapist" : "Spa Attendant"}</b>
+        </p>
+      )}
+
+      {/* Staff (filtered) */}
+      <label>Staff</label>
+      <select
+        style={{ width: "100%", padding: 10, margin: "6px 0 14px" }}
+        value={staffId}
+        onChange={(e) => setStaffId(e.target.value)}
+        disabled={!serviceId}
+      >
+        <option value="">{serviceId ? "Select staff" : "Select service first"}</option>
+        {compatibleStaff.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name}
+          </option>
+        ))}
+      </select>
+
+      {/* Room */}
+      <label>Room</label>
+      <select
+        style={{ width: "100%", padding: 10, margin: "6px 0 14px" }}
+        value={roomId}
+        onChange={(e) => setRoomId(e.target.value)}
+      >
+        <option value="">Select room</option>
+        {rooms.map((r) => (
+          <option key={r.id} value={r.id}>
+            {r.name}
+          </option>
+        ))}
+      </select>
+
+      {/* Date/Time */}
       <label>Date</label>
-      <input type="date" value={date} onChange={e=>setDate(e.target.value)} />
+      <input
+        type="date"
+        style={{ width: "100%", padding: 10, margin: "6px 0 14px" }}
+        value={apptDate}
+        onChange={(e) => setApptDate(e.target.value)}
+      />
 
       <label>Time</label>
-      <input type="time" value={time} onChange={e=>setTime(e.target.value)} />
+      <input
+        type="time"
+        style={{ width: "100%", padding: 10, margin: "6px 0 18px" }}
+        value={apptTime}
+        onChange={(e) => setApptTime(e.target.value)}
+      />
 
-      <label>Room</label>
-      <select value={roomId} onChange={e=>setRoomId(e.target.value)}>
-        <option value="">Select</option>
-        {rooms.map(r=>(
-          <option key={r.id} value={r.id}>{r.name}</option>
-        ))}
-      </select>
-
-      <label>Staff</label>
-      <select value={staffId} onChange={e=>setStaffId(e.target.value)}>
-        <option value="">Select</option>
-        {staff.map(s=>(
-          <option key={s.id} value={s.id}>{s.name}</option>
-        ))}
-      </select>
-
-      <div style={{ marginTop: 20 }}>
-        <button onClick={book}>Book</button>
-      </div>
+      <button onClick={bookNow} style={{ padding: "10px 14px" }}>
+        Book Now
+      </button>
     </main>
   );
-  
 }
