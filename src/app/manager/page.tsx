@@ -64,25 +64,13 @@ if (serr || !st || st.position !== "manager") {
 
     
 
-    const { data, error } = await supabase
-  .from("appointments")
-  .select(`
-    id,
-    user_id,
-    appt_date,
-    appt_time,
-    duration_minutes,
-    staff_id,
-    room_id,
-    services(name),
-    rooms(name),
-    profiles(full_name)
-  `)
+   const { data } = await supabase
+  .from("manager_appointments_view")
+  .select("*")
   .order("appt_date", { ascending: true })
   .order("appt_time", { ascending: true });
 
-if (error) setMsg(error.message);
-else setAppts((data ?? []) as Appt[]);
+
 
     setLoading(false);
   }
