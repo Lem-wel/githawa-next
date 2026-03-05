@@ -78,13 +78,7 @@ export default function ServicesPage() {
         <div key={cat} className="card cardPad" style={{ marginTop: 14 }}>
           <h3 style={{ marginTop: 0 }}>{cat}</h3>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: 12,
-            }}
-          >
+         <div className="servicesGrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
             {list.map((s) => {
               const embed = s.video_url ? youtubeToEmbed(s.video_url) : null;
 

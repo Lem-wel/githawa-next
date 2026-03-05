@@ -588,3 +588,82 @@ select{
   }
 
 }
+/* =========================
+   MOBILE PATCH (Services + Navbar)
+   Paste at the VERY BOTTOM
+   ========================= */
+
+@media (max-width: 520px){
+
+  /* Container tighter */
+  .container{ padding: 14px 12px 44px; }
+
+  /* ---------- Navbar: clean 2-row layout ---------- */
+  .navbar{
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "brand right"
+      "links links";
+    gap: 10px;
+    padding: 10px 0 12px;
+  }
+
+  .brand{ grid-area: brand; }
+  .navright{ grid-area: right; }
+  .navlinks{
+    grid-area: links;
+    justify-content: center;
+    margin-right: 0;
+    gap: 18px;
+    padding-top: 4px;
+  }
+
+  .brand-badge{ width: 52px; height: 52px; }
+  .brand span{ font-size: 22px; letter-spacing: .01em; }
+
+  /* Make right-side buttons not overflow */
+  .navright .btn{
+    padding: 10px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  /* ---------- Services page layout ---------- */
+  /* Any inline grid in your Services page becomes 1 column */
+  .gridHero{ grid-template-columns: 1fr; gap: 14px; padding: 18px 0 6px; }
+
+  /* Cards slightly tighter on mobile */
+  .cardPad{ padding: 14px; }
+
+  /* Buttons full width when used in stacks */
+  .btn{ width: 100%; text-align: center; }
+
+  /* Pills wrap nicely */
+  .pill{ white-space: nowrap; }
+
+  /* ---------- YouTube iframe / previews ---------- */
+  /* Make embeds always full width and nice ratio */
+  iframe{
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9;
+    border-radius: 14px !important;
+    display: block;
+  }
+
+  /* If you still use <video> anywhere */
+  video{
+    width: 100% !important;
+    height: auto !important;
+    border-radius: 14px !important;
+    display: block;
+  }
+
+  /* Reduce huge gaps between service cards */
+  .servicesGrid{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
