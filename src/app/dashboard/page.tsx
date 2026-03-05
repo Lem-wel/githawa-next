@@ -69,10 +69,10 @@ export default function DashboardPage() {
       const { data: ub, error: ubErr } = await supabase
   .from("user_badges")
   .select(`
-    unlocked_at,
+    earned_at,
     badge:badges (
       id,
-      title,
+      name,
       description,
       icon
     )
@@ -80,7 +80,6 @@ export default function DashboardPage() {
   .eq("user_id", auth.user.id)
   .order("unlocked_at", { ascending: false });
 
-if (ubErr) setMsg(ubErr.message);
 setUnlockedBadges(ub ?? []);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -171,26 +170,23 @@ setUnlockedBadges(ub ?? []);
   <div className="card cardPad" style={{ marginTop: 14 }}>
     <h3 style={{ marginTop: 0 }}>Unlocked Badges</h3>
 
-    {unlockedBadges.length === 0 ? (
-      <p style={{ color: "var(--muted)" }}>No badges unlocked yet.</p>
-    ) : (
-      <div style={{ display: "grid", gap: 10 }}>
-        {unlockedBadges.map((row: any) => (
+    {unlockedBadges.map((row: any) => (
   <div key={row.badge.id} className="card cardPad" style={{ display: "flex", gap: 12 }}>
     <div style={{ fontSize: 26 }}>{row.badge.icon ?? "🏅"}</div>
+
     <div>
-      <b>{row.badge.title}</b>
+      <b>{row.badge.name}</b>
+
       <div style={{ color: "var(--muted)", fontSize: 13 }}>
         {row.badge.description}
       </div>
+
       <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>
         Unlocked: {new Date(row.unlocked_at).toLocaleString()}
       </div>
     </div>
   </div>
 ))}
-      </div>
-    )}
   </div>
 )}
 
