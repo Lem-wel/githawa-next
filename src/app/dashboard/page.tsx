@@ -210,15 +210,9 @@ export default function DashboardPage() {
         <Link className="btn" href="/services">
           Spa Services
         </Link>
-        <Link className="btn" href="/badges">
-          Badges
-        </Link>
         <Link className="btn" href="/activities">
           Wellness Activities
         </Link>
-        <button className="btn" onClick={logout}>
-          Logout
-        </button>
       </div>
     </div>
   </SiteShell>
