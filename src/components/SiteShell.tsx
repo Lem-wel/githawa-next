@@ -55,7 +55,7 @@ export default function SiteShell({
         <div className="brand">
   <div className="brand-badge">
     <Image
-      src="/logo.jpg"
+      src="/logo.png"
       alt="Ginhawa Logo"
       width={72}
       height={72}
