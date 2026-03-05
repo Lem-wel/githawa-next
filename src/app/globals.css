@@ -321,9 +321,6 @@ html, body{
   .brand-badge{ width: 64px; height: 52px; }
   .navlinks{ gap: 16px; }
 }
-body{
-  zoom: 1.25;
-}
 @media (min-width: 901px){
   body{ zoom: 1.0; } /* keep normal */
 }
