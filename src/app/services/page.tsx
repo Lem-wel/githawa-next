@@ -12,8 +12,31 @@ type Service = {
   description: string;
   duration_minutes: number;
   price: number;
-  video_url: string | null;
+  video_url: string | null; // YouTube link stored here
 };
+
+// ✅ Convert a YouTube URL to an embed URL
+function youtubeToEmbed(url: string) {
+  try {
+    const u = new URL(url);
+
+    // youtu.be/VIDEO_ID
+    if (u.hostname.includes("youtu.be")) {
+      const id = u.pathname.replace("/", "").trim();
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+
+    // youtube.com/watch?v=VIDEO_ID
+    if (u.hostname.includes("youtube.com")) {
+      const id = u.searchParams.get("v");
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 export default function ServicesPage() {
   const [msg, setMsg] = useState("");
@@ -55,22 +78,58 @@ export default function ServicesPage() {
         <div key={cat} className="card cardPad" style={{ marginTop: 14 }}>
           <h3 style={{ marginTop: 0 }}>{cat}</h3>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
-            {list.map((s) => (
-              <div key={s.id} className="card" style={{ borderRadius: 16, padding: 14, boxShadow: "none" }}>
-                <div className="pill">{s.duration_minutes} min • ₱{s.price}</div>
-                <h4 style={{ margin: "10px 0 6px" }}>{s.name}</h4>
-                <p style={{ margin: 0, color: "var(--muted)", fontSize: 14 }}>{s.description}</p>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {list.map((s) => {
+              const embed = s.video_url ? youtubeToEmbed(s.video_url) : null;
 
-                {s.video_url && (
-                  <div style={{ marginTop: 10 }}>
-                    <video controls style={{ width: "100%", borderRadius: 12 }}>
-                      <source src={s.video_url} />
-                    </video>
+              return (
+                <div
+                  key={s.id}
+                  className="card"
+                  style={{ borderRadius: 16, padding: 14, boxShadow: "none" }}
+                >
+                  <div className="pill">
+                    {s.duration_minutes} min • ₱{s.price}
                   </div>
-                )}
-              </div>
-            ))}
+
+                  <h4 style={{ margin: "10px 0 6px" }}>{s.name}</h4>
+                  <p style={{ margin: 0, color: "var(--muted)", fontSize: 14 }}>
+                    {s.description}
+                  </p>
+
+                  {/* ✅ YouTube Preview */}
+                  {embed && (
+                    <div style={{ marginTop: 10 }}>
+                      <iframe
+                        src={embed}
+                        title={`${s.name} video preview`}
+                        style={{
+                          width: "100%",
+                          height: 220,
+                          borderRadius: 12,
+                          border: 0,
+                        }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                  )}
+
+                  {/* If video_url exists but isn't YouTube */}
+                  {s.video_url && !embed && (
+                    <div className="notice" style={{ marginTop: 10 }}>
+                      Invalid YouTube link for this service.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       ))}
