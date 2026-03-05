@@ -3,16 +3,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import SiteShell from "@/components/SiteShell";
 
 type Row = {
   id: number;
   appt_date: string;
   appt_time: string;
   duration_minutes: number;
-  room_name: string | null;
-  service_name: string | null;
-  category: string | null;
   customer_name: string | null;
+  service_name: string | null;
+  room_name: string | null;
 };
 
 export default function StaffPage() {
@@ -25,52 +25,31 @@ export default function StaffPage() {
     (async () => {
       setMsg("");
 
-      // 1) Must be logged in
-      const { data: authData, error: authErr } = await supabase.auth.getUser();
-      const user = authData?.user;
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+      if (!user) return router.push("/login");
 
-      if (authErr || !user) {
-        router.push("/login");
-        return;
-      }
-
-      // 2) Load profile (role + staff_id)
       const { data: profile, error: pErr } = await supabase
         .from("profiles")
         .select("full_name, role, staff_id")
         .eq("id", user.id)
         .single();
 
-      if (pErr || !profile) {
-        setMsg("Profile not found.");
-        return;
-      }
+      if (pErr || !profile) return setMsg("Profile not found.");
+      if (profile.role !== "staff") return router.push("/dashboard");
+      if (!profile.staff_id) return setMsg("Staff not linked (profiles.staff_id is null).");
 
-      if (profile.role !== "staff") {
-        router.push("/dashboard");
-        return;
-      }
-
-      if (!profile.staff_id) {
-        setMsg("This staff account is not linked yet (profiles.staff_id is null).");
-        return;
-      }
-
-      // 3) Get staff position + name
       const { data: st, error: stErr } = await supabase
         .from("staff")
         .select("name, position")
         .eq("id", profile.staff_id)
         .single();
 
-      if (stErr || !st) {
-        setMsg("Staff record missing.");
-        return;
-      }
+      if (stErr || !st) return setMsg("Staff record missing.");
 
       const position = String(st.position || "").trim().toLowerCase();
 
-      // ✅ PUT THIS HERE: Role-based redirect for non-therapists
+      // Redirect by position
       if (position !== "massage_therapist") {
         if (position === "manager") router.push("/manager");
         else if (position === "receptionist") router.push("/receptionist");
@@ -81,7 +60,6 @@ export default function StaffPage() {
 
       setStaffName(st.name || profile.full_name || "Massage Therapist");
 
-      // 4) Load ONLY Massage Therapies appointments assigned to this therapist
       const { data: appts, error: aErr } = await supabase
         .from("appointments")
         .select(`
@@ -98,23 +76,19 @@ export default function StaffPage() {
         .order("appt_date", { ascending: true })
         .order("appt_time", { ascending: true });
 
-      if (aErr) {
-        setMsg(aErr.message);
-        return;
-      }
+      if (aErr) return setMsg(aErr.message);
 
-      const mapped: Row[] = (appts ?? []).map((r: any) => ({
-        id: r.id,
-        appt_date: r.appt_date,
-        appt_time: String(r.appt_time).slice(0, 5),
-        duration_minutes: r.duration_minutes,
-        room_name: r.rooms?.name ?? null,
-        service_name: r.services?.name ?? null,
-        category: r.services?.category ?? null,
-        customer_name: r.customer?.full_name ?? null,
-      }));
-
-      setRows(mapped);
+      setRows(
+        (appts ?? []).map((r: any) => ({
+          id: r.id,
+          appt_date: r.appt_date,
+          appt_time: String(r.appt_time).slice(0, 5),
+          duration_minutes: r.duration_minutes,
+          customer_name: r.customer?.full_name ?? null,
+          service_name: r.services?.name ?? null,
+          room_name: r.rooms?.name ?? null,
+        }))
+      );
     })();
   }, [router]);
 
@@ -124,50 +98,37 @@ export default function StaffPage() {
   }
 
   return (
-    <main style={{ maxWidth: 980, margin: "40px auto", fontFamily: "Arial" }}>
-      <h2>My Schedule</h2>
-      <p style={{ marginTop: 4, color: "#555" }}>
-        Hello, <b>{staffName}</b> (Massage Therapist)
-      </p>
+    <SiteShell>
+      <div className="card cardPad">
+        <h2 style={{ marginTop: 0 }}>My Schedule</h2>
+        <p style={{ color: "var(--muted)" }}>Hello, <b>{staffName}</b> (Massage Therapist)</p>
+        <button className="btn" onClick={logout}>Logout</button>
+        {msg && <div className="notice" style={{ marginTop: 12 }}>{msg}</div>}
+      </div>
 
-      <button onClick={logout} style={{ padding: "6px 10px", marginTop: 8 }}>
-        Logout
-      </button>
-
-      {msg && <p style={{ color: "crimson", marginTop: 14 }}>{msg}</p>}
-
-      <div style={{ marginTop: 18, border: "1px solid #eee", borderRadius: 14, padding: 14, background: "#fff" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div className="card cardPad" style={{ marginTop: 14 }}>
+        <table className="table">
           <thead>
-            <tr style={{ textAlign: "left" }}>
-              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Date</th>
-              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Time</th>
-              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Customer</th>
-              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Service</th>
-              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Room</th>
-              <th style={{ padding: 10, borderBottom: "1px solid #eee" }}>Duration</th>
+            <tr>
+              <th>Date</th><th>Time</th><th>Customer</th><th>Service</th><th>Room</th><th>Duration</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr>
-                <td colSpan={6} style={{ padding: 12 }}>No massage appointments assigned.</td>
+              <tr><td colSpan={6}>No massage appointments assigned.</td></tr>
+            ) : rows.map((r) => (
+              <tr key={r.id}>
+                <td>{r.appt_date}</td>
+                <td>{r.appt_time}</td>
+                <td>{r.customer_name ?? "—"}</td>
+                <td>{r.service_name ?? "—"}</td>
+                <td>{r.room_name ?? "—"}</td>
+                <td>{r.duration_minutes} min</td>
               </tr>
-            ) : (
-              rows.map((r) => (
-                <tr key={r.id}>
-                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.appt_date}</td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.appt_time}</td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.customer_name ?? "—"}</td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.service_name ?? "—"}</td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.room_name ?? "—"}</td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #f3f3f3" }}>{r.duration_minutes} min</td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
       </div>
-    </main>
+    </SiteShell>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import SiteShell from "@/components/SiteShell";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
@@ -13,91 +14,61 @@ export default function LoginPage() {
   async function login() {
     setMsg("");
 
-    // 1) Sign in
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setMsg(error.message);
-      return;
-    }
+    if (error) return setMsg(error.message);
 
-    // 2) Get logged-in user
     const { data: authData, error: authErr } = await supabase.auth.getUser();
-    if (authErr || !authData.user) {
-      setMsg("Login succeeded but user session not found.");
-      return;
-    }
+    if (authErr || !authData.user) return setMsg("Login succeeded but session not found.");
 
     const userId = authData.user.id;
 
-    // 3) Load profile (role + staff_id)
     const { data: prof, error: profErr } = await supabase
       .from("profiles")
       .select("role, staff_id")
       .eq("id", userId)
       .single();
 
-    if (profErr || !prof) {
-      setMsg("No profile found for this account. (profiles row missing)");
-      return;
-    }
+    if (profErr || !prof) return setMsg("No profile found for this account.");
 
-    // 4) Customer redirect
+    // Customer
     if (prof.role !== "staff") {
       router.push("/dashboard");
       return;
     }
 
-    // 5) Staff must be linked
     if (!prof.staff_id) {
-      setMsg("Staff account not linked yet (profiles.staff_id is null).");
+      setMsg("Staff not linked yet (profiles.staff_id is null).");
       return;
     }
 
-    // 6) Load staff position
     const { data: st, error: stErr } = await supabase
       .from("staff")
       .select("position")
       .eq("id", prof.staff_id)
       .single();
 
-    if (stErr || !st) {
-      setMsg("Staff record missing or position not found.");
-      return;
-    }
+    if (stErr || !st) return setMsg("Staff record missing.");
 
-    // 7) Redirect by position
-    const pos = (st.position || "").trim().toLowerCase();
-
+    const pos = String(st.position || "").trim().toLowerCase();
     if (pos === "manager") router.push("/manager");
     else if (pos === "receptionist") router.push("/receptionist");
     else if (pos === "spa_attendant") router.push("/attendant");
-    else router.push("/staff"); // default: massage therapist
+    else router.push("/staff"); // massage therapist default
   }
 
   return (
-    <main style={{ maxWidth: 520, margin: "40px auto", fontFamily: "Arial" }}>
-      <h2>Login</h2>
+    <SiteShell>
+      <div className="card cardPad" style={{ maxWidth: 520 }}>
+        <h2 style={{ marginTop: 0 }}>Log In</h2>
+        {msg && <div className="notice" style={{ marginBottom: 12 }}>{msg}</div>}
 
-      {msg && <p style={{ color: "crimson" }}>{msg}</p>}
+        <input className="input" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <div style={{ height: 10 }} />
+        <input className="input" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <div style={{ height: 14 }} />
 
-      <input
-        style={{ width: "100%", padding: 10, marginBottom: 10 }}
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-
-      <input
-        style={{ width: "100%", padding: 10, marginBottom: 10 }}
-        placeholder="Password"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-
-      <button onClick={login} style={{ padding: "10px 14px" }}>
-        Login
-      </button>
-    </main>
+        <button className="btn btnPrimary" onClick={login}>Log In</button>
+      </div>
+    </SiteShell>
   );
 }

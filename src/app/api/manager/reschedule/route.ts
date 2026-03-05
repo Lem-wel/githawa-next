@@ -9,23 +9,14 @@ const supabaseAnon = createClient(
 
 export async function POST(req: Request) {
   try {
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: "Server missing SUPABASE_SERVICE_ROLE_KEY" }, { status: 500 });
-    }
-
     const authHeader = req.headers.get("authorization") || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized (missing token)" }, { status: 401 });
-    }
+    if (!token) return NextResponse.json({ error: "Unauthorized (missing token)" }, { status: 401 });
 
     const { data: userRes, error: userErr } = await supabaseAnon.auth.getUser(token);
     const user = userRes.user;
-
-    if (userErr || !user) {
-      return NextResponse.json({ error: "Unauthorized (invalid token)" }, { status: 401 });
-    }
+    if (userErr || !user) return NextResponse.json({ error: "Unauthorized (invalid token)" }, { status: 401 });
 
     const body = await req.json();
     const { appointmentId, appt_date, appt_time, staff_id, room_id } = body;
@@ -34,7 +25,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // ✅ Verify manager
+    // Verify manager
     const { data: prof, error: pErr } = await supabaseAdmin
       .from("profiles")
       .select("role, staff_id")
@@ -55,7 +46,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: manager only" }, { status: 403 });
     }
 
-    // ✅ Update appointment
+    // Update appointment
     const { data: updated, error: upErr } = await supabaseAdmin
       .from("appointments")
       .update({ appt_date, appt_time, staff_id, room_id })
@@ -63,9 +54,7 @@ export async function POST(req: Request) {
       .select()
       .single();
 
-    if (upErr) {
-      return NextResponse.json({ error: upErr.message }, { status: 500 });
-    }
+    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
 
     return NextResponse.json({ ok: true, appointment: updated });
   } catch (err: any) {

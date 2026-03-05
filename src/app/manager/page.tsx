@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import SiteShell from "@/components/SiteShell";
 
 type Appt = {
   id: number;
@@ -18,43 +19,32 @@ type Appt = {
 
 export default function ManagerPage() {
   const router = useRouter();
+  const [msg, setMsg] = useState("");
   const [appts, setAppts] = useState<Appt[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
-  const [msg, setMsg] = useState("");
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
-      // must be logged in
+      setMsg("");
       const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) {
-        router.push("/login");
-        return;
-      }
+      if (!auth.user) return router.push("/login");
 
-      // Check if manager using profiles->staff.position
-      const { data: prof, error: perr } = await supabase
+      const { data: prof } = await supabase
         .from("profiles")
         .select("role, staff_id")
         .eq("id", auth.user.id)
         .single();
 
-      if (perr || !prof || prof.role !== "staff" || !prof.staff_id) {
-        router.push("/dashboard");
-        return;
-      }
+      if (!prof || prof.role !== "staff" || !prof.staff_id) return router.push("/dashboard");
 
-      const { data: st, error: sterr } = await supabase
+      const { data: st } = await supabase
         .from("staff")
         .select("position")
         .eq("id", prof.staff_id)
         .single();
 
-      if (sterr || !st || st.position !== "manager") {
-        router.push("/staff");
-        return;
-      }
+      if (String(st?.position || "").trim().toLowerCase() !== "manager") return router.push("/staff");
 
       await loadData();
     })();
@@ -62,10 +52,8 @@ export default function ManagerPage() {
   }, []);
 
   async function loadData() {
-    setLoading(true);
     setMsg("");
 
-    // ✅ appointments with customer join (uses your FK name)
     const { data, error } = await supabase
       .from("appointments")
       .select(`
@@ -83,30 +71,17 @@ export default function ManagerPage() {
       .order("appt_time", { ascending: true });
 
     if (error) {
-      setMsg("QUERY ERROR: " + error.message);
+      setMsg(error.message);
       setAppts([]);
-      setLoading(false);
       return;
     }
 
-    // load staff list + rooms for dropdowns
-    const { data: stList, error: stErr } = await supabase
-      .from("staff")
-      .select("id, name, position")
-      .order("id", { ascending: true });
-
-    const { data: rmList, error: rmErr } = await supabase
-      .from("rooms")
-      .select("id, name")
-      .order("id", { ascending: true });
-
-    if (stErr) setMsg((m) => (m ? m + " | " : "") + "Staff error: " + stErr.message);
-    if (rmErr) setMsg((m) => (m ? m + " | " : "") + "Rooms error: " + rmErr.message);
+    const { data: stList } = await supabase.from("staff").select("id,name,position").order("id");
+    const { data: rmList } = await supabase.from("rooms").select("id,name").order("id");
 
     setAppts((data ?? []) as any);
     setStaff(stList ?? []);
     setRooms(rmList ?? []);
-    setLoading(false);
   }
 
   async function logout() {
@@ -115,87 +90,60 @@ export default function ManagerPage() {
   }
 
   async function save(apptId: number, vals: { appt_date: string; appt_time: string; staff_id: number; room_id: number }) {
-  setMsg("");
+    setMsg("");
 
-  const ok = confirm("Save changes to this appointment?");
-  if (!ok) return;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) return setMsg("Unauthorized (no session token). Logout/login again.");
 
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData.session?.access_token;
+    const res = await fetch("/api/manager/reschedule", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ appointmentId: apptId, ...vals }),
+    });
 
-  if (!token) {
-    setMsg("Unauthorized (no session token). Please logout/login again.");
-    return;
+    const json = await res.json();
+    if (!res.ok) return setMsg(json.error || "Failed to update");
+
+    setMsg("Appointment updated ✅");
+    await loadData();
   }
-
-  const res = await fetch("/api/manager/reschedule", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      appointmentId: apptId,
-      appt_date: vals.appt_date,
-      appt_time: vals.appt_time,
-      staff_id: vals.staff_id,
-      room_id: vals.room_id,
-    }),
-  });
-
-  const json = await res.json();
-  if (!res.ok) {
-    setMsg(json.error || "Failed to update");
-    return;
-  }
-
-  setMsg("Appointment updated ✅");
-  await loadData();
-}
 
   return (
-    <main style={{ maxWidth: 1050, margin: "40px auto", fontFamily: "Arial" }}>
-      <h2>Manager — Reschedule / Reassign</h2>
-      <p style={{ color: "#666" }}>You can change date, time, therapist, or room for each booking.</p>
+    <SiteShell>
+      <div className="card cardPad">
+        <h2 style={{ marginTop: 0 }}>Manager — Reschedule / Reassign</h2>
+        <p style={{ color: "var(--muted)" }}>Change date, time, therapist, or room per booking.</p>
+        <button className="btn" onClick={logout}>Logout</button>
+        {msg && <div className={msg.includes("✅") ? "noticeOk" : "notice"} style={{ marginTop: 12 }}>{msg}</div>}
+      </div>
 
-      <button onClick={logout} style={{ padding: "6px 10px", marginTop: 8 }}>
-        Logout
-      </button>
-
-      <p style={{ marginTop: 12, color: "#666" }}>Rows loaded: {appts.length}</p>
-      {loading && <p>Loading...</p>}
-      {msg && <p style={{ color: msg.includes("✅") ? "green" : "crimson" }}>{msg}</p>}
-
-      <div style={{ marginTop: 16, border: "1px solid #eee", borderRadius: 12, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead style={{ background: "#fafafa" }}>
+      <div className="card cardPad" style={{ marginTop: 14 }}>
+        <table className="table">
+          <thead>
             <tr>
-              <th style={{ textAlign: "left", padding: 10 }}>Date</th>
-              <th style={{ textAlign: "left", padding: 10 }}>Time</th>
-              <th style={{ textAlign: "left", padding: 10 }}>Customer</th>
-              <th style={{ textAlign: "left", padding: 10 }}>Service</th>
-              <th style={{ textAlign: "left", padding: 10 }}>Therapist</th>
-              <th style={{ textAlign: "left", padding: 10 }}>Room</th>
-              <th style={{ textAlign: "left", padding: 10 }}>Action</th>
+              <th>Date</th><th>Time</th><th>Customer</th><th>Service</th><th>Therapist</th><th>Room</th><th>Action</th>
             </tr>
           </thead>
-
           <tbody>
             {appts.length === 0 ? (
-              <tr>
-                <td colSpan={7} style={{ padding: 12 }}>
-                  No appointments found.
-                </td>
-              </tr>
-            ) : (
-              appts.map((a) => (
-                <ManagerRow key={a.id} appt={a} staff={staff} rooms={rooms} onSave={(vals) => save(a.id, vals)} />
-              ))
-            )}
+              <tr><td colSpan={7}>No appointments found.</td></tr>
+            ) : appts.map((a) => (
+              <ManagerRow
+                key={a.id}
+                appt={a}
+                staff={staff}
+                rooms={rooms}
+                onSave={(vals) => save(a.id, vals)}
+              />
+            ))}
           </tbody>
         </table>
       </div>
-    </main>
+    </SiteShell>
   );
 }
 
@@ -216,51 +164,29 @@ function ManagerRow({
   const [roomId, setRoomId] = useState<number>(appt.room_id ?? 0);
 
   return (
-    <tr style={{ borderTop: "1px solid #eee" }}>
-      <td style={{ padding: 10 }}>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-      </td>
-
-      <td style={{ padding: 10 }}>
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-      </td>
-
-      <td style={{ padding: 10 }}>{appt.customer?.full_name ?? "—"}</td>
-      <td style={{ padding: 10 }}>{appt.services?.name ?? "—"}</td>
-
-      <td style={{ padding: 10 }}>
+    <tr>
+      <td><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></td>
+      <td><input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} /></td>
+      <td>{appt.customer?.full_name ?? "—"}</td>
+      <td>{appt.services?.name ?? "—"}</td>
+      <td>
         <select value={staffId || ""} onChange={(e) => setStaffId(Number(e.target.value))}>
-          <option value="">Select therapist</option>
-          {staff.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name} ({s.position})
-            </option>
+          <option value="">Select</option>
+          {staff.map((s: any) => (
+            <option key={s.id} value={s.id}>{s.name} ({s.position})</option>
           ))}
         </select>
       </td>
-
-      <td style={{ padding: 10 }}>
+      <td>
         <select value={roomId || ""} onChange={(e) => setRoomId(Number(e.target.value))}>
-          <option value="">Select room</option>
-          {rooms.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
-            </option>
+          <option value="">Select</option>
+          {rooms.map((r: any) => (
+            <option key={r.id} value={r.id}>{r.name}</option>
           ))}
         </select>
       </td>
-
-      <td style={{ padding: 10 }}>
-        <button
-          onClick={() =>
-            onSave({
-              appt_date: date,
-              appt_time: time,
-              staff_id: staffId,
-              room_id: roomId,
-            })
-          }
-        >
+      <td>
+        <button className="btn btnPrimary" onClick={() => onSave({ appt_date: date, appt_time: time, staff_id: staffId, room_id: roomId })}>
           Save
         </button>
       </td>

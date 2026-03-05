@@ -1,25 +1,37 @@
+"use client";
+
+import Link from "next/link";
+import SiteShell from "@/components/SiteShell";
+
 export default function Home() {
   return (
-    <main style={{maxWidth:900, margin:"40px auto", fontFamily:"Arial"}}>
-      <h1>Ginhawa Spa & Wellness</h1>
-      <p>Your personalized wellness and booking system</p>
+    <SiteShell right={<span className="pill">A safe, private wellness check-in.</span>}>
+      <section className="gridHero">
+        <div>
+          <h1 className="h1">What would<br />you like help<br />with today?</h1>
 
-      <div style={{marginTop:30, display:"flex", gap:20, flexWrap:"wrap"}}>
-        <a href="/login"><button>Login</button></a>
-        <a href="/register"><button>Register</button></a>
-        <a href="/services"><button>Spa Services</button></a>
-        <a href="/rewards"><button>Rewards</button></a>
-      </div>
+          <p className="sub">
+            Book spa services, preview service videos, explore wellness activities,
+            and earn milestone badges — guided by Ginhawa Buddy.
+          </p>
 
-      <hr style={{margin:"40px 0"}}/>
+          <div className="heroActions">
+            <Link className="btn btnPrimary" href="/dashboard">Start My Guided Check-In</Link>
+            <Link className="btn" href="/services">Explore Spa Services</Link>
+          </div>
 
-      <h3>Features</h3>
-      <ul>
-        <li>Book spa appointments</li>
-        <li>Service preview videos</li>
-        <li>Wellness recommendations</li>
-        <li>Milestone reward badges</li>
-      </ul>
-    </main>
+          <div style={{ marginTop: 18, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <span className="pill">Book Spa</span>
+            <span className="pill">Preview Videos</span>
+            <span className="pill">Badges</span>
+            <span className="pill">Activities</span>
+          </div>
+        </div>
+
+        <div className="heroImage">
+          <img src="/hero.jpg" alt="Wellness" />
+        </div>
+      </section>
+    </SiteShell>
   );
 }

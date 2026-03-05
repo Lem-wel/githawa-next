@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import SiteShell from "@/components/SiteShell";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Service = { id: number; name: string; category: string; duration_minutes: number; price: number; video_url?: string | null };
 type Staff = { id: number; name: string; position: string };
@@ -10,49 +12,41 @@ type Room = { id: number; name: string };
 
 export default function BookPage() {
   const router = useRouter();
-
   const [msg, setMsg] = useState("");
 
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
 
-  const [serviceId, setServiceId] = useState<string>("");
-  const [staffId, setStaffId] = useState<string>("");
-  const [roomId, setRoomId] = useState<string>("");
-
+  const [serviceId, setServiceId] = useState("");
+  const [staffId, setStaffId] = useState("");
+  const [roomId, setRoomId] = useState("");
   const [apptDate, setApptDate] = useState("");
   const [apptTime, setApptTime] = useState("");
 
   useEffect(() => {
     (async () => {
       setMsg("");
-
       const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) {
-        router.push("/login");
-        return;
-      }
+      if (!auth.user) return router.push("/login");
 
       const { data: svc, error: sErr } = await supabase
         .from("services")
-        .select("id, name, category, duration_minutes, price, video_url")
-        .order("category", { ascending: true });
-
+        .select("id,name,category,duration_minutes,price,video_url")
+        .order("category", { ascending: true })
+        .order("name", { ascending: true });
       if (sErr) setMsg(sErr.message);
 
       const { data: st, error: stErr } = await supabase
         .from("staff")
-        .select("id, name, position")
+        .select("id,name,position")
         .order("id", { ascending: true });
-
       if (stErr) setMsg((m) => (m ? m + " | " : "") + stErr.message);
 
       const { data: rm, error: rErr } = await supabase
         .from("rooms")
-        .select("id, name")
+        .select("id,name")
         .order("id", { ascending: true });
-
       if (rErr) setMsg((m) => (m ? m + " | " : "") + rErr.message);
 
       setServices((svc ?? []) as Service[]);
@@ -61,16 +55,13 @@ export default function BookPage() {
     })();
   }, [router]);
 
-  // ✅ Find selected service
   const selectedService = useMemo(() => {
     const idNum = Number(serviceId);
     return services.find((s) => s.id === idNum) || null;
   }, [serviceId, services]);
 
-  // ✅ Massage vs Non-massage
   const isMassage = (selectedService?.category || "") === "Massage Therapies";
 
-  // ✅ Filter staff based on service category
   const compatibleStaff = useMemo(() => {
     return staff.filter((s) => {
       const pos = String(s.position || "").trim().toLowerCase();
@@ -79,26 +70,20 @@ export default function BookPage() {
     });
   }, [staff, isMassage]);
 
-  // ✅ Reset selected staff when service changes (prevents wrong staff)
   useEffect(() => {
     setStaffId("");
   }, [serviceId]);
 
   async function bookNow() {
     setMsg("");
-
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      router.push("/login");
-      return;
-    }
+    if (!auth.user) return router.push("/login");
 
     if (!serviceId || !staffId || !roomId || !apptDate || !apptTime) {
       setMsg("Please complete all fields.");
       return;
     }
 
-    // use duration from selected service
     const duration = selectedService?.duration_minutes ?? 60;
 
     const { error } = await supabase.from("appointments").insert({
@@ -109,95 +94,72 @@ export default function BookPage() {
       appt_date: apptDate,
       appt_time: apptTime,
       duration_minutes: duration,
-      status: "scheduled",
     });
 
-    if (error) {
-      setMsg(error.message);
-      return;
-    }
+    if (error) return setMsg(error.message);
 
     setMsg("Booked successfully ✅");
   }
 
   return (
-    <main style={{ maxWidth: 800, margin: "40px auto", fontFamily: "Arial" }}>
-      <h2>Book Appointment</h2>
-      {msg && <p style={{ color: msg.includes("✅") ? "green" : "crimson" }}>{msg}</p>}
+    <SiteShell right={<Link className="btn" href="/dashboard">Dashboard</Link>}>
+      <div className="card cardPad" style={{ maxWidth: 860 }}>
+        <h2 style={{ marginTop: 0 }}>Book Appointment</h2>
+        {msg && <div className={msg.includes("✅") ? "noticeOk" : "notice"} style={{ marginBottom: 12 }}>{msg}</div>}
 
-      {/* Service */}
-      <label>Service</label>
-      <select
-        style={{ width: "100%", padding: 10, margin: "6px 0 14px" }}
-        value={serviceId}
-        onChange={(e) => setServiceId(e.target.value)}
-      >
-        <option value="">Select service</option>
-        {services.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.name} — ₱{s.price} ({s.category})
-          </option>
-        ))}
-      </select>
+        <label>Service</label>
+        <select value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
+          <option value="">Select service</option>
+          {services.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} — ₱{s.price} ({s.category})
+            </option>
+          ))}
+        </select>
 
-      {/* Show rule */}
-      {selectedService && (
-        <p style={{ color: "#666", marginTop: -6, marginBottom: 14 }}>
-          Staff required: <b>{isMassage ? "Massage Therapist" : "Spa Attendant"}</b>
-        </p>
-      )}
+        {selectedService && (
+          <p style={{ marginTop: 10, color: "var(--muted)" }}>
+            Staff required: <b>{isMassage ? "Massage Therapist" : "Spa Attendant"}</b>
+          </p>
+        )}
 
-      {/* Staff (filtered) */}
-      <label>Staff</label>
-      <select
-        style={{ width: "100%", padding: 10, margin: "6px 0 14px" }}
-        value={staffId}
-        onChange={(e) => setStaffId(e.target.value)}
-        disabled={!serviceId}
-      >
-        <option value="">{serviceId ? "Select staff" : "Select service first"}</option>
-        {compatibleStaff.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.name}
-          </option>
-        ))}
-      </select>
+        <div className="formRow" style={{ marginTop: 10 }}>
+          <div>
+            <label>Staff</label>
+            <select value={staffId} onChange={(e) => setStaffId(e.target.value)} disabled={!serviceId}>
+              <option value="">{serviceId ? "Select staff" : "Select service first"}</option>
+              {compatibleStaff.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
 
-      {/* Room */}
-      <label>Room</label>
-      <select
-        style={{ width: "100%", padding: 10, margin: "6px 0 14px" }}
-        value={roomId}
-        onChange={(e) => setRoomId(e.target.value)}
-      >
-        <option value="">Select room</option>
-        {rooms.map((r) => (
-          <option key={r.id} value={r.id}>
-            {r.name}
-          </option>
-        ))}
-      </select>
+          <div>
+            <label>Room</label>
+            <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
+              <option value="">Select room</option>
+              {rooms.map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-      {/* Date/Time */}
-      <label>Date</label>
-      <input
-        type="date"
-        style={{ width: "100%", padding: 10, margin: "6px 0 14px" }}
-        value={apptDate}
-        onChange={(e) => setApptDate(e.target.value)}
-      />
+        <div className="formRow" style={{ marginTop: 10 }}>
+          <div>
+            <label>Date</label>
+            <input className="input" type="date" value={apptDate} onChange={(e) => setApptDate(e.target.value)} />
+          </div>
+          <div>
+            <label>Time</label>
+            <input className="input" type="time" value={apptTime} onChange={(e) => setApptTime(e.target.value)} />
+          </div>
+        </div>
 
-      <label>Time</label>
-      <input
-        type="time"
-        style={{ width: "100%", padding: 10, margin: "6px 0 18px" }}
-        value={apptTime}
-        onChange={(e) => setApptTime(e.target.value)}
-      />
-
-      <button onClick={bookNow} style={{ padding: "10px 14px" }}>
-        Book Now
-      </button>
-    </main>
+        <div style={{ marginTop: 14 }}>
+          <button className="btn btnPrimary" onClick={bookNow}>Book Now</button>
+        </div>
+      </div>
+    </SiteShell>
   );
 }
