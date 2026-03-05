@@ -321,6 +321,9 @@ html, body{
   .brand-badge{ width: 64px; height: 52px; }
   .navlinks{ gap: 16px; }
 }
+body{
+  zoom: 1.25;
+}
 @media (min-width: 901px){
   body{ zoom: 1.0; } /* keep normal */
 }
@@ -402,5 +405,44 @@ input, select, textarea { font-size: 16px; }
   .heroImage{
     height: 320px;
     border-radius: 22px;
+  }
+}
+.pillRow{
+  display:flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.actionGrid{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Table wrapper: prevents overflow */
+.tableWrap{
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--r-2xl);
+}
+
+/* Mobile-only improvements */
+@media (max-width: 520px){
+  .table{
+    min-width: 680px; /* scroll instead of squishing */
+  }
+
+  .table th{ font-size: 12px; padding: 10px 8px; }
+  .table td{ font-size: 13px; padding: 12px 8px; }
+
+  .actionGrid{
+    display:grid;
+    grid-template-columns: 1fr 1fr; /* 2 columns */
+    gap: 10px;
+  }
+
+  .actionGrid .btn{
+    width: 100%;
+    text-align: center;
   }
 }

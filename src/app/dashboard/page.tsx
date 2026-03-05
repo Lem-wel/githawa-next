@@ -125,51 +125,49 @@ export default function DashboardPage() {
   }
 
   return (
-    <SiteShell>
-      <div
-  className="card cardPad"
-  style={{
-    maxWidth: 900,   // slimmer container
-    margin: "0 auto" // keeps it centered
-  }}
->
-        <h2 style={{ marginTop: 0 }}>Dashboard</h2>
+  <SiteShell>
+    <div
+      className="card cardPad"
+      style={{
+        maxWidth: 900,
+        margin: "0 auto",
+      }}
+    >
+      <h2 style={{ marginTop: 0 }}>Dashboard</h2>
 
-        <div style={{ color: "var(--muted)" }}>
-          <div>
-            Welcome, <b>{fullName}</b>
-          </div>
-          <div>{email}</div>
+      <div style={{ color: "var(--muted)" }}>
+        <div>
+          Welcome, <b>{fullName}</b>
         </div>
+        <div>{email}</div>
+      </div>
 
-        {/* ✅ Pills summary */}
-        <div style={{ marginTop: 16, display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {/* ✅ clickable */}
-          <button className="pill" onClick={onClickBookings} type="button">
-            Bookings <b style={{ marginLeft: 6 }}>{bookingCount}</b>
-          </button>
+      {/* ✅ Pills summary */}
+      <div className="pillRow" style={{ marginTop: 16 }}>
+        <button className="pill" onClick={onClickBookings} type="button">
+          Bookings <b style={{ marginLeft: 6 }}>{bookingCount}</b>
+        </button>
 
-          <Link className="pill" href="/badges">
-            Badges <b style={{ marginLeft: 6 }}>{badgeCount}</b>
-          </Link>
+        <Link className="pill" href="/badges">
+          Badges <b style={{ marginLeft: 6 }}>{badgeCount}</b>
+        </Link>
 
-          <span className="pill">
-            Status <b style={{ marginLeft: 6 }}>Active</b>
-          </span>
+        <span className="pill">
+          Status <b style={{ marginLeft: 6 }}>Active</b>
+        </span>
+      </div>
 
-          {/* ✅ removed Wellness pill */}
-        </div>
+      {/* ✅ Bookings list appears after click */}
+      {showBookings && (
+        <div className="card cardPad" style={{ marginTop: 16 }}>
+          <h3 style={{ marginTop: 0 }}>My Scheduled Bookings</h3>
 
-        {/* ✅ Bookings list appears after click */}
-        {showBookings && (
-          <div className="card cardPad" style={{ marginTop: 16 }}>
-            <h3 style={{ marginTop: 0 }}>My Scheduled Bookings</h3>
-
-            {loadingBookings ? (
-              <p style={{ color: "var(--muted)" }}>Loading…</p>
-            ) : bookings.length === 0 ? (
-              <p style={{ color: "var(--muted)" }}>No bookings yet.</p>
-            ) : (
+          {loadingBookings ? (
+            <p style={{ color: "var(--muted)" }}>Loading…</p>
+          ) : bookings.length === 0 ? (
+            <p style={{ color: "var(--muted)" }}>No bookings yet.</p>
+          ) : (
+            <div className="tableWrap">
               <table className="table">
                 <thead>
                   <tr>
@@ -194,21 +192,36 @@ export default function DashboardPage() {
                   ))}
                 </tbody>
               </table>
-            )}
-          </div>
-        )}
-
-        {msg && <div className="notice" style={{ marginTop: 12 }}>{msg}</div>}
-
-        {/* ✅ Main tabs */}
-        <div style={{ marginTop: 20, display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Link className="btn btnPrimary" href="/book">Book Appointment</Link>
-          <Link className="btn" href="/services">Spa Services</Link>
-          <Link className="btn" href="/badges">Badges</Link>
-          <Link className="btn" href="/activities">Wellness Activities</Link>
-          <button className="btn" onClick={logout}>Logout</button>
+            </div>
+          )}
         </div>
+      )}
+
+      {msg && (
+        <div className="notice" style={{ marginTop: 12 }}>
+          {msg}
+        </div>
+      )}
+
+      {/* ✅ Main tabs */}
+      <div className="actionGrid" style={{ marginTop: 20 }}>
+        <Link className="btn btnPrimary" href="/book">
+          Book Appointment
+        </Link>
+        <Link className="btn" href="/services">
+          Spa Services
+        </Link>
+        <Link className="btn" href="/badges">
+          Badges
+        </Link>
+        <Link className="btn" href="/activities">
+          Wellness Activities
+        </Link>
+        <button className="btn" onClick={logout}>
+          Logout
+        </button>
       </div>
-    </SiteShell>
-  );
+    </div>
+  </SiteShell>
+);
 }
