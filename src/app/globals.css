@@ -73,17 +73,17 @@ html, body{
   font-family: var(--font-heading);
   font-weight: 600;
   letter-spacing: .02em;
-  font-size: 30px;
+  font-size: 32px;
 }
 
 .brand-badge{
-  width: 82px;
-  height: 64px;
+  width: 90px;
+  height: auto;
   border-radius: 16px;
   overflow:hidden;
   background: transparent;
-  border: 1px solid rgba(61,74,64,.12);
-  box-shadow: var(--shadow-md);
+  border: none;
+  box-shadow: none;
   display:flex;
   align-items:center;
   justify-content:center;

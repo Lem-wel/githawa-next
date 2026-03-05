@@ -57,18 +57,61 @@ export default function LoginPage() {
   }
 
   return (
-    <SiteShell>
-      <div className="card cardPad" style={{ maxWidth: 520 }}>
-        <h2 style={{ marginTop: 0 }}>Log In</h2>
-        {msg && <div className="notice" style={{ marginBottom: 12 }}>{msg}</div>}
+  <SiteShell>
+    <div
+      style={{
+        minHeight: "calc(100vh - 120px)", // adjust if your header is taller/shorter
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "28px 0",
+      }}
+    >
+      <div
+        className="card cardPad"
+        style={{
+          width: "100%",
+          maxWidth: 620, // ✅ bigger (was 520)
+          padding: 34,   // ✅ more breathing room
+        }}
+      >
+        <h2
+          style={{
+            marginTop: 0,
+            fontFamily: "var(--font-heading)",
+            fontSize: 34,
+          }}
+        >
+          Log In
+        </h2>
 
-        <input className="input" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <div style={{ height: 10 }} />
-        <input className="input" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <div style={{ height: 14 }} />
+        {msg && (
+          <div className="notice" style={{ marginBottom: 12 }}>
+            {msg}
+          </div>
+        )}
 
-        <button className="btn btnPrimary" onClick={login}>Log In</button>
+        <input
+          className="input"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <div style={{ height: 12 }} />
+        <input
+          className="input"
+          placeholder="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <div style={{ height: 16 }} />
+
+        <button className="btn btnPrimary" onClick={login}>
+          Log In
+        </button>
       </div>
-    </SiteShell>
-  );
+    </div>
+  </SiteShell>
+);
 }
