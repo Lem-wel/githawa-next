@@ -9,27 +9,28 @@ export default function Home() {
       <section className="gridHero">
         <div>
           <h1 className="h1">
-            What would<br />
-            you like help<br />
+            What would
+            <br />
+            you like help
+            <br />
             with today?
           </h1>
 
           <p className="sub">
-            Book spa services, preview service videos (inside services), and earn milestone badges
-            — guided by Ginhawa Buddy.
+            Book spa services, view service previews inside Services, and earn milestone badges — guided
+            by Ginhawa Buddy.
           </p>
 
           <div className="heroActions">
             <Link className="btn btnPrimary" href="/dashboard">
-              Start My Guided Check-In
+              Book an Appointment
             </Link>
             <Link className="btn" href="/services">
               Explore Spa Services
             </Link>
           </div>
 
-          {/* ✅ Only the 2 chips you want */}
-          <div style={{ marginTop: 18, display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Link className="pill" href="/book">Book Spa</Link>
             <Link className="pill" href="/badges">Badges</Link>
           </div>

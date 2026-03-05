@@ -11,9 +11,9 @@ export default function ContactPage() {
           For inquiries, bookings, or support, contact us:
         </p>
         <ul>
-          <li>Email: ginhawa@example.com</li>
+          <li>Email: ginhawa@gmail.com</li>
           <li>Phone: +63 9xx xxx xxxx</li>
-          <li>Location: Your City, Philippines</li>
+          <li>Location: Sampaloc, Manila, Philippines</li>
         </ul>
       </div>
     </SiteShell>
