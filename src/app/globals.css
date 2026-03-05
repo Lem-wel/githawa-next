@@ -94,6 +94,7 @@ html, body{
   gap: 28px;
   align-items:center;
   font-size: 15px;
+  margin-right:40px;
 }
 
 .navlinks a{
