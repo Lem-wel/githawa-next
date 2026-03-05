@@ -135,12 +135,13 @@ export default function DashboardPage() {
     >
       <h2 style={{ marginTop: 0 }}>Dashboard</h2>
 
-      <div style={{ color: "var(--muted)" }}>
-        <div>
-          Welcome, <b>{fullName}</b>
-        </div>
-        <div>{email}</div>
-      </div>
+      <div className="profileBox">
+  <div className="profileName">👤 {fullName}</div>
+  <div className="profileMeta">Member since 2026</div>
+  <div className="profileMeta">
+    Status: <span className="profileStatus">Active</span>
+  </div>
+</div>
 
       {/* ✅ Pills summary */}
       <div className="pillRow" style={{ marginTop: 16 }}>
@@ -152,9 +153,7 @@ export default function DashboardPage() {
           Badges <b style={{ marginLeft: 6 }}>{badgeCount}</b>
         </Link>
 
-        <span className="pill">
-          Status <b style={{ marginLeft: 6 }}>Active</b>
-        </span>
+
       </div>
 
       {/* ✅ Bookings list appears after click */}

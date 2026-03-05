@@ -543,3 +543,27 @@ input, select, textarea { font-size: 16px; }
   .activityGrid{ grid-template-columns: 1fr; }
   .activityImg{ height: 220px; }
 }
+/* Profile section */
+
+.profileBox{
+  margin-top: 10px;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profileName{
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.profileMeta{
+  font-size: 14px;
+}
+
+.profileStatus{
+  color: var(--sage);
+  font-weight: 600;
+}
