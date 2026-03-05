@@ -59,8 +59,8 @@ export default function BookPage() {
       const all = (svc ?? []) as Service[];
 
       // ✅ split: main services vs addons
-      setAddons(all.filter((x) => (x.category || "").toLowerCase() === "addon"));
-      setServices(all.filter((x) => (x.category || "").toLowerCase() !== "addon"));
+      setAddons(all.filter((x) => (x.category || "").toLowerCase() === "Add-ons"));
+      setServices(all.filter((x) => (x.category || "").toLowerCase() !== "Add-ons"));
 
       // load staff (your logic may be different — keep whatever you already have)
       const { data: st } = await supabase
@@ -212,16 +212,32 @@ export default function BookPage() {
         </div>
 
         <div style={{ marginTop: 12 }}>
-          <label>Staff</label>
-          <select value={staffId} onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : "")}>
-            <option value="">Select staff</option>
-            {staff.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.position})
-              </option>
-            ))}
-          </select>
-        </div>
+  <label>Staff</label>
+
+  <select
+    value={staffId}
+    onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : "")}
+  >
+    <option value="">Select staff</option>
+
+    {staff
+      .filter((s) => {
+        if (!mainService) return true;
+
+        const category = mainService.category?.toLowerCase();
+
+        if (category === "massage")
+          return s.position === "massage_therapist";
+
+        return s.position === "spa_attendant";
+      })
+      .map((s) => (
+        <option key={s.id} value={s.id}>
+          {s.name}
+        </option>
+      ))}
+  </select>
+</div>
 
         <div style={{ marginTop: 12 }}>
           <label>Room</label>
