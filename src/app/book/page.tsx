@@ -224,7 +224,15 @@ export default function BookPage() {
               Add-Ons <span style={{ color: "var(--muted)" }}>(optional)</span>
             </label>
 
-            <div className="card cardPad" style={{ marginTop: 8 }}>
+            <div
+  className="card"
+  style={{
+    marginTop: 8,
+    padding: "14px 16px",   // ✅ smaller than cardPad
+    borderRadius: 16,
+    boxShadow: "none"       // ✅ same style as other inner blocks
+  }}
+>
               {addons.length === 0 ? (
                 <p style={{ color: "var(--muted)", margin: 0 }}>No add-ons available.</p>
               ) : (
