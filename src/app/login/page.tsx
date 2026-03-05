@@ -63,6 +63,8 @@ export default function LoginPage() {
       maxWidth: 1280,
       margin: "0 auto",
       padding: "46px 28px 64px", // like your .container spacing
+      display: "flex",
+      justifyContent: "flex-center"
     }}
   >
     <div
