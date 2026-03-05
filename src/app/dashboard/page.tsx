@@ -68,9 +68,17 @@ export default function DashboardPage() {
       // count badges (if you have user_badges table)
       const { data: ub, error: ubErr } = await supabase
   .from("user_badges")
-  .select("earned_at, badges(id,title,description,icon,code)")
+  .select(`
+    unlocked_at,
+    badge:badges (
+      id,
+      title,
+      description,
+      icon
+    )
+  `)
   .eq("user_id", auth.user.id)
-  .order("earned_at", { ascending: false });
+  .order("unlocked_at", { ascending: false });
 
 if (ubErr) setMsg(ubErr.message);
 setUnlockedBadges(ub ?? []);
@@ -168,19 +176,19 @@ setUnlockedBadges(ub ?? []);
     ) : (
       <div style={{ display: "grid", gap: 10 }}>
         {unlockedBadges.map((row: any) => (
-          <div key={row.badges.id} className="card cardPad" style={{ display: "flex", gap: 12 }}>
-            <div style={{ fontSize: 26 }}>{row.badges.icon ?? "🏅"}</div>
-            <div>
-              <b>{row.badges.title}</b>
-              <div style={{ color: "var(--muted)", fontSize: 13 }}>
-                {row.badges.description}
-              </div>
-              <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>
-                Unlocked: {new Date(row.unlocked_at).toLocaleString()}
-              </div>
-            </div>
-          </div>
-        ))}
+  <div key={row.badge.id} className="card cardPad" style={{ display: "flex", gap: 12 }}>
+    <div style={{ fontSize: 26 }}>{row.badge.icon ?? "🏅"}</div>
+    <div>
+      <b>{row.badge.title}</b>
+      <div style={{ color: "var(--muted)", fontSize: 13 }}>
+        {row.badge.description}
+      </div>
+      <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>
+        Unlocked: {new Date(row.unlocked_at).toLocaleString()}
+      </div>
+    </div>
+  </div>
+))}
       </div>
     )}
   </div>
