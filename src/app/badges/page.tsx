@@ -25,7 +25,7 @@ export default function BadgesPage() {
       // 1) Load ALL badges (locked + unlocked)
       const { data: b, error: bErr } = await supabase
         .from("badges")
-        .select("id,code,name,description,icon")
+        .select("id,code,name,description,icon,type,required_count,reward")
         .order("id", { ascending: true });
 
       if (bErr) setMsg(bErr.message);
@@ -71,10 +71,6 @@ export default function BadgesPage() {
               Unlocked {unlockedCount} / {allBadges.length}
             </p>
           </div>
-
-          <Link className="btn" href="/dashboard">
-            Dashboard
-          </Link>
         </div>
 
         {msg && (
