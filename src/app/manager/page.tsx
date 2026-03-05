@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import SiteShell from "@/components/SiteShell";
@@ -17,34 +17,65 @@ type Appt = {
   customer?: { full_name?: string } | null;
 };
 
+type StaffRow = {
+  id: number;
+  name: string;
+  position: string;
+};
+
+type RoomRow = {
+  id: number;
+  name: string;
+};
+
 export default function ManagerPage() {
   const router = useRouter();
   const [msg, setMsg] = useState("");
+
   const [appts, setAppts] = useState<Appt[]>([]);
-  const [staff, setStaff] = useState<any[]>([]);
-  const [rooms, setRooms] = useState<any[]>([]);
+  const [staff, setStaff] = useState<StaffRow[]>([]);
+  const [rooms, setRooms] = useState<RoomRow[]>([]);
+
+  const [managerName, setManagerName] = useState("Manager");
 
   useEffect(() => {
     (async () => {
       setMsg("");
+
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return router.push("/login");
 
-      const { data: prof } = await supabase
+      const { data: prof, error: pErr } = await supabase
         .from("profiles")
-        .select("role, staff_id")
+        .select("role, staff_id, full_name")
         .eq("id", auth.user.id)
         .single();
 
-      if (!prof || prof.role !== "staff" || !prof.staff_id) return router.push("/dashboard");
+      if (pErr || !prof || prof.role !== "staff" || !prof.staff_id) {
+        router.push("/dashboard");
+        return;
+      }
 
-      const { data: st } = await supabase
+      const { data: st, error: sErr } = await supabase
         .from("staff")
-        .select("position")
+        .select("name, position")
         .eq("id", prof.staff_id)
         .single();
 
-      if (String(st?.position || "").trim().toLowerCase() !== "manager") return router.push("/staff");
+      if (sErr || !st) {
+        router.push("/staff");
+        return;
+      }
+
+      const pos = String(st.position || "").trim().toLowerCase();
+      if (pos !== "manager") {
+        if (pos === "receptionist") router.push("/receptionist");
+        else if (pos === "spa_attendant") router.push("/attendant");
+        else router.push("/staff");
+        return;
+      }
+
+      setManagerName(st.name || prof.full_name || "Manager");
 
       await loadData();
     })();
@@ -76,12 +107,24 @@ export default function ManagerPage() {
       return;
     }
 
-    const { data: stList } = await supabase.from("staff").select("id,name,position").order("id");
-    const { data: rmList } = await supabase.from("rooms").select("id,name").order("id");
+    // ✅ IMPORTANT: only fetch staff that can be assigned (therapist + attendant)
+    const { data: stList, error: stErr } = await supabase
+      .from("staff")
+      .select("id,name,position")
+      .in("position", ["massage_therapist", "spa_attendant"])
+      .order("name", { ascending: true });
+
+    const { data: rmList, error: rmErr } = await supabase
+      .from("rooms")
+      .select("id,name")
+      .order("name", { ascending: true });
+
+    if (stErr) setMsg((m) => (m ? m + " | " : "") + stErr.message);
+    if (rmErr) setMsg((m) => (m ? m + " | " : "") + rmErr.message);
 
     setAppts((data ?? []) as any);
-    setStaff(stList ?? []);
-    setRooms(rmList ?? []);
+    setStaff((stList ?? []) as StaffRow[]);
+    setRooms((rmList ?? []) as RoomRow[]);
   }
 
   async function logout() {
@@ -116,9 +159,26 @@ export default function ManagerPage() {
     <SiteShell>
       <div className="card cardPad">
         <h2 style={{ marginTop: 0 }}>Manager — Reschedule / Reassign</h2>
-        <p style={{ color: "var(--muted)" }}>Change date, time, therapist, or room per booking.</p>
+
+        {/* ✅ Greeting */}
+        <p style={{ marginTop: 6, color: "var(--muted)" }}>
+          Good day Manager <b>{managerName}</b> !
+        </p>
+
+        <p style={{ color: "var(--muted)" }}>
+          Change date, time, therapist, or room per booking.
+        </p>
+
         <button className="btn" onClick={logout}>Logout</button>
-        {msg && <div className={msg.includes("✅") ? "noticeOk" : "notice"} style={{ marginTop: 12 }}>{msg}</div>}
+
+        {msg && (
+          <div
+            className={msg.includes("✅") ? "noticeOk" : "notice"}
+            style={{ marginTop: 12 }}
+          >
+            {msg}
+          </div>
+        )}
       </div>
 
       <div className="card cardPad" style={{ marginTop: 14 }}>
@@ -135,7 +195,7 @@ export default function ManagerPage() {
               <ManagerRow
                 key={a.id}
                 appt={a}
-                staff={staff}
+                staff={staff}      // ✅ already filtered
                 rooms={rooms}
                 onSave={(vals) => save(a.id, vals)}
               />
@@ -154,8 +214,8 @@ function ManagerRow({
   onSave,
 }: {
   appt: Appt;
-  staff: any[];
-  rooms: any[];
+  staff: StaffRow[];
+  rooms: RoomRow[];
   onSave: (vals: { appt_date: string; appt_time: string; staff_id: number; room_id: number }) => void;
 }) {
   const [date, setDate] = useState(appt.appt_date ?? "");
@@ -163,30 +223,52 @@ function ManagerRow({
   const [staffId, setStaffId] = useState<number>(appt.staff_id ?? 0);
   const [roomId, setRoomId] = useState<number>(appt.room_id ?? 0);
 
+  // ✅ Extra safety: only allow selecting therapist/attendant
+  const allowedStaff = useMemo(() => {
+    return staff.filter((s) => {
+      const p = String(s.position || "").trim().toLowerCase();
+      return p === "massage_therapist" || p === "spa_attendant";
+    });
+  }, [staff]);
+
   return (
     <tr>
-      <td><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></td>
-      <td><input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} /></td>
+      <td>
+        <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </td>
+
+      <td>
+        <input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+      </td>
+
       <td>{appt.customer?.full_name ?? "—"}</td>
       <td>{appt.services?.name ?? "—"}</td>
+
       <td>
         <select value={staffId || ""} onChange={(e) => setStaffId(Number(e.target.value))}>
           <option value="">Select</option>
-          {staff.map((s: any) => (
-            <option key={s.id} value={s.id}>{s.name} ({s.position})</option>
+          {allowedStaff.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} ({s.position})
+            </option>
           ))}
         </select>
       </td>
+
       <td>
         <select value={roomId || ""} onChange={(e) => setRoomId(Number(e.target.value))}>
           <option value="">Select</option>
-          {rooms.map((r: any) => (
+          {rooms.map((r) => (
             <option key={r.id} value={r.id}>{r.name}</option>
           ))}
         </select>
       </td>
+
       <td>
-        <button className="btn btnPrimary" onClick={() => onSave({ appt_date: date, appt_time: time, staff_id: staffId, room_id: roomId })}>
+        <button
+          className="btn btnPrimary"
+          onClick={() => onSave({ appt_date: date, appt_time: time, staff_id: staffId, room_id: roomId })}
+        >
           Save
         </button>
       </td>
