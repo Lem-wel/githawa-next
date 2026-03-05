@@ -31,8 +31,8 @@ export default function Home() {
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link className="pill" href="/book">Book Spa</Link>
             <Link className="pill" href="/badges">Badges</Link>
+            <Link className="pill" href="/activities">Wellness Activities</Link>
           </div>
         </div>
 

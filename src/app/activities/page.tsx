@@ -13,7 +13,7 @@ const activities = [
   {
     title: "Pilates",
     desc: "Core strength training.",
-    img: "/activites/pilates.png",
+    img: "/activities/pilates.png",
     urlLabel: "Speranza Pilates BGC",
     url: "https://speranzapilates.com/",
   },
