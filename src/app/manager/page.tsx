@@ -174,11 +174,6 @@ export default function ManagerPage() {
         <p style={{ color: "var(--muted)" }}>
           Change date, time, therapist, or room per booking.
         </p>
-
-        <button className="btn" onClick={logout}>
-          Logout
-        </button>
-
         {msg && (
           <div
             className={msg.includes("✅") ? "noticeOk" : "notice"}

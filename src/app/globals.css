@@ -567,3 +567,24 @@ input, select, textarea { font-size: 16px; }
   color: var(--sage);
   font-weight: 600;
 }
+select{
+  width: 100%;
+  max-width: 100%;
+  padding: 14px 16px;
+  font-size: 14px;
+}
+
+/* Prevent card from cutting dropdown arrow */
+.card{
+  overflow: visible;
+}
+
+/* Extra mobile safety */
+@media (max-width: 520px){
+
+  select{
+    width: 100%;
+    font-size: 14px;
+  }
+
+}
