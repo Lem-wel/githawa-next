@@ -78,7 +78,7 @@ export default function DashboardPage() {
     )
   `)
   .eq("user_id", auth.user.id)
-  .order("unlocked_at", { ascending: false });
+  .order("earned_at", { ascending: false });
 
 setUnlockedBadges(ub ?? []);
     })();
@@ -182,7 +182,7 @@ setUnlockedBadges(ub ?? []);
       </div>
 
       <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>
-        Unlocked: {new Date(row.unlocked_at).toLocaleString()}
+        Unlocked: {new Date(row.earned_at).toLocaleString()}
       </div>
     </div>
   </div>
