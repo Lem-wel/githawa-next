@@ -68,7 +68,7 @@ export default function DashboardPage() {
       // count badges (if you have user_badges table)
       const { data: ub, error: ubErr } = await supabase
   .from("user_badges")
-  .select("unlocked_at, badges(id,title,description,icon,code)")
+  .select("earned_at, badges(id,title,description,icon,code)")
   .eq("user_id", auth.user.id)
   .order("earned_at", { ascending: false });
 
