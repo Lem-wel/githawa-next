@@ -667,3 +667,19 @@ select{
     gap: 12px;
   }
 }
+.tag {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  font-size: 12px;
+}
+
+.tagOk {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #8FAF9A;
+  background: rgba(143,175,154,0.18);
+  font-size: 12px;
+}

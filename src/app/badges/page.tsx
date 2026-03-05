@@ -1,56 +1,126 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import SiteShell from "@/components/SiteShell";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
+import SiteShell from "@/components/SiteShell";
 import Link from "next/link";
 
+type Badge = {
+  id: number;
+  code: string;
+  title: string;
+  description: string | null;
+  icon: string | null;
+  required_count: number | null;
+};
+
 export default function BadgesPage() {
-  const router = useRouter();
   const [msg, setMsg] = useState("");
-  const [count, setCount] = useState(0);
+  const [allBadges, setAllBadges] = useState<Badge[]>([]);
+  const [unlockedSet, setUnlockedSet] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     (async () => {
       setMsg("");
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return router.push("/login");
 
-      const { count, error } = await supabase
-        .from("appointments")
-        .select("id", { count: "exact", head: true })
+      // 1) load ALL badges
+      const { data: b, error: bErr } = await supabase
+        .from("badges")
+        .select("id,code,title,description,icon,required_count")
+        .order("id", { ascending: true });
+
+      if (bErr) setMsg(bErr.message);
+      setAllBadges((b ?? []) as Badge[]);
+
+      // 2) if logged in, load unlocked badges
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+
+      const { data: ub, error: ubErr } = await supabase
+        .from("user_badges")
+        .select("badge_id")
         .eq("user_id", auth.user.id);
 
-      if (error) setMsg(error.message);
-      setCount(count ?? 0);
-    })();
-  }, [router]);
+      if (ubErr) setMsg((m) => (m ? m + " | " : "") + ubErr.message);
 
-  const badges = useMemo(() => {
-    return [
-      { id: "b1", title: "First Step", desc: "Book your first appointment.", earned: count >= 1 },
-      { id: "b2", title: "Consistency", desc: "Book 2 appointments.", earned: count >= 2 },
-      { id: "b3", title: "Wellness Regular", desc: "Book 5 appointments.", earned: count >= 5 },
-    ];
-  }, [count]);
+      const set = new Set<number>((ub ?? []).map((x: any) => x.badge_id));
+      setUnlockedSet(set);
+    })();
+  }, []);
+
+  const unlockedCount = useMemo(() => {
+    let c = 0;
+    for (const b of allBadges) if (unlockedSet.has(b.id)) c++;
+    return c;
+  }, [allBadges, unlockedSet]);
 
   return (
     <SiteShell>
       <div className="card cardPad">
-        <h2 style={{ marginTop: 0 }}>Badges</h2>
-        <p style={{ color: "var(--muted)" }}>Earn badges by booking appointments. Total bookings: <b>{count}</b></p>
-        {msg && <div className="notice">{msg}</div>}
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <h2 style={{ margin: 0 }}>Badges</h2>
+            <p style={{ color: "var(--muted)", marginTop: 6 }}>
+              Unlocked {unlockedCount} / {allBadges.length}
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <Link className="btn" href="/dashboard">Dashboard</Link>
+          </div>
+        </div>
+
+        {msg && <div className="notice" style={{ marginTop: 12 }}>{msg}</div>}
       </div>
 
-      <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
-        {badges.map((b) => (
-          <div key={b.id} className="card cardPad" style={{ boxShadow: "none" }}>
-            <div className="pill">{b.earned ? "Unlocked ✅" : "Locked 🔒"}</div>
-            <h3 style={{ margin: "10px 0 6px" }}>{b.title}</h3>
-            <p style={{ margin: 0, color: "var(--muted)" }}>{b.desc}</p>
+      <div className="card cardPad" style={{ marginTop: 14 }}>
+        {allBadges.length === 0 ? (
+          <p style={{ color: "var(--muted)" }}>No badges found.</p>
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            {allBadges.map((b) => {
+              const unlocked = unlockedSet.has(b.id);
+
+              return (
+                <div
+                  key={b.id}
+                  className="card cardPad"
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    alignItems: "center",
+                    opacity: unlocked ? 1 : 0.55,
+                  }}
+                >
+                  <div style={{ fontSize: 28 }}>{b.icon ?? "🏅"}</div>
+
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                      <b>{b.title}</b>
+                      <span className={unlocked ? "tagOk" : "tag"}>
+                        {unlocked ? "Unlocked" : "Locked"}
+                      </span>
+                    </div>
+
+                    <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>
+                      {b.description ?? "—"}
+                    </div>
+
+                    {b.required_count != null && (
+                      <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 6 }}>
+                        Requirement: {b.required_count} bookings
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ fontSize: 18 }}>
+                    {unlocked ? "✅" : "🔒"}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ))}
+        )}
       </div>
     </SiteShell>
   );

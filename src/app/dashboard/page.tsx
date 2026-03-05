@@ -30,6 +30,8 @@ export default function DashboardPage() {
   const [showBookings, setShowBookings] = useState(false);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
+  const [unlockedBadges, setUnlockedBadges] = useState<any[]>([]);
+  const [showUnlocked, setShowUnlocked] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -64,12 +66,14 @@ export default function DashboardPage() {
       setBookingCount(apptCount ?? 0);
 
       // count badges (if you have user_badges table)
-      const { count: bCount } = await supabase
-        .from("user_badges")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", auth.user.id);
+      const { data: ub, error: ubErr } = await supabase
+  .from("user_badges")
+  .select("unlocked_at, badges(id,title,description,icon,code)")
+  .eq("user_id", auth.user.id)
+  .order("earned_at", { ascending: false });
 
-      setBadgeCount(bCount ?? 0);
+if (ubErr) setMsg(ubErr.message);
+setUnlockedBadges(ub ?? []);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -149,12 +153,38 @@ export default function DashboardPage() {
           Bookings <b style={{ marginLeft: 6 }}>{bookingCount}</b>
         </button>
 
-        <Link className="pill" href="/badges">
-          Badges <b style={{ marginLeft: 6 }}>{badgeCount}</b>
-        </Link>
-
-
+        <button
+          className="pill"
+           onClick={() => setShowUnlocked((v) => !v)}
+           >Badges <span className="pillNum">{unlockedBadges.length}</span>
+        </button>
       </div>
+      {showUnlocked && (
+  <div className="card cardPad" style={{ marginTop: 14 }}>
+    <h3 style={{ marginTop: 0 }}>Unlocked Badges</h3>
+
+    {unlockedBadges.length === 0 ? (
+      <p style={{ color: "var(--muted)" }}>No badges unlocked yet.</p>
+    ) : (
+      <div style={{ display: "grid", gap: 10 }}>
+        {unlockedBadges.map((row: any) => (
+          <div key={row.badges.id} className="card cardPad" style={{ display: "flex", gap: 12 }}>
+            <div style={{ fontSize: 26 }}>{row.badges.icon ?? "🏅"}</div>
+            <div>
+              <b>{row.badges.title}</b>
+              <div style={{ color: "var(--muted)", fontSize: 13 }}>
+                {row.badges.description}
+              </div>
+              <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>
+                Unlocked: {new Date(row.unlocked_at).toLocaleString()}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
 
       {/* ✅ Bookings list appears after click */}
       {showBookings && (
