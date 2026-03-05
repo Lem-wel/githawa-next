@@ -5,7 +5,7 @@ import SiteShell from "@/components/SiteShell";
 
 export default function Home() {
   return (
-    <SiteShell right={<span className="pill">A personalized spa and wellness website.</span>}>
+    <SiteShell>
       <section className="gridHero">
         <div>
           <h1 className="h1">
