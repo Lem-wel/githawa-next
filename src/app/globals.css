@@ -297,6 +297,7 @@ html, body{
   color: #2c5a36;
 }
 
+
 /* =========================
    Responsive
    ========================= */
@@ -317,4 +318,7 @@ html, body{
   .heroActions .btn{ width: 100%; text-align:center; }
   .brand-badge{ width: 64px; height: 52px; }
   .navlinks{ gap: 16px; }
+}
+body{
+  zoom: 1.25;
 }
