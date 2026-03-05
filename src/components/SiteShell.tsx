@@ -59,12 +59,12 @@ export default function SiteShell({
             title="Ginhawa"
           >
             <Image
-              src="/logo.jpg"
-              alt="Ginhawa Logo"
-              width={44}
-              height={34}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              priority
+            src="/logo.jpg"
+            alt="Ginhawa Logo"
+            width={56}
+            height={44}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            priority
             />
           </div>
           <span>Ginhawa</span>
