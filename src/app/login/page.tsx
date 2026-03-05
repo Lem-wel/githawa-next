@@ -64,7 +64,7 @@ export default function LoginPage() {
       margin: "0 auto",
       padding: "46px 28px 64px", // like your .container spacing
       display: "flex",
-      justifyContent: "flex-center"
+      justifyContent: "center"
     }}
   >
     <div
