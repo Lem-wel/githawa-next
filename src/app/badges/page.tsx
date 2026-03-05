@@ -5,36 +5,35 @@ import { supabase } from "@/lib/supabaseClient";
 import SiteShell from "@/components/SiteShell";
 import Link from "next/link";
 
-type Badge = {
+type BadgeRow = {
   id: number;
-  code: string;
-  title: string;
+  code: string | null;
+  name: string;                 // ✅ your table uses name
   description: string | null;
-  icon: string | null;
-  required_count: number | null;
+  icon: string | null;          // ✅ you added icon column
 };
 
 export default function BadgesPage() {
   const [msg, setMsg] = useState("");
-  const [allBadges, setAllBadges] = useState<Badge[]>([]);
+  const [allBadges, setAllBadges] = useState<BadgeRow[]>([]);
   const [unlockedSet, setUnlockedSet] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     (async () => {
       setMsg("");
 
-      // 1) load ALL badges
+      // 1) Load ALL badges (locked + unlocked)
       const { data: b, error: bErr } = await supabase
         .from("badges")
-        .select("id,code,title,description,icon,required_count")
+        .select("id,code,name,description,icon")
         .order("id", { ascending: true });
 
       if (bErr) setMsg(bErr.message);
-      setAllBadges((b ?? []) as Badge[]);
+      setAllBadges((b ?? []) as BadgeRow[]);
 
-      // 2) if logged in, load unlocked badges
+      // 2) If logged in, load unlocked badge ids
       const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return;
+      if (!auth.user) return; // not logged in => just show all locked
 
       const { data: ub, error: ubErr } = await supabase
         .from("user_badges")
@@ -43,7 +42,7 @@ export default function BadgesPage() {
 
       if (ubErr) setMsg((m) => (m ? m + " | " : "") + ubErr.message);
 
-      const set = new Set<number>((ub ?? []).map((x: any) => x.badge_id));
+      const set = new Set<number>((ub ?? []).map((x: any) => Number(x.badge_id)));
       setUnlockedSet(set);
     })();
   }, []);
@@ -57,7 +56,15 @@ export default function BadgesPage() {
   return (
     <SiteShell>
       <div className="card cardPad">
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
           <div>
             <h2 style={{ margin: 0 }}>Badges</h2>
             <p style={{ color: "var(--muted)", marginTop: 6 }}>
@@ -65,12 +72,16 @@ export default function BadgesPage() {
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <Link className="btn" href="/dashboard">Dashboard</Link>
-          </div>
+          <Link className="btn" href="/dashboard">
+            Dashboard
+          </Link>
         </div>
 
-        {msg && <div className="notice" style={{ marginTop: 12 }}>{msg}</div>}
+        {msg && (
+          <div className="notice" style={{ marginTop: 12 }}>
+            {msg}
+          </div>
+        )}
       </div>
 
       <div className="card cardPad" style={{ marginTop: 14 }}>
@@ -95,8 +106,16 @@ export default function BadgesPage() {
                   <div style={{ fontSize: 28 }}>{b.icon ?? "🏅"}</div>
 
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                      <b>{b.title}</b>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <b>{b.name}</b>
+
                       <span className={unlocked ? "tagOk" : "tag"}>
                         {unlocked ? "Unlocked" : "Locked"}
                       </span>
@@ -106,16 +125,14 @@ export default function BadgesPage() {
                       {b.description ?? "—"}
                     </div>
 
-                    {b.required_count != null && (
+                    {b.code && (
                       <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 6 }}>
-                        Requirement: {b.required_count} bookings
+                        Code: {b.code}
                       </div>
                     )}
                   </div>
 
-                  <div style={{ fontSize: 18 }}>
-                    {unlocked ? "✅" : "🔒"}
-                  </div>
+                  <div style={{ fontSize: 18 }}>{unlocked ? "✅" : "🔒"}</div>
                 </div>
               );
             })}
