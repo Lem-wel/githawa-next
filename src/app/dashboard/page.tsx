@@ -126,7 +126,13 @@ export default function DashboardPage() {
 
   return (
     <SiteShell>
-      <div className="card cardPad">
+      <div
+  className="card cardPad"
+  style={{
+    maxWidth: 900,   // slimmer container
+    margin: "0 auto" // keeps it centered
+  }}
+>
         <h2 style={{ marginTop: 0 }}>Dashboard</h2>
 
         <div style={{ color: "var(--muted)" }}>

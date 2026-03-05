@@ -96,7 +96,6 @@ export default function AttendantPage() {
       <div className="card cardPad">
         <h2 style={{ marginTop: 0 }}>My Schedule</h2>
         <p style={{ color: "var(--muted)" }}>Hello, <b>{name}</b> (Spa Attendant)</p>
-        <button className="btn" onClick={logout}>Logout</button>
         {msg && <div className="notice" style={{ marginTop: 12 }}>{msg}</div>}
       </div>
 

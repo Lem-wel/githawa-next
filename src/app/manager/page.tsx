@@ -12,7 +12,7 @@ type Appt = {
   duration_minutes: number | null;
   staff_id: number | null;
   room_id: number | null;
-  services?: { name?: string } | null;
+  services?: { name?: string; category?: string | null } | null; // ✅ include category
   rooms?: { name?: string } | null;
   customer?: { full_name?: string } | null;
 };
@@ -27,6 +27,10 @@ type RoomRow = {
   id: number;
   name: string;
 };
+
+function isMassageCategory(category: string | null | undefined) {
+  return String(category ?? "").toLowerCase().includes("massage");
+}
 
 export default function ManagerPage() {
   const router = useRouter();
@@ -94,7 +98,7 @@ export default function ManagerPage() {
         duration_minutes,
         staff_id,
         room_id,
-        services(name),
+        services(name, category),
         rooms(name),
         customer:profiles!appointments_user_id_profiles_fkey(full_name)
       `)
@@ -107,7 +111,7 @@ export default function ManagerPage() {
       return;
     }
 
-    // ✅ IMPORTANT: only fetch staff that can be assigned (therapist + attendant)
+    // ✅ only staff that can be assigned
     const { data: stList, error: stErr } = await supabase
       .from("staff")
       .select("id,name,position")
@@ -132,7 +136,10 @@ export default function ManagerPage() {
     router.push("/login");
   }
 
-  async function save(apptId: number, vals: { appt_date: string; appt_time: string; staff_id: number; room_id: number }) {
+  async function save(
+    apptId: number,
+    vals: { appt_date: string; appt_time: string; staff_id: number; room_id: number }
+  ) {
     setMsg("");
 
     const { data: sessionData } = await supabase.auth.getSession();
@@ -160,7 +167,6 @@ export default function ManagerPage() {
       <div className="card cardPad">
         <h2 style={{ marginTop: 0 }}>Manager — Reschedule / Reassign</h2>
 
-        {/* ✅ Greeting */}
         <p style={{ marginTop: 6, color: "var(--muted)" }}>
           Good day Manager <b>{managerName}</b> !
         </p>
@@ -169,7 +175,9 @@ export default function ManagerPage() {
           Change date, time, therapist, or room per booking.
         </p>
 
-        <button className="btn" onClick={logout}>Logout</button>
+        <button className="btn" onClick={logout}>
+          Logout
+        </button>
 
         {msg && (
           <div
@@ -185,21 +193,31 @@ export default function ManagerPage() {
         <table className="table">
           <thead>
             <tr>
-              <th>Date</th><th>Time</th><th>Customer</th><th>Service</th><th>Therapist</th><th>Room</th><th>Action</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Customer</th>
+              <th>Service</th>
+              <th>Therapist</th>
+              <th>Room</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {appts.length === 0 ? (
-              <tr><td colSpan={7}>No appointments found.</td></tr>
-            ) : appts.map((a) => (
-              <ManagerRow
-                key={a.id}
-                appt={a}
-                staff={staff}      // ✅ already filtered
-                rooms={rooms}
-                onSave={(vals) => save(a.id, vals)}
-              />
-            ))}
+              <tr>
+                <td colSpan={7}>No appointments found.</td>
+              </tr>
+            ) : (
+              appts.map((a) => (
+                <ManagerRow
+                  key={a.id}
+                  appt={a}
+                  staff={staff}
+                  rooms={rooms}
+                  onSave={(vals) => save(a.id, vals)}
+                />
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -220,35 +238,56 @@ function ManagerRow({
 }) {
   const [date, setDate] = useState(appt.appt_date ?? "");
   const [time, setTime] = useState(String(appt.appt_time ?? "").slice(0, 5));
-  const [staffId, setStaffId] = useState<number>(appt.staff_id ?? 0);
-  const [roomId, setRoomId] = useState<number>(appt.room_id ?? 0);
+  const [staffId, setStaffId] = useState<string>(appt.staff_id ? String(appt.staff_id) : "");
+  const [roomId, setRoomId] = useState<string>(appt.room_id ? String(appt.room_id) : "");
 
-  // ✅ Extra safety: only allow selecting therapist/attendant
+  // ✅ categorize therapist list per appointment’s service category
   const allowedStaff = useMemo(() => {
+    const serviceCat = appt.services?.category ?? null;
+    const needsMassageTherapist = isMassageCategory(serviceCat);
+
     return staff.filter((s) => {
       const p = String(s.position || "").trim().toLowerCase();
-      return p === "massage_therapist" || p === "spa_attendant";
+      if (needsMassageTherapist) return p === "massage_therapist";
+      return p === "spa_attendant";
     });
-  }, [staff]);
+  }, [staff, appt.services?.category]);
+
+  const canSave = Boolean(date && time && staffId && roomId);
 
   return (
     <tr>
       <td>
-        <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        <input
+          className="input"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
       </td>
 
       <td>
-        <input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        <input
+          className="input"
+          type="time"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+        />
       </td>
 
       <td>{appt.customer?.full_name ?? "—"}</td>
-      <td>{appt.services?.name ?? "—"}</td>
+      <td>
+        {appt.services?.name ?? "—"}
+        <div style={{ color: "var(--muted)", fontSize: 12 }}>
+          {appt.services?.category ?? ""}
+        </div>
+      </td>
 
       <td>
-        <select value={staffId || ""} onChange={(e) => setStaffId(Number(e.target.value))}>
+        <select value={staffId} onChange={(e) => setStaffId(e.target.value)}>
           <option value="">Select</option>
           {allowedStaff.map((s) => (
-            <option key={s.id} value={s.id}>
+            <option key={s.id} value={String(s.id)}>
               {s.name} ({s.position})
             </option>
           ))}
@@ -256,10 +295,12 @@ function ManagerRow({
       </td>
 
       <td>
-        <select value={roomId || ""} onChange={(e) => setRoomId(Number(e.target.value))}>
+        <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
           <option value="">Select</option>
           {rooms.map((r) => (
-            <option key={r.id} value={r.id}>{r.name}</option>
+            <option key={r.id} value={String(r.id)}>
+              {r.name}
+            </option>
           ))}
         </select>
       </td>
@@ -267,7 +308,15 @@ function ManagerRow({
       <td>
         <button
           className="btn btnPrimary"
-          onClick={() => onSave({ appt_date: date, appt_time: time, staff_id: staffId, room_id: roomId })}
+          disabled={!canSave}
+          onClick={() =>
+            onSave({
+              appt_date: date,
+              appt_time: time,
+              staff_id: Number(staffId),
+              room_id: Number(roomId),
+            })
+          }
         >
           Save
         </button>
