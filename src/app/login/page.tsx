@@ -60,7 +60,7 @@ export default function LoginPage() {
   <SiteShell>
     <div
       style={{
-        minHeight: "calc(100vh - 120px)", // adjust if your header is taller/shorter
+        minHeight: "calc(100vh - 100px)", // adjust if your header is taller/shorter
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
