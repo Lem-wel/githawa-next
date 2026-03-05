@@ -53,22 +53,17 @@ export default function SiteShell({
       <header className="navbar">
         {/* ✅ Logo + Brand */}
         <div className="brand">
-          <div
-            className="brand-badge"
-            style={{ overflow: "hidden", padding: 0 }}
-            title="Ginhawa"
-          >
-            <Image
-            src="/logo.jpg"
-            alt="Ginhawa Logo"
-            width={56}
-            height={44}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            priority
-            />
-          </div>
-          <span>Ginhawa</span>
-        </div>
+  <div className="brand-badge">
+    <Image
+      src="/logo.jpg"
+      alt="Ginhawa Logo"
+      width={72}
+      height={72}
+      priority
+    />
+  </div>
+  <span style={{fontWeight:600}}>Ginhawa</span>
+</div>
 
         {/* Links */}
         <nav className="navlinks">
