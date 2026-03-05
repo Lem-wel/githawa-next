@@ -443,3 +443,15 @@ input, select, textarea { font-size: 16px; }
     text-align: center;
   }
 }
+@media (min-width: 1024px){
+  body{
+    zoom: 1.25;
+  }
+}
+
+/* Mobile reset */
+@media (max-width: 768px){
+  body{
+    zoom: 1;
+  }
+}
