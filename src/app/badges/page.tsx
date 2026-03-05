@@ -36,7 +36,7 @@ export default function BadgesPage() {
   }, [count]);
 
   return (
-    <SiteShell right={<Link className="btn" href="/dashboard">Dashboard</Link>}>
+    <SiteShell>
       <div className="card cardPad">
         <h2 style={{ marginTop: 0 }}>Badges</h2>
         <p style={{ color: "var(--muted)" }}>Earn badges by booking appointments. Total bookings: <b>{count}</b></p>

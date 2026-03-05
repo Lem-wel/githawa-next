@@ -1,163 +1,254 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import SiteShell from "@/components/SiteShell";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import SiteShell from "@/components/SiteShell";
 
-type Service = { id: number; name: string; category: string; duration_minutes: number; price: number; video_url?: string | null };
-type Staff = { id: number; name: string; position: string };
-type Room = { id: number; name: string };
+type Service = {
+  id: number;
+  name: string;
+  description: string | null;
+  duration_minutes: number;
+  price: number;
+  category: string | null;
+};
+
+type StaffRow = { id: number; name: string; position: string };
+type RoomRow = { id: number; name: string };
 
 export default function BookPage() {
   const router = useRouter();
   const [msg, setMsg] = useState("");
 
   const [services, setServices] = useState<Service[]>([]);
-  const [staff, setStaff] = useState<Staff[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [addons, setAddons] = useState<Service[]>([]);
+  const [staff, setStaff] = useState<StaffRow[]>([]);
+  const [rooms, setRooms] = useState<RoomRow[]>([]);
 
-  const [serviceId, setServiceId] = useState("");
-  const [staffId, setStaffId] = useState("");
-  const [roomId, setRoomId] = useState("");
-  const [apptDate, setApptDate] = useState("");
-  const [apptTime, setApptTime] = useState("");
+  const [serviceId, setServiceId] = useState<number | "">("");
+  const [staffId, setStaffId] = useState<number | "">("");
+  const [roomId, setRoomId] = useState<number | "">("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+
+  // ✅ selected add-ons
+  const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
+
+  const mainService = useMemo(
+    () => services.find((s) => s.id === serviceId) || null,
+    [services, serviceId]
+  );
 
   useEffect(() => {
     (async () => {
       setMsg("");
+
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return router.push("/login");
 
+      // load services
       const { data: svc, error: sErr } = await supabase
         .from("services")
-        .select("id,name,category,duration_minutes,price,video_url")
+        .select("id,name,description,duration_minutes,price,category")
         .order("category", { ascending: true })
         .order("name", { ascending: true });
+
       if (sErr) setMsg(sErr.message);
 
-      const { data: st, error: stErr } = await supabase
+      const all = (svc ?? []) as Service[];
+
+      // ✅ split: main services vs addons
+      setAddons(all.filter((x) => (x.category || "").toLowerCase() === "addon"));
+      setServices(all.filter((x) => (x.category || "").toLowerCase() !== "addon"));
+
+      // load staff (your logic may be different — keep whatever you already have)
+      const { data: st } = await supabase
         .from("staff")
         .select("id,name,position")
-        .order("id", { ascending: true });
-      if (stErr) setMsg((m) => (m ? m + " | " : "") + stErr.message);
+        .order("name", { ascending: true });
 
-      const { data: rm, error: rErr } = await supabase
+      setStaff((st ?? []) as StaffRow[]);
+
+      // load rooms
+      const { data: rm } = await supabase
         .from("rooms")
         .select("id,name")
-        .order("id", { ascending: true });
-      if (rErr) setMsg((m) => (m ? m + " | " : "") + rErr.message);
+        .order("name", { ascending: true });
 
-      setServices((svc ?? []) as Service[]);
-      setStaff((st ?? []) as Staff[]);
-      setRooms((rm ?? []) as Room[]);
+      setRooms((rm ?? []) as RoomRow[]);
     })();
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const selectedService = useMemo(() => {
-    const idNum = Number(serviceId);
-    return services.find((s) => s.id === idNum) || null;
-  }, [serviceId, services]);
+  function toggleAddon(addonId: number) {
+    setSelectedAddons((prev) =>
+      prev.includes(addonId) ? prev.filter((id) => id !== addonId) : [...prev, addonId]
+    );
+  }
 
-  const isMassage = (selectedService?.category || "") === "Massage Therapies";
+  const addonsTotal = useMemo(() => {
+    const map = new Map(addons.map((a) => [a.id, a.price]));
+    return selectedAddons.reduce((sum, id) => sum + (map.get(id) ?? 0), 0);
+  }, [addons, selectedAddons]);
 
-  const compatibleStaff = useMemo(() => {
-    return staff.filter((s) => {
-      const pos = String(s.position || "").trim().toLowerCase();
-      if (isMassage) return pos === "massage_therapist";
-      return pos === "spa_attendant";
-    });
-  }, [staff, isMassage]);
+  const totalPrice = useMemo(() => {
+    return (mainService?.price ?? 0) + addonsTotal;
+  }, [mainService, addonsTotal]);
 
-  useEffect(() => {
-    setStaffId("");
-  }, [serviceId]);
-
-  async function bookNow() {
+  async function book() {
     setMsg("");
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return router.push("/login");
 
-    if (!serviceId || !staffId || !roomId || !apptDate || !apptTime) {
-      setMsg("Please complete all fields.");
+    if (!serviceId || !staffId || !roomId || !date || !time) {
+      setMsg("Please complete all required fields.");
       return;
     }
 
-    const duration = selectedService?.duration_minutes ?? 60;
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
+    if (!uid) return router.push("/login");
 
-    const { error } = await supabase.from("appointments").insert({
-      user_id: auth.user.id,
-      service_id: Number(serviceId),
-      staff_id: Number(staffId),
-      room_id: Number(roomId),
-      appt_date: apptDate,
-      appt_time: apptTime,
-      duration_minutes: duration,
-    });
+    // ✅ 1) insert appointment (main service only)
+    const { data: inserted, error: insErr } = await supabase
+      .from("appointments")
+      .insert([
+        {
+          user_id: uid,
+          service_id: Number(serviceId),
+          staff_id: Number(staffId),
+          room_id: Number(roomId),
+          appt_date: date,
+          appt_time: time,
+          duration_minutes: mainService?.duration_minutes ?? 60,
+        },
+      ])
+      .select("id")
+      .single();
 
-    if (error) return setMsg(error.message);
+    if (insErr || !inserted) {
+      setMsg(insErr?.message || "Failed to book appointment.");
+      return;
+    }
 
-    setMsg("Booked successfully ✅");
+    const appointmentId = inserted.id as number;
+
+    // ✅ 2) insert selected add-ons
+    if (selectedAddons.length > 0) {
+      const rows = selectedAddons.map((addonId) => ({
+        appointment_id: appointmentId,
+        addon_service_id: addonId,
+      }));
+
+      const { error: addErr } = await supabase.from("appointment_addons").insert(rows);
+      if (addErr) {
+        setMsg("Booked, but add-ons failed to save: " + addErr.message);
+        return;
+      }
+    }
+
+    setMsg("Appointment booked ✅");
+    // reset optional
+    setSelectedAddons([]);
+    router.push("/dashboard");
   }
 
   return (
-    <SiteShell right={<Link className="btn" href="/dashboard">Dashboard</Link>}>
-      <div className="card cardPad" style={{ maxWidth: 860 }}>
+    <SiteShell>
+      <div className="card cardPad">
         <h2 style={{ marginTop: 0 }}>Book Appointment</h2>
-        {msg && <div className={msg.includes("✅") ? "noticeOk" : "notice"} style={{ marginBottom: 12 }}>{msg}</div>}
 
-        <label>Service</label>
-        <select value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
-          <option value="">Select service</option>
-          {services.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name} — ₱{s.price} ({s.category})
-            </option>
-          ))}
-        </select>
+        {msg && <div className={msg.includes("✅") ? "noticeOk" : "notice"}>{msg}</div>}
 
-        {selectedService && (
+        <div style={{ marginTop: 12 }}>
+          <label>Service</label>
+          <select value={serviceId} onChange={(e) => setServiceId(e.target.value ? Number(e.target.value) : "")}>
+            <option value="">Select service</option>
+            {services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} — ₱{s.price} ({s.category || "service"})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* ✅ Add-ons section */}
+        <div style={{ marginTop: 16 }}>
+          <label>
+            Add-Ons <span style={{ color: "var(--muted)" }}>(optional)</span>
+          </label>
+
+          <div className="card cardPad" style={{ marginTop: 8 }}>
+            {addons.length === 0 ? (
+              <p style={{ color: "var(--muted)", margin: 0 }}>No add-ons yet.</p>
+            ) : (
+              <div style={{ display: "grid", gap: 10 }}>
+                {addons.map((a) => {
+                  const checked = selectedAddons.includes(a.id);
+                  return (
+                    <label key={a.id} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleAddon(a.id)}
+                        style={{ width: 18, height: 18 }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <b>{a.name}</b>{" "}
+                        <span style={{ color: "var(--muted)" }}>
+                          — ₱{a.price} • {a.duration_minutes} mins
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ✅ live total */}
           <p style={{ marginTop: 10, color: "var(--muted)" }}>
-            Staff required: <b>{isMassage ? "Massage Therapist" : "Spa Attendant"}</b>
+            Total estimate: <b>₱{totalPrice}</b>
           </p>
-        )}
-
-        <div className="formRow" style={{ marginTop: 10 }}>
-          <div>
-            <label>Staff</label>
-            <select value={staffId} onChange={(e) => setStaffId(e.target.value)} disabled={!serviceId}>
-              <option value="">{serviceId ? "Select staff" : "Select service first"}</option>
-              {compatibleStaff.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label>Room</label>
-            <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
-              <option value="">Select room</option>
-              {rooms.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
-          </div>
         </div>
 
-        <div className="formRow" style={{ marginTop: 10 }}>
-          <div>
-            <label>Date</label>
-            <input className="input" type="date" value={apptDate} onChange={(e) => setApptDate(e.target.value)} />
-          </div>
-          <div>
-            <label>Time</label>
-            <input className="input" type="time" value={apptTime} onChange={(e) => setApptTime(e.target.value)} />
-          </div>
+        <div style={{ marginTop: 12 }}>
+          <label>Staff</label>
+          <select value={staffId} onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : "")}>
+            <option value="">Select staff</option>
+            {staff.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.position})
+              </option>
+            ))}
+          </select>
         </div>
 
-        <div style={{ marginTop: 14 }}>
-          <button className="btn btnPrimary" onClick={bookNow}>Book Now</button>
+        <div style={{ marginTop: 12 }}>
+          <label>Room</label>
+          <select value={roomId} onChange={(e) => setRoomId(e.target.value ? Number(e.target.value) : "")}>
+            <option value="">Select room</option>
+            {rooms.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <label>Date</label>
+          <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <label>Time</label>
+          <input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <button className="btn btnPrimary" onClick={book}>
+            Book Now
+          </button>
         </div>
       </div>
     </SiteShell>

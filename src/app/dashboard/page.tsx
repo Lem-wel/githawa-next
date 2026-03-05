@@ -196,8 +196,8 @@ export default function DashboardPage() {
 
         {/* ✅ Main tabs */}
         <div style={{ marginTop: 20, display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Link className="btn" href="/services">Spa Services</Link>
           <Link className="btn btnPrimary" href="/book">Book Appointment</Link>
+          <Link className="btn" href="/services">Spa Services</Link>
           <Link className="btn" href="/badges">Badges</Link>
           <Link className="btn" href="/activities">Wellness Activities</Link>
           <button className="btn" onClick={logout}>Logout</button>

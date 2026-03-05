@@ -11,7 +11,7 @@ const activities = [
 
 export default function ActivitiesPage() {
   return (
-    <SiteShell right={<Link className="btn" href="/dashboard">Dashboard</Link>}>
+    <SiteShell>
       <div className="card cardPad">
         <h2 style={{ marginTop: 0 }}>Wellness Activities</h2>
         <p style={{ color: "var(--muted)" }}>
