@@ -58,24 +58,22 @@ export default function LoginPage() {
 
   return (
   <SiteShell>
+  <div
+    style={{
+      maxWidth: 1280,
+      margin: "0 auto",
+      padding: "46px 28px 64px", // like your .container spacing
+    }}
+  >
     <div
+      className="card cardPad"
       style={{
-        minHeight: "calc(100vh - 100px)", // adjust if your header is taller/shorter
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "28px 0",
+        width: "100%",
+        maxWidth: 620,
+        padding: 34,
       }}
     >
-      <div
-        className="card cardPad"
-        style={{
-          width: "100%",
-          maxWidth: 620, // ✅ bigger (was 520)
-          padding: 34,   // ✅ more breathing room
-        }}
-      >
-        <h2
+       <h2
           style={{
             marginTop: 0,
             fontFamily: "var(--font-heading)",
@@ -110,8 +108,9 @@ export default function LoginPage() {
         <button className="btn btnPrimary" onClick={login}>
           Log In
         </button>
-      </div>
+      {/* your login form here */}
     </div>
-  </SiteShell>
+  </div>
+</SiteShell>
 );
 }
