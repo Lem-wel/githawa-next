@@ -7,19 +7,29 @@ const activities = [
     title: "Yoga",
     desc: "Improve flexibility & calm.",
     img: "/activities/yoga.jpg",
-    url: "https://example.com/yoga",
+    urlLabel: "Bikram Yoga Manila / YogaPlus",
+    url: "PASTE_OFFICIAL_YOGA_STUDIO_URL_HERE",
   },
   {
     title: "Pilates",
     desc: "Core strength training.",
-    img: "/activities/pilates.jpg",
-    url: "https://example.com/pilates",
+    img: "/public/pilates.png",
+    urlLabel: "Speranza Pilates BGC",
+    url: "https://speranzapilates.com/",
   },
   {
     title: "Gym Workout",
     desc: "Build endurance & strength.",
     img: "/activities/gym.jpg",
-    url: "https://example.com/gym",
+    urlLabel: "Anytime Fitness PH / Fitness First PH",
+    url: "PASTE_ANYTIME_FITNESS_PH_URL_HERE",
+  },
+  {
+    title: "Book Classes (PH)",
+    desc: "Find studios & schedules in your area.",
+    img: "/activities/classpass.jpg",
+    urlLabel: "ClassPass Manila",
+    url: "PASTE_CLASSPASS_PH_URL_HERE",
   },
 ];
 
