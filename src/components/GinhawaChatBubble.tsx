@@ -5,7 +5,6 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
 type Sender = "user" | "bot";
-
 type ActionType = "booking";
 
 type Message = {
@@ -19,6 +18,7 @@ type StaffRow = {
   id?: number;
   full_name?: string | null;
   name?: string | null;
+  department?: string | null;
   position?: string | null;
   role?: string | null;
 };
@@ -58,7 +58,6 @@ function formatStaff(staff: StaffItem[]) {
   if (staff.length === 0) {
     return "Our staff list is still being updated in the system.";
   }
-
   return staff.map((s) => `${s.name} (${s.role})`).join(", ");
 }
 
@@ -68,10 +67,8 @@ function formatServices(services: ServiceItem[]) {
   }
 
   const names = services.map((s) => s.name);
-
   if (names.length === 1) return names[0];
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
-
   return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
 }
 
@@ -83,7 +80,7 @@ function getBotReply(
   const msg = input.toLowerCase().trim();
 
   if (msg.includes("hello") || msg.includes("hi") || msg.includes("hey")) {
-    return "Hello! I'm Ginhawa Buddy. Ask me about services, booking, staff, contact details, or wellness information.";
+    return "Hello. I’m Ginhawa Buddy. I can help you with services, booking, staff, contact details, and wellness information.";
   }
 
   if (
@@ -168,7 +165,7 @@ export default function GinhawaChatBubble() {
     {
       id: 1,
       sender: "bot",
-      text: "Hi! I'm Ginhawa Buddy. How can I help you today?",
+      text: "Welcome to Ginhawa. How may I help you today?",
     },
   ]);
 
@@ -181,17 +178,17 @@ export default function GinhawaChatBubble() {
 
   useEffect(() => {
     async function loadData() {
-      // STAFF
       const { data: staffData } = await supabase
         .from("staff")
-        .select("id, full_name, name, position, role")
+        .select("id, full_name, name, department, position, role")
         .order("id", { ascending: true });
 
       if (Array.isArray(staffData)) {
         const mappedStaff: StaffItem[] = staffData
           .map((row: StaffRow) => {
             const rawName = row.full_name ?? row.name ?? "";
-            const rawRole = row.position ?? row.role ?? "Staff";
+            const rawRole =
+              row.department ?? row.position ?? row.role ?? "Staff";
 
             return {
               name: String(rawName).trim(),
@@ -203,7 +200,6 @@ export default function GinhawaChatBubble() {
         setStaff(mappedStaff);
       }
 
-      // SERVICES
       const { data: serviceData } = await supabase
         .from("services")
         .select("id, name, title, description")
@@ -213,9 +209,7 @@ export default function GinhawaChatBubble() {
         const mappedServices: ServiceItem[] = serviceData
           .map((row: ServiceRow) => {
             const rawName = row.name ?? row.title ?? "";
-            return {
-              name: String(rawName).trim(),
-            };
+            return { name: String(rawName).trim() };
           })
           .filter((item) => item.name.length > 0);
 
@@ -259,7 +253,7 @@ export default function GinhawaChatBubble() {
 
       setMessages((prev) => [...prev, botMsg]);
       setTyping(false);
-    }, 700);
+    }, 600);
   }
 
   return (
@@ -268,36 +262,66 @@ export default function GinhawaChatBubble() {
         <div
           style={{
             position: "fixed",
-            left: 20,
-            bottom: 90,
-            width: 330,
-            height: 460,
-            background: "#fff",
-            borderRadius: 16,
-            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+            left: 24,
+            bottom: 96,
+            width: 360,
+            height: 500,
+            background: "#f7f3ee",
+            borderRadius: 28,
+            boxShadow: "0 18px 45px rgba(60, 70, 50, 0.14)",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             zIndex: 999,
+            border: "1px solid rgba(90, 104, 84, 0.14)",
+            backdropFilter: "blur(10px)",
           }}
         >
           <div
             style={{
-              background: "#7c6cff",
-              color: "#fff",
-              padding: 12,
-              fontWeight: "bold",
+              background: "linear-gradient(180deg, #9ab59d 0%, #88a98e 100%)",
+              color: "#fdfbf7",
+              padding: "18px 20px",
               display: "flex",
               justifyContent: "space-between",
+              alignItems: "center",
+              borderBottom: "1px solid rgba(255,255,255,0.18)",
             }}
           >
-            Ginhawa Buddy
+            <div>
+              <div
+                style={{
+                  fontFamily: '"Playfair Display", serif',
+                  fontSize: 22,
+                  fontWeight: 600,
+                  lineHeight: 1.1,
+                }}
+              >
+                Ginhawa Buddy
+              </div>
+              <div
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: 12,
+                  opacity: 0.92,
+                  marginTop: 4,
+                  letterSpacing: 0.2,
+                }}
+              >
+                Calm support for your wellness visit
+              </div>
+            </div>
+
             <button
               onClick={() => setOpen(false)}
+              aria-label="Close chat"
               style={{
-                background: "transparent",
-                border: "none",
+                background: "rgba(255,255,255,0.18)",
+                border: "1px solid rgba(255,255,255,0.22)",
                 color: "#fff",
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
                 fontSize: 18,
                 cursor: "pointer",
               }}
@@ -309,46 +333,64 @@ export default function GinhawaChatBubble() {
           <div
             style={{
               flex: 1,
-              padding: 10,
+              padding: 16,
               overflowY: "auto",
-              background: "#f7f7ff",
+              background:
+                "linear-gradient(180deg, #f7f3ee 0%, #f3efe8 100%)",
             }}
           >
             {messages.map((msg) => (
               <div
                 key={msg.id}
                 style={{
-                  textAlign: msg.sender === "user" ? "right" : "left",
-                  marginBottom: 10,
+                  display: "flex",
+                  justifyContent:
+                    msg.sender === "user" ? "flex-end" : "flex-start",
+                  marginBottom: 12,
                 }}
               >
                 <div
                   style={{
-                    display: "inline-block",
-                    padding: "8px 12px",
-                    borderRadius: 10,
-                    background: msg.sender === "user" ? "#7c6cff" : "#ecebff",
-                    color: msg.sender === "user" ? "#fff" : "#000",
-                    maxWidth: "80%",
+                    maxWidth: "82%",
+                    padding: "12px 14px",
+                    borderRadius: msg.sender === "user"
+                      ? "20px 20px 8px 20px"
+                      : "20px 20px 20px 8px",
+                    background:
+                      msg.sender === "user" ? "#879f87" : "#ebe4d8",
+                    color: msg.sender === "user" ? "#fffdf9" : "#3f4d40",
+                    border:
+                      msg.sender === "user"
+                        ? "1px solid rgba(135,159,135,0.8)"
+                        : "1px solid rgba(118,132,112,0.12)",
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: 14,
+                    lineHeight: 1.5,
                     whiteSpace: "pre-wrap",
                     wordBreak: "break-word",
+                    boxShadow:
+                      msg.sender === "user"
+                        ? "0 8px 18px rgba(135,159,135,0.14)"
+                        : "0 8px 18px rgba(80,90,70,0.05)",
                   }}
                 >
                   {msg.text}
 
                   {msg.action === "booking" && (
-                    <div style={{ marginTop: 10 }}>
+                    <div style={{ marginTop: 12 }}>
                       <Link
                         href="/booking"
                         style={{
                           display: "inline-block",
-                          padding: "6px 12px",
-                          background: "#7c6cff",
-                          color: "#fff",
-                          borderRadius: 6,
+                          padding: "10px 14px",
+                          background: "#6f8f72",
+                          color: "#fffdf9",
+                          borderRadius: 999,
                           textDecoration: "none",
                           fontSize: 13,
-                          fontWeight: "bold",
+                          fontWeight: 600,
+                          border: "1px solid rgba(111,143,114,0.95)",
+                          boxShadow: "0 8px 20px rgba(111,143,114,0.18)",
                         }}
                       >
                         Proceed to Booking
@@ -360,8 +402,21 @@ export default function GinhawaChatBubble() {
             ))}
 
             {typing && (
-              <div style={{ fontSize: 12, color: "#666" }}>
-                Ginhawa Buddy is typing...
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "#ebe4d8",
+                  border: "1px solid rgba(118,132,112,0.12)",
+                  borderRadius: "20px 20px 20px 8px",
+                  padding: "12px 14px",
+                  color: "#667360",
+                }}
+              >
+                <span className="ginhawa-dot" />
+                <span className="ginhawa-dot delay1" />
+                <span className="ginhawa-dot delay2" />
               </div>
             )}
 
@@ -370,46 +425,63 @@ export default function GinhawaChatBubble() {
 
           <div
             style={{
-              display: "flex",
-              gap: 6,
-              padding: 8,
-              flexWrap: "wrap",
+              padding: "10px 12px 0",
+              background: "#f7f3ee",
+              borderTop: "1px solid rgba(90,104,84,0.08)",
             }}
           >
-            {QUICK_REPLIES.map((q) => (
-              <button
-                key={q}
-                onClick={() => sendMessage(q)}
-                style={{
-                  fontSize: 12,
-                  padding: "6px 10px",
-                  borderRadius: 20,
-                  border: "1px solid #ddd",
-                  cursor: "pointer",
-                }}
-              >
-                {q}
-              </button>
-            ))}
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                overflowX: "auto",
+                paddingBottom: 10,
+              }}
+            >
+              {QUICK_REPLIES.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => sendMessage(q)}
+                  style={{
+                    whiteSpace: "nowrap",
+                    padding: "8px 14px",
+                    borderRadius: 999,
+                    border: "1px solid rgba(111,143,114,0.18)",
+                    background: "#f0eadf",
+                    color: "#53624f",
+                    fontSize: 13,
+                    fontFamily: "Inter, sans-serif",
+                    cursor: "pointer",
+                  }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div
             style={{
               display: "flex",
-              padding: 8,
-              gap: 6,
-              borderTop: "1px solid #eee",
+              gap: 8,
+              padding: 12,
+              background: "#f7f3ee",
             }}
           >
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask something..."
+              placeholder="Ask about services, booking, or staff..."
               style={{
                 flex: 1,
-                padding: 8,
-                borderRadius: 8,
-                border: "1px solid #ccc",
+                padding: "12px 14px",
+                borderRadius: 999,
+                border: "1px solid rgba(90,104,84,0.16)",
+                background: "#fcfaf6",
+                color: "#445344",
+                fontSize: 14,
+                fontFamily: "Inter, sans-serif",
+                outline: "none",
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") sendMessage(input);
@@ -419,12 +491,15 @@ export default function GinhawaChatBubble() {
             <button
               onClick={() => sendMessage(input)}
               style={{
-                background: "#7c6cff",
-                color: "#fff",
                 border: "none",
-                borderRadius: 8,
-                padding: "0 12px",
+                borderRadius: 999,
+                padding: "0 18px",
+                background: "#6f8f72",
+                color: "#fffdf9",
+                fontWeight: 600,
+                fontSize: 14,
                 cursor: "pointer",
+                boxShadow: "0 8px 18px rgba(111,143,114,0.18)",
               }}
             >
               Send
@@ -434,25 +509,61 @@ export default function GinhawaChatBubble() {
       )}
 
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen((prev) => !prev)}
+        aria-label="Open chat"
         style={{
           position: "fixed",
-          left: 20,
-          bottom: 20,
-          width: 60,
-          height: 60,
+          left: 24,
+          bottom: 24,
+          width: 68,
+          height: 68,
           borderRadius: "50%",
-          border: "none",
-          background: "#7c6cff",
-          color: "#fff",
-          fontSize: 24,
+          border: "1px solid rgba(111,143,114,0.16)",
+          background: "linear-gradient(180deg, #98b39a 0%, #7d9d81 100%)",
+          color: "#fffdf9",
+          fontSize: 28,
           cursor: "pointer",
-          boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+          boxShadow: "0 14px 30px rgba(111,143,114,0.22)",
           zIndex: 1000,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         💬
       </button>
+
+      <style jsx>{`
+        .ginhawa-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 999px;
+          background: #7f8d78;
+          display: inline-block;
+          animation: ginhawa-bounce 1s infinite ease-in-out;
+        }
+
+        .delay1 {
+          animation-delay: 0.15s;
+        }
+
+        .delay2 {
+          animation-delay: 0.3s;
+        }
+
+        @keyframes ginhawa-bounce {
+          0%,
+          80%,
+          100% {
+            transform: translateY(0);
+            opacity: 0.45;
+          }
+          40% {
+            transform: translateY(-4px);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </>
   );
 }
