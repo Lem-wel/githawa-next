@@ -33,7 +33,7 @@ export default function LoginPage() {
 
     // Customer
     if (prof.role !== "staff") {
-      router.push("/dashboard");
+      router.push("/");
       return;
     }
 

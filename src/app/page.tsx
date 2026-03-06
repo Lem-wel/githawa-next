@@ -40,6 +40,11 @@ export default function Home() {
                 Sign Up
               </Link>
             )}
+            {user && (
+              <Link className="btn btnPrimary" href="/book">
+                Book Appointment
+              </Link>
+            )}
 
             <Link className="btn" href="/services">
               Explore Spa Services
