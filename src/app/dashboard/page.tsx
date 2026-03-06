@@ -323,18 +323,6 @@ export default function DashboardPage() {
           >
             🎁
           </div>
-
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>
-              Referral Reward
-            </div>
-            <div style={{ color: "var(--muted)", marginTop: 6 }}>
-              Refer a friend and receive a free add-on.
-            </div>
-            <div style={{ marginTop: 8, color: "var(--muted)" }}>
-              Reward Type: Free add-on
-            </div>
-          </div>
         </div>
 
         <div
