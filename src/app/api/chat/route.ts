@@ -26,40 +26,27 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: "google/gemma-3-4b-it:free",
-        models: [
-          "google/gemma-3-4b-it:free",
-          "microsoft/phi-3-mini-128k-instruct:free",
-          "meta-llama/llama-3.2-3b-instruct:free"
-        ],
-        provider: {
-          allow_fallbacks: true
-        },
         messages: [
           {
             role: "system",
-            content: `You are Ginhawa Buddy, a friendly spa and wellness assistant for Ginhawa Spa & Wellness.
-
-Help users choose spa services, suggest relaxation treatments, and encourage booking when appropriate.
-Do not make medical diagnoses.
-Keep answers short, calm, and helpful.
-When recommending a service, end with: "Would you like to proceed to booking?"`
+            content:
+              'You are Ginhawa Buddy, a friendly spa and wellness assistant. Keep answers short, calm, and helpful. When recommending a service, end with: "Would you like to proceed to booking?"'
           },
           {
             role: "user",
             content: message
           }
-        ],
-        temperature: 0.7,
-        max_tokens: 300
+        ]
       }),
     });
 
     const data = await response.json();
+    console.log("OpenRouter status:", response.status);
+    console.log("OpenRouter response:", JSON.stringify(data, null, 2));
 
     if (!response.ok) {
-      console.error("OpenRouter error:", data);
       return NextResponse.json(
-        { error: data?.error?.message || "OpenRouter request failed." },
+        { error: data?.error?.message || "OpenRouter request failed.", raw: data },
         { status: response.status }
       );
     }
@@ -70,6 +57,9 @@ When recommending a service, end with: "Would you like to proceed to booking?"`
     return NextResponse.json({ reply });
   } catch (error) {
     console.error("API route error:", error);
-    return NextResponse.json({ error: "Server error." }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Server error." },
+      { status: 500 }
+    );
   }
 }
