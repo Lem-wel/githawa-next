@@ -801,3 +801,26 @@ select{
 .calendarDot.green {
   background: #1f7a5a;
 }
+.calendarWrap {
+  margin-top: 8px;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+  width: fit-content;
+}
+
+.calendarCentered {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.calendarLegend {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #6b7280;
+}

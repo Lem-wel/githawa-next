@@ -615,7 +615,7 @@ useEffect(() => {
         <div style={{ marginTop: 12 }}>
   <label>Date</label>
 
-  <div className="calendarWrap">
+  <div className="calendarWrap calendarCentered">
     <DayPicker
       mode="single"
       selected={date ? new Date(date) : undefined}
