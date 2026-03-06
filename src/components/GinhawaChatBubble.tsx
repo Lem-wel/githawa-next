@@ -1,76 +1,45 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabaseClient";
 
 type Sender = "user" | "bot";
+
+type ActionType = "booking";
 
 type Message = {
   id: number;
   sender: Sender;
   text: string;
-  action?: "booking";
+  action?: ActionType;
 };
 
-const staff = [
-  { name: "Airam Ricci", role: "Manager" },
-  { name: "Franz Julian", role: "Receptionist" },
-  { name: "David Russel", role: "Massage Therapist" },
-  { name: "Yassy Kane", role: "Massage Therapist" },
-  { name: "Linus Dominic", role: "Spa Attendant" },
-  { name: "Sofia Bianca", role: "Spa Attendant" },
-  { name: "Mary Avegail", role: "Spa Attendant" },
-];
+type StaffRow = {
+  id?: number;
+  full_name?: string | null;
+  name?: string | null;
+  position?: string | null;
+  role?: string | null;
+};
 
-function formatStaff() {
-  return staff.map((s) => `${s.name} (${s.role})`).join(", ");
-}
+type ServiceRow = {
+  id?: number;
+  name?: string | null;
+  title?: string | null;
+  description?: string | null;
+};
 
-function getBotReply(
-  input: string
-): string | { text: string; action?: "booking" } {
-  const msg = input.toLowerCase();
+type StaffItem = {
+  name: string;
+  role: string;
+};
 
-  if (
-    msg.includes("hello") ||
-    msg.includes("hi") ||
-    msg.includes("hey")
-  ) {
-    return "Hello! I'm Ginhawa Buddy. Ask me about services, booking, staff, or wellness activities.";
-  }
+type ServiceItem = {
+  name: string;
+};
 
-  if (
-    msg.includes("staff") ||
-    msg.includes("therapist") ||
-    msg.includes("who works")
-  ) {
-    return `Our current staff members are ${formatStaff()}. Staff availability depends on the selected appointment schedule.`;
-  }
-
-  if (
-    msg.includes("book") ||
-    msg.includes("appointment") ||
-    msg.includes("schedule")
-  ) {
-    return {
-      text: "You can now proceed to the booking page to schedule your appointment.",
-      action: "booking",
-    };
-  }
-
-  if (msg.includes("service") || msg.includes("massage")) {
-    return "Ginhawa offers wellness and spa services including massage therapy and relaxation treatments.";
-  }
-
-  if (msg.includes("location") || msg.includes("where")) {
-    return "Our location details can be found on the Contact page of the website.";
-  }
-
-  if (msg.includes("contact")) {
-    return "You may contact us through our website contact page or official social media pages.";
-  }
-
-  return "I’m sorry, that information may still be under update in the Ginhawa system.";
-}
+type BotReply = string | { text: string; action?: ActionType };
 
 const QUICK_REPLIES = [
   "Services",
@@ -79,10 +48,121 @@ const QUICK_REPLIES = [
   "Contact",
 ];
 
+function prettyRole(role: string) {
+  return role
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatStaff(staff: StaffItem[]) {
+  if (staff.length === 0) {
+    return "Our staff list is still being updated in the system.";
+  }
+
+  return staff.map((s) => `${s.name} (${s.role})`).join(", ");
+}
+
+function formatServices(services: ServiceItem[]) {
+  if (services.length === 0) {
+    return "Our service list is still being updated in the system.";
+  }
+
+  const names = services.map((s) => s.name);
+
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
+function getBotReply(
+  input: string,
+  staff: StaffItem[],
+  services: ServiceItem[]
+): BotReply {
+  const msg = input.toLowerCase().trim();
+
+  if (msg.includes("hello") || msg.includes("hi") || msg.includes("hey")) {
+    return "Hello! I'm Ginhawa Buddy. Ask me about services, booking, staff, contact details, or wellness information.";
+  }
+
+  if (
+    msg.includes("staff") ||
+    msg.includes("therapist") ||
+    msg.includes("who works") ||
+    msg.includes("employee")
+  ) {
+    return `Our current staff members are ${formatStaff(
+      staff
+    )} Staff availability depends on the selected appointment schedule.`;
+  }
+
+  if (
+    msg.includes("service") ||
+    msg.includes("massage") ||
+    msg.includes("offer") ||
+    msg.includes("treatment")
+  ) {
+    return `Our available services include ${formatServices(
+      services
+    )} Please visit the services or booking page for the latest details.`;
+  }
+
+  if (
+    msg.includes("book") ||
+    msg.includes("appointment") ||
+    msg.includes("schedule") ||
+    msg.includes("reserve")
+  ) {
+    return {
+      text: "You can now proceed to the booking page to schedule your appointment.",
+      action: "booking",
+    };
+  }
+
+  if (
+    msg.includes("location") ||
+    msg.includes("where") ||
+    msg.includes("address")
+  ) {
+    return "Our location details can be found on the Contact or About page of the website.";
+  }
+
+  if (
+    msg.includes("contact") ||
+    msg.includes("email") ||
+    msg.includes("phone") ||
+    msg.includes("facebook")
+  ) {
+    return "You may contact us through the website contact page or our official communication channels. If some details are not yet visible, they may still be under update.";
+  }
+
+  if (
+    msg.includes("price") ||
+    msg.includes("cost") ||
+    msg.includes("how much") ||
+    msg.includes("rate")
+  ) {
+    return "Service pricing should be shown on the website. If exact prices are not visible yet, that information may still be under update.";
+  }
+
+  if (
+    msg.includes("reward") ||
+    msg.includes("badge") ||
+    msg.includes("points")
+  ) {
+    return "Ginhawa includes a rewards and badge feature for customer engagement. If some reward details are not yet visible, that part may still be under development.";
+  }
+
+  return "I’m sorry, that information may still be under update in the Ginhawa system.";
+}
+
 export default function GinhawaChatBubble() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
+  const [staff, setStaff] = useState<StaffItem[]>([]);
+  const [services, setServices] = useState<ServiceItem[]>([]);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -97,15 +177,63 @@ export default function GinhawaChatBubble() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, typing]);
+  }, [messages, typing, open]);
+
+  useEffect(() => {
+    async function loadData() {
+      // STAFF
+      const { data: staffData } = await supabase
+        .from("staff")
+        .select("id, full_name, name, position, role")
+        .order("id", { ascending: true });
+
+      if (Array.isArray(staffData)) {
+        const mappedStaff: StaffItem[] = staffData
+          .map((row: StaffRow) => {
+            const rawName = row.full_name ?? row.name ?? "";
+            const rawRole = row.position ?? row.role ?? "Staff";
+
+            return {
+              name: String(rawName).trim(),
+              role: prettyRole(String(rawRole).trim() || "Staff"),
+            };
+          })
+          .filter((item) => item.name.length > 0);
+
+        setStaff(mappedStaff);
+      }
+
+      // SERVICES
+      const { data: serviceData } = await supabase
+        .from("services")
+        .select("id, name, title, description")
+        .order("id", { ascending: true });
+
+      if (Array.isArray(serviceData)) {
+        const mappedServices: ServiceItem[] = serviceData
+          .map((row: ServiceRow) => {
+            const rawName = row.name ?? row.title ?? "";
+            return {
+              name: String(rawName).trim(),
+            };
+          })
+          .filter((item) => item.name.length > 0);
+
+        setServices(mappedServices);
+      }
+    }
+
+    loadData();
+  }, []);
 
   function sendMessage(text: string) {
-    if (!text.trim()) return;
+    const cleanText = text.trim();
+    if (!cleanText) return;
 
     const userMsg: Message = {
       id: nextIdRef.current++,
       sender: "user",
-      text,
+      text: cleanText,
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -113,24 +241,21 @@ export default function GinhawaChatBubble() {
     setTyping(true);
 
     setTimeout(() => {
-      const reply = getBotReply(text);
+      const reply = getBotReply(cleanText, staff, services);
 
-      let botMsg: Message;
-
-      if (typeof reply === "string") {
-        botMsg = {
-          id: nextIdRef.current++,
-          sender: "bot",
-          text: reply,
-        };
-      } else {
-        botMsg = {
-          id: nextIdRef.current++,
-          sender: "bot",
-          text: reply.text,
-          action: reply.action,
-        };
-      }
+      const botMsg: Message =
+        typeof reply === "string"
+          ? {
+              id: nextIdRef.current++,
+              sender: "bot",
+              text: reply,
+            }
+          : {
+              id: nextIdRef.current++,
+              sender: "bot",
+              text: reply.text,
+              action: reply.action,
+            };
 
       setMessages((prev) => [...prev, botMsg]);
       setTyping(false);
@@ -156,7 +281,6 @@ export default function GinhawaChatBubble() {
             zIndex: 999,
           }}
         >
-          {/* Header */}
           <div
             style={{
               background: "#7c6cff",
@@ -182,7 +306,6 @@ export default function GinhawaChatBubble() {
             </button>
           </div>
 
-          {/* Messages */}
           <div
             style={{
               flex: 1,
@@ -204,18 +327,19 @@ export default function GinhawaChatBubble() {
                     display: "inline-block",
                     padding: "8px 12px",
                     borderRadius: 10,
-                    background:
-                      msg.sender === "user" ? "#7c6cff" : "#ecebff",
+                    background: msg.sender === "user" ? "#7c6cff" : "#ecebff",
                     color: msg.sender === "user" ? "#fff" : "#000",
                     maxWidth: "80%",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
                   }}
                 >
                   {msg.text}
 
                   {msg.action === "booking" && (
                     <div style={{ marginTop: 10 }}>
-                      <a
-                        href="/book"
+                      <Link
+                        href="/booking"
                         style={{
                           display: "inline-block",
                           padding: "6px 12px",
@@ -228,7 +352,7 @@ export default function GinhawaChatBubble() {
                         }}
                       >
                         Proceed to Booking
-                      </a>
+                      </Link>
                     </div>
                   )}
                 </div>
@@ -241,10 +365,9 @@ export default function GinhawaChatBubble() {
               </div>
             )}
 
-            <div ref={endRef}></div>
+            <div ref={endRef} />
           </div>
 
-          {/* Quick replies */}
           <div
             style={{
               display: "flex",
@@ -270,7 +393,6 @@ export default function GinhawaChatBubble() {
             ))}
           </div>
 
-          {/* Input */}
           <div
             style={{
               display: "flex",
@@ -311,7 +433,6 @@ export default function GinhawaChatBubble() {
         </div>
       )}
 
-      {/* Floating Button */}
       <button
         onClick={() => setOpen(!open)}
         style={{
