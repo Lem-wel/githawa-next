@@ -34,6 +34,11 @@ type ExistingAppointment = {
   duration_minutes: number | null;
 };
 
+const OPEN_MINUTES = 8 * 60;   // 8:00 AM
+const CLOSE_MINUTES = 17 * 60; // 5:00 PM
+const SLOT_INTERVAL = 15;
+const BUFFER_MINUTES = 15; // set to 0 if you do not want extra cleanup/reset time
+
 export default function BookPage() {
   const router = useRouter();
 
@@ -55,32 +60,6 @@ export default function BookPage() {
   const [availableStaff, setAvailableStaff] = useState<StaffRow[]>([]);
   const [availableRooms, setAvailableRooms] = useState<RoomRow[]>([]);
 
-  const mainService = useMemo(
-    () => services.find((s) => s.id === serviceId) || null,
-    [services, serviceId]
-  );
-
-  const timeSlots = useMemo(() => {
-    const slots: { value: string; label: string }[] = [];
-    const start = 8 * 60; // 8:00 AM
-    const end = 17 * 60; // 5:00 PM
-
-    for (let t = start; t <= end; t += 15) {
-      const hour24 = Math.floor(t / 60);
-      const minute = t % 60;
-
-      const value = `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-
-      const displayHour = hour24 % 12 === 0 ? 12 : hour24 % 12;
-      const ampm = hour24 < 12 ? "AM" : "PM";
-      const label = `${displayHour}:${String(minute).padStart(2, "0")} ${ampm}`;
-
-      slots.push({ value, label });
-    }
-
-    return slots;
-  }, []);
-
   function norm(v: string | null | undefined) {
     return (v ?? "")
       .toLowerCase()
@@ -100,6 +79,36 @@ export default function BookPage() {
     );
   }
 
+  function timeToMinutes(t: string) {
+    const [h, m] = t.slice(0, 5).split(":").map(Number);
+    return h * 60 + m;
+  }
+
+  function minutesToTimeValue(total: number) {
+    const h = Math.floor(total / 60);
+    const m = total % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }
+
+  function formatTimeLabel(total: number) {
+    const hour24 = Math.floor(total / 60);
+    const minute = total % 60;
+    const displayHour = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    const ampm = hour24 < 12 ? "AM" : "PM";
+    return `${displayHour}:${String(minute).padStart(2, "0")} ${ampm}`;
+  }
+
+  function overlaps(startA: number, durA: number, startB: number, durB: number) {
+    const endA = startA + durA;
+    const endB = startB + durB;
+    return startA < endB && startB < endA;
+  }
+
+  const mainService = useMemo(
+    () => services.find((s) => s.id === serviceId) || null,
+    [services, serviceId]
+  );
+
   const selectedAddonRows = useMemo(
     () => addons.filter((a) => selectedAddons.includes(a.id)),
     [addons, selectedAddons]
@@ -113,6 +122,12 @@ export default function BookPage() {
     );
     return main + addonDur;
   }, [mainService, selectedAddonRows]);
+
+  // actual blocked time in scheduling, includes cleanup/reset buffer
+  const blockedDuration = useMemo(() => {
+    if (!mainService) return 0;
+    return totalDuration + BUFFER_MINUTES;
+  }, [mainService, totalDuration]);
 
   const totalPrice = useMemo(() => {
     const main = mainService?.price ?? 0;
@@ -131,6 +146,33 @@ export default function BookPage() {
 
     return allStaff.filter((s) => s.position === "spa_attendant");
   }, [mainService, allStaff]);
+
+  const timeSlots = useMemo(() => {
+    const slots: { value: string; label: string }[] = [];
+
+    if (!mainService || blockedDuration <= 0) {
+      for (let t = OPEN_MINUTES; t <= CLOSE_MINUTES; t += SLOT_INTERVAL) {
+        slots.push({
+          value: minutesToTimeValue(t),
+          label: formatTimeLabel(t),
+        });
+      }
+      return slots;
+    }
+
+    for (let t = OPEN_MINUTES; t <= CLOSE_MINUTES; t += SLOT_INTERVAL) {
+      const end = t + blockedDuration;
+
+      if (end <= CLOSE_MINUTES) {
+        slots.push({
+          value: minutesToTimeValue(t),
+          label: `${formatTimeLabel(t)} - ${formatTimeLabel(t + totalDuration)}`,
+        });
+      }
+    }
+
+    return slots;
+  }, [mainService, totalDuration, blockedDuration]);
 
   useEffect(() => {
     async function init() {
@@ -186,6 +228,8 @@ export default function BookPage() {
   useEffect(() => {
     setStaffId("");
     setRoomId("");
+    setSelectedAddons([]);
+    setTime("");
   }, [serviceId]);
 
   useEffect(() => {
@@ -193,23 +237,32 @@ export default function BookPage() {
     setRoomId("");
   }, [date, time, selectedAddons.length]);
 
-  function timeToMinutes(t: string) {
-    const [h, m] = t.slice(0, 5).split(":").map(Number);
-    return h * 60 + m;
-  }
+  useEffect(() => {
+    if (!time || blockedDuration <= 0) return;
 
-  function overlaps(startA: number, durA: number, startB: number, durB: number) {
-    const endA = startA + durA;
-    const endB = startB + durB;
-    return startA < endB && startB < endA;
-  }
+    const start = timeToMinutes(time);
+    const end = start + blockedDuration;
+
+    if (end > CLOSE_MINUTES) {
+      setTime("");
+      setMsg("Selected service duration goes beyond business hours. Please choose an earlier time.");
+    }
+  }, [time, blockedDuration]);
 
   useEffect(() => {
     async function checkAvailability() {
       setAvailableStaff([]);
       setAvailableRooms([]);
 
-      if (!mainService || !date || !time || totalDuration <= 0) return;
+      if (!mainService || !date || !time || blockedDuration <= 0) return;
+
+      const start = timeToMinutes(time);
+      const end = start + blockedDuration;
+
+      if (end > CLOSE_MINUTES) {
+        setMsg("This service cannot fit in the remaining business hours.");
+        return;
+      }
 
       const { data: existing, error } = await supabase
         .from("appointments")
@@ -222,7 +275,6 @@ export default function BookPage() {
       }
 
       const rows = (existing ?? []) as ExistingAppointment[];
-      const start = timeToMinutes(time);
 
       const freeStaff = candidateStaff.filter((staff) => {
         const staffAppointments = rows.filter((r) => r.staff_id === staff.id);
@@ -232,7 +284,7 @@ export default function BookPage() {
         const hasOverlap = staffAppointments.some((r) =>
           overlaps(
             start,
-            totalDuration,
+            blockedDuration,
             timeToMinutes(String(r.appt_time).slice(0, 5)),
             r.duration_minutes ?? 0
           )
@@ -247,7 +299,7 @@ export default function BookPage() {
         const hasOverlap = roomAppointments.some((r) =>
           overlaps(
             start,
-            totalDuration,
+            blockedDuration,
             timeToMinutes(String(r.appt_time).slice(0, 5)),
             r.duration_minutes ?? 0
           )
@@ -264,7 +316,7 @@ export default function BookPage() {
     }
 
     checkAvailability();
-  }, [mainService, date, time, totalDuration, candidateStaff, allRooms, staffId, roomId]);
+  }, [mainService, date, time, blockedDuration, candidateStaff, allRooms, staffId, roomId]);
 
   async function book() {
     setMsg("");
@@ -276,6 +328,14 @@ export default function BookPage() {
 
     if (!mainService) {
       setMsg("Please select a service.");
+      return;
+    }
+
+    const start = timeToMinutes(time);
+    const end = start + blockedDuration;
+
+    if (end > CLOSE_MINUTES) {
+      setMsg("This appointment exceeds business hours. Please choose an earlier time.");
       return;
     }
 
@@ -301,8 +361,6 @@ export default function BookPage() {
       }
 
       const rows = (existing ?? []) as ExistingAppointment[];
-      const start = timeToMinutes(time);
-
       const staffAppointments = rows.filter((r) => r.staff_id === Number(staffId));
       const roomAppointments = rows.filter((r) => r.room_id === Number(roomId));
 
@@ -314,7 +372,7 @@ export default function BookPage() {
       const staffConflict = staffAppointments.some((r) =>
         overlaps(
           start,
-          totalDuration,
+          blockedDuration,
           timeToMinutes(String(r.appt_time).slice(0, 5)),
           r.duration_minutes ?? 0
         )
@@ -328,7 +386,7 @@ export default function BookPage() {
       const roomConflict = roomAppointments.some((r) =>
         overlaps(
           start,
-          totalDuration,
+          blockedDuration,
           timeToMinutes(String(r.appt_time).slice(0, 5)),
           r.duration_minutes ?? 0
         )
@@ -349,7 +407,7 @@ export default function BookPage() {
             room_id: Number(roomId),
             appt_date: date,
             appt_time: time,
-            duration_minutes: totalDuration,
+            duration_minutes: blockedDuration,
           },
         ])
         .select("id")
@@ -393,7 +451,10 @@ export default function BookPage() {
         <h2 style={{ marginTop: 0 }}>Book Appointment</h2>
 
         {msg && (
-          <div className={msg.includes("✅") ? "noticeOk" : "notice"} style={{ marginBottom: 12 }}>
+          <div
+            className={msg.includes("✅") ? "noticeOk" : "notice"}
+            style={{ marginBottom: 12 }}
+          >
             {msg}
           </div>
         )}
@@ -407,7 +468,7 @@ export default function BookPage() {
             <option value="">Select service</option>
             {services.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name} — ₱{s.price} ({s.category || "service"})
+                {s.name} — ₱{s.price} • {s.duration_minutes} mins ({s.category || "service"})
               </option>
             ))}
           </select>
@@ -462,7 +523,11 @@ export default function BookPage() {
               Total estimate: <b>₱{totalPrice}</b>
             </p>
             <p style={{ marginTop: 4, color: "var(--muted)" }}>
-              Total duration: <b>{totalDuration} mins</b>
+              Service duration: <b>{totalDuration} mins</b>
+            </p>
+            <p style={{ marginTop: 4, color: "var(--muted)" }}>
+              Blocked schedule time: <b>{blockedDuration} mins</b>
+              {BUFFER_MINUTES > 0 ? ` (includes ${BUFFER_MINUTES} mins reset time)` : ""}
             </p>
           </div>
         )}
@@ -473,6 +538,7 @@ export default function BookPage() {
             className="input"
             type="date"
             value={date}
+            min={new Date().toISOString().split("T")[0]}
             onChange={(e) => setDate(e.target.value)}
           />
         </div>
@@ -483,8 +549,11 @@ export default function BookPage() {
             className="input"
             value={time}
             onChange={(e) => setTime(e.target.value)}
+            disabled={!mainService}
           >
-            <option value="">Select time</option>
+            <option value="">
+              {!mainService ? "Select service first" : "Select time"}
+            </option>
             {timeSlots.map((slot) => (
               <option key={slot.value} value={slot.value}>
                 {slot.label}
