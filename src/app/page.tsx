@@ -1,9 +1,22 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteShell from "@/components/SiteShell";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function Home() {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    async function checkUser() {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    }
+
+    checkUser();
+  }, []);
+
   return (
     <SiteShell>
       <section className="gridHero">
@@ -22,17 +35,24 @@ export default function Home() {
           </p>
 
           <div className="heroActions">
-            <Link className="btn btnPrimary" href="/register">
-              Sign Up
-            </Link> 
+            {!user && (
+              <Link className="btn btnPrimary" href="/register">
+                Sign Up
+              </Link>
+            )}
+
             <Link className="btn" href="/services">
               Explore Spa Services
             </Link>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link className="pill" href="/badges">Badges</Link>
-            <Link className="pill" href="/activities">Wellness Activities</Link>
+            <Link className="pill" href="/badges">
+              Badges
+            </Link>
+            <Link className="pill" href="/activities">
+              Wellness Activities
+            </Link>
           </div>
         </div>
 
