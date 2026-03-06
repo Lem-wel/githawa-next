@@ -4,20 +4,15 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import SiteShell from "@/components/SiteShell";
 
+type BadgeInfo = {
+  name?: string;
+  description?: string;
+  icon?: string | null;
+};
+
 type UnlockedBadgeRow = {
   earned_at: string;
-  badges:
-    | {
-        name?: string;
-        description?: string;
-        icon?: string | null;
-      }
-    | {
-        name?: string;
-        description?: string;
-        icon?: string | null;
-      }[]
-    | null;
+  badges?: BadgeInfo | BadgeInfo[] | null;
 };
 
 export default function RewardsPage() {
@@ -26,9 +21,14 @@ export default function RewardsPage() {
 
   useEffect(() => {
     async function loadUnlockedBadges() {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user?.id;
+      const { data: auth, error: authErr } = await supabase.auth.getUser();
 
+      if (authErr) {
+        setMsg(authErr.message);
+        return;
+      }
+
+      const uid = auth.user?.id;
       if (!uid) {
         setMsg("Please login first.");
         return;
@@ -45,21 +45,22 @@ export default function RewardsPage() {
         return;
       }
 
+      console.log("UNLOCKED BADGES RAW:", data);
       setRows((data ?? []) as UnlockedBadgeRow[]);
     }
 
     loadUnlockedBadges();
   }, []);
 
-  function getBadgeInfo(
-    badge: UnlockedBadgeRow["badges"]
-  ): { name: string; description: string; icon: string } {
+  function normalizeBadge(
+    badge: BadgeInfo | BadgeInfo[] | null | undefined
+  ): Required<BadgeInfo> {
     const b = Array.isArray(badge) ? badge[0] : badge;
 
     return {
       name: b?.name || "Badge",
       description: b?.description || "No description",
-      icon: b?.icon && b.icon.trim() ? b.icon : "🏅",
+      icon: b?.icon?.trim() || "🏅",
     };
   }
 
@@ -80,8 +81,8 @@ export default function RewardsPage() {
 
         {rows.length > 0 && (
           <div style={{ display: "grid", gap: 16 }}>
-            {rows.map((r, i) => {
-              const badge = getBadgeInfo(r.badges);
+            {rows.map((row, i) => {
+              const badge = normalizeBadge(row.badges);
 
               return (
                 <div
@@ -90,19 +91,20 @@ export default function RewardsPage() {
                   style={{
                     display: "flex",
                     alignItems: "flex-start",
-                    gap: 14,
+                    gap: 16,
                     borderRadius: 22,
                   }}
                 >
                   <div
                     style={{
-                      fontSize: 30,
-                      lineHeight: 1,
-                      minWidth: 40,
+                      minWidth: 44,
+                      width: 44,
+                      height: 44,
                       display: "flex",
-                      justifyContent: "center",
                       alignItems: "center",
-                      paddingTop: 2,
+                      justifyContent: "center",
+                      fontSize: 28,
+                      lineHeight: 1,
                     }}
                   >
                     {badge.icon}
@@ -118,7 +120,7 @@ export default function RewardsPage() {
                     </div>
 
                     <div style={{ color: "var(--muted)", marginTop: 8 }}>
-                      Earned: {new Date(r.earned_at).toLocaleString()}
+                      Earned: {new Date(row.earned_at).toLocaleString()}
                     </div>
                   </div>
                 </div>
