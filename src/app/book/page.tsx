@@ -614,9 +614,9 @@ useEffect(() => {
 
         <div style={{ marginTop: 12 }}>
   <label>Date</label>
-
+  <SiteShell>
   <div className="bookingContainer">
-    <div className="card cardPad">
+    <div className="card cardPad bookingCard">
     <DayPicker
       mode="single"
       selected={date ? new Date(date) : undefined}
@@ -648,6 +648,7 @@ useEffect(() => {
     </div>
   </div>
   </div>
+  </SiteShell>
 </div>
 
         <div style={{ marginTop: 12 }}>
