@@ -165,7 +165,7 @@ export default function DashboardPage() {
           >
             <button
               className="btn"
-              onClick={() => setActiveTab("bookings")}
+              onClick={() =>setActiveTab((prev) => (prev === "bookings" ? null : "bookings"))}
               style={{
                 borderRadius: 999,
                 padding: "14px 26px",
@@ -185,7 +185,9 @@ export default function DashboardPage() {
 
             <button
               className="btn"
-              onClick={() => setActiveTab("badges")}
+              onClick={() =>
+  setActiveTab((prev) => (prev === "badges" ? null : "badges"))
+}
               style={{
                 borderRadius: 999,
                 padding: "14px 26px",
