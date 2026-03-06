@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SiteShell from "@/components/SiteShell";
 
@@ -25,8 +24,6 @@ type BadgeRow = {
 };
 
 export default function DashboardPage() {
-  const router = useRouter();
-
   const [msg, setMsg] = useState("");
   const [fullName, setFullName] = useState("Customer");
   const [email, setEmail] = useState("");
@@ -36,7 +33,7 @@ export default function DashboardPage() {
   const [bookingCount, setBookingCount] = useState(0);
   const [badgeCount, setBadgeCount] = useState(0);
 
-  const [activeTab, setActiveTab] = useState<"bookings" | "badges" | "referral">("bookings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "badges" | "referral" | null>(null);
 
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [badges, setBadges] = useState<BadgeRow[]>([]);
@@ -54,14 +51,12 @@ export default function DashboardPage() {
     } = await supabase.auth.getUser();
 
     if (userErr || !user) {
-      setMsg("Please log in first.");
-      router.push("/login");
+      setMsg("Please login first.");
       return;
     }
 
     setEmail(user.email || "");
 
-    // PROFILE
     const { data: profile, error: profileErr } = await supabase
       .from("profiles")
       .select("full_name, referral_code, referral_unlocked")
@@ -77,7 +72,6 @@ export default function DashboardPage() {
     setReferralCode(profile?.referral_code || "");
     setReferralUnlocked(profile?.referral_unlocked ?? false);
 
-    // BOOKINGS
     const { data: bookingData, error: bookingErr } = await supabase
       .from("appointments")
       .select("id, appt_date, appt_time, duration_minutes, services(name), rooms(name), staff(name)")
@@ -85,23 +79,22 @@ export default function DashboardPage() {
       .order("appt_date", { ascending: false });
 
     if (!bookingErr) {
-  const safeBookings = (bookingData ?? []) as BookingRow[];
-  setBookings(safeBookings);
-  setBookingCount(safeBookings.length);
-}
+      const safeBookings = (bookingData ?? []) as BookingRow[];
+      setBookings(safeBookings);
+      setBookingCount(safeBookings.length);
+    }
 
-    // BADGES
     const { data: badgeData, error: badgeErr } = await supabase
       .from("user_badges")
       .select("earned_at, badges(name, description)")
       .eq("user_id", user.id)
       .order("earned_at", { ascending: false });
 
-if (!badgeErr) {
-  const safeBadges = (badgeData ?? []) as BadgeRow[];
-  setBadges(safeBadges);
-  setBadgeCount(safeBadges.length);
-}
+    if (!badgeErr) {
+      const safeBadges = (badgeData ?? []) as BadgeRow[];
+      setBadges(safeBadges);
+      setBadgeCount(safeBadges.length);
+    }
   }
 
   return (
@@ -173,131 +166,135 @@ if (!badgeErr) {
             </button>
           </div>
 
-          <div
-            className="card"
-            style={{
-              padding: 24,
-              minHeight: 180,
-              borderRadius: 28,
-              background: "#fff",
-            }}
-          >
-            {activeTab === "bookings" && (
-              <>
-                <h2 style={{ marginTop: 0 }}>Your Bookings</h2>
-                {bookings.length === 0 ? (
-                  <p style={{ color: "var(--muted)" }}>No bookings yet.</p>
-                ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    {bookings.map((b) => (
-                      <div
-                        key={b.id}
-                        style={{
-                          padding: 14,
-                          border: "1px solid var(--border)",
-                          borderRadius: 16,
-                        }}
-                      >
-                        <div style={{ fontWeight: 700 }}>
-                          {b.services?.name || "Service"}
+          {activeTab && (
+            <div
+              className="card"
+              style={{
+                padding: 24,
+                minHeight: 180,
+                borderRadius: 28,
+                background: "#fff",
+              }}
+            >
+              {activeTab === "bookings" && (
+                <>
+                  <h2 style={{ marginTop: 0 }}>Your Bookings</h2>
+                  {bookings.length === 0 ? (
+                    <p style={{ color: "var(--muted)" }}>No bookings yet.</p>
+                  ) : (
+                    <div style={{ display: "grid", gap: 12 }}>
+                      {bookings.map((b) => (
+                        <div
+                          key={b.id}
+                          style={{
+                            padding: 14,
+                            border: "1px solid var(--border)",
+                            borderRadius: 16,
+                          }}
+                        >
+                          <div style={{ fontWeight: 700 }}>
+                            {b.services?.name || "Service"}
+                          </div>
+                          <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                            {b.appt_date} at {b.appt_time}
+                          </div>
+                          <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                            Staff: {b.staff?.name || "Not assigned"} | Room: {b.rooms?.name || "N/A"}
+                          </div>
                         </div>
-                        <div style={{ color: "var(--muted)", marginTop: 4 }}>
-                          {b.appt_date} at {b.appt_time}
-                        </div>
-                        <div style={{ color: "var(--muted)", marginTop: 4 }}>
-                          Staff: {b.staff?.name || "Not assigned"} | Room: {b.rooms?.name || "N/A"}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
 
-            {activeTab === "badges" && (
-              <>
-                <h2 style={{ marginTop: 0 }}>Unlocked Badges</h2>
-                {badges.length === 0 ? (
-                  <p style={{ color: "var(--muted)" }}>No badges unlocked yet.</p>
-                ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    {badges.map((b, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          padding: 14,
-                          border: "1px solid var(--border)",
-                          borderRadius: 16,
-                        }}
-                      >
-                        <div style={{ fontWeight: 700 }}>
-                          {b.badges?.name || "Badge"}
+              {activeTab === "badges" && (
+                <>
+                  <h2 style={{ marginTop: 0 }}>Unlocked Badges</h2>
+                  {badges.length === 0 ? (
+                    <p style={{ color: "var(--muted)" }}>No badges unlocked yet.</p>
+                  ) : (
+                    <div style={{ display: "grid", gap: 12 }}>
+                      {badges.map((b, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            padding: 14,
+                            border: "1px solid var(--border)",
+                            borderRadius: 16,
+                          }}
+                        >
+                          <div style={{ fontWeight: 700 }}>
+                            {b.badges?.name || "Badge"}
+                          </div>
+                          <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                            {b.badges?.description || "No description"}
+                          </div>
+                          <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                            Earned: {new Date(b.earned_at).toLocaleString()}
+                          </div>
                         </div>
-                        <div style={{ color: "var(--muted)", marginTop: 4 }}>
-                          {b.badges?.description || "No description"}
-                        </div>
-                        <div style={{ color: "var(--muted)", marginTop: 4 }}>
-                          Earned: {new Date(b.earned_at).toLocaleString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
 
-            {activeTab === "referral" && (
-              <>
-                <h2 style={{ marginTop: 0 }}>Referral Reward</h2>
+              {activeTab === "referral" && (
+                <>
+                  <h2 style={{ marginTop: 0 }}>Referral Reward</h2>
 
-                <div
-                  style={{
-                    padding: 18,
-                    borderRadius: 18,
-                    border: "1px solid var(--border)",
-                    background: referralUnlocked ? "#eef8f0" : "#f6f6f6",
-                    opacity: referralUnlocked ? 1 : 0.8,
-                  }}
-                >
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      flexWrap: "wrap",
+                      padding: 18,
+                      borderRadius: 18,
+                      border: "1px solid var(--border)",
+                      background: referralUnlocked ? "#eef8f0" : "#f6f6f6",
+                      opacity: referralUnlocked ? 1 : 0.8,
                     }}
                   >
-                    <div>
-                      <div style={{ fontSize: 18, fontWeight: 700 }}>
-                        {referralUnlocked ? "Referral Reward Unlocked 🎁" : "Referral Reward Locked 🔒"}
-                      </div>
-                      <div style={{ color: "var(--muted)", marginTop: 6 }}>
-                        Refer a friend and receive a free add-on.
-                      </div>
-                      <div style={{ marginTop: 10 }}>
-                        <span style={{ color: "var(--muted)" }}>Your Code: </span>
-                        <span style={{ fontWeight: 700 }}>{referralCode || "N/A"}</span>
-                      </div>
-                    </div>
-
                     <div
                       style={{
-                        padding: "6px 12px",
-                        borderRadius: 999,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        background: referralUnlocked ? "#d9f3df" : "#ececec",
-                        color: referralUnlocked ? "#1f7a38" : "#666",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        flexWrap: "wrap",
                       }}
                     >
-                      {referralUnlocked ? "Unlocked" : "Locked"}
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 700 }}>
+                          {referralUnlocked
+                            ? "Referral Reward Unlocked 🎁"
+                            : "Referral Reward Locked 🔒"}
+                        </div>
+                        <div style={{ color: "var(--muted)", marginTop: 6 }}>
+                          Refer a friend and receive a free add-on.
+                        </div>
+                        <div style={{ marginTop: 10 }}>
+                          <span style={{ color: "var(--muted)" }}>Your Code: </span>
+                          <span style={{ fontWeight: 700 }}>{referralCode || "N/A"}</span>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 999,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          background: referralUnlocked ? "#d9f3df" : "#ececec",
+                          color: referralUnlocked ? "#1f7a38" : "#666",
+                        }}
+                      >
+                        {referralUnlocked ? "Unlocked" : "Locked"}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </>
-            )}
-          </div>
+                </>
+              )}
+            </div>
+          )}
 
           <div
             style={{

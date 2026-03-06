@@ -54,13 +54,13 @@ export default function RegisterPage() {
         return;
       }
 
-      let validReferralCode: string | null = null;
-      let referralUnlocked = false;
+      let referredByCode: string | null = null;
+      let referralOwnerId: string | null = null;
 
       if (referralInput.trim()) {
         const enteredCode = referralInput.trim().toUpperCase();
 
-        const { data: referralProfile, error: referralErr } = await supabase
+        const { data: referralOwner, error: referralErr } = await supabase
           .from("profiles")
           .select("id, referral_code")
           .eq("referral_code", enteredCode)
@@ -72,22 +72,20 @@ export default function RegisterPage() {
           return;
         }
 
-        if (!referralProfile) {
+        if (!referralOwner) {
           setMsg("Invalid referral code.");
           setLoading(false);
           return;
         }
 
-        validReferralCode = enteredCode;
-        referralUnlocked = true;
+        referredByCode = enteredCode;
+        referralOwnerId = referralOwner.id;
       }
 
-      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp(
-        {
-          email: email.trim(),
-          password: password.trim(),
-        }
-      );
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password.trim(),
+      });
 
       if (signUpErr) {
         setMsg(signUpErr.message);
@@ -102,21 +100,35 @@ export default function RegisterPage() {
         return;
       }
 
-      const referralCode = await makeUniqueReferralCode(fullName);
+      const myReferralCode = await makeUniqueReferralCode(fullName);
 
       const { error: profileErr } = await supabase.from("profiles").upsert({
         id: user.id,
         full_name: fullName.trim(),
         role: "customer",
-        referral_code: referralCode,
-        referred_by: validReferralCode,
-        referral_unlocked: referralUnlocked,
+        referral_code: myReferralCode,
+        referred_by: referredByCode,
+        referral_unlocked: false,
       });
 
       if (profileErr) {
         setMsg(profileErr.message);
         setLoading(false);
         return;
+      }
+
+      // Unlock reward for OWNER of the code
+      if (referralOwnerId) {
+        const { error: unlockErr } = await supabase
+          .from("profiles")
+          .update({ referral_unlocked: true })
+          .eq("id", referralOwnerId);
+
+        if (unlockErr) {
+          setMsg(unlockErr.message);
+          setLoading(false);
+          return;
+        }
       }
 
       setMsg("Account created successfully ✅");

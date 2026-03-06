@@ -3,103 +3,119 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-export default function ReferralRewardCard() {
-  const [loading, setLoading] = useState(true);
-  const [locked, setLocked] = useState(true);
-  const [userReferralCode, setUserReferralCode] = useState("");
+export default function RewardsPage() {
+  const [rows, setRows] = useState<any[]>([]);
   const [msg, setMsg] = useState("");
+  const [referralUnlocked, setReferralUnlocked] = useState(false);
 
   useEffect(() => {
-    async function loadProfile() {
-      setLoading(true);
-      setMsg("");
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
 
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-
-      if (authError) {
-        setMsg(authError.message);
-        setLoading(false);
-        return;
-      }
-
-      const uid = authData.user?.id;
       if (!uid) {
         setMsg("Please login first.");
-        setLoading(false);
         return;
       }
 
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile, error: profileErr } = await supabase
         .from("profiles")
-        .select("referral_code, referral_unlocked")
+        .select("referral_unlocked")
         .eq("id", uid)
         .maybeSingle();
 
-      if (profileError) {
-        setMsg(profileError.message);
-        setLoading(false);
+      if (profileErr) {
+        setMsg(profileErr.message);
         return;
       }
 
-      setUserReferralCode(profile?.referral_code || "");
-      setLocked(!(profile?.referral_unlocked ?? false));
-      setLoading(false);
-    }
+      setReferralUnlocked(profile?.referral_unlocked ?? false);
 
-    loadProfile();
+      const { data, error } = await supabase
+        .from("user_badges")
+        .select("earned_at, badges(name, description)")
+        .eq("user_id", uid)
+        .order("earned_at", { ascending: false });
+
+      if (error) {
+        setMsg(error.message);
+        return;
+      }
+
+      setRows(data ?? []);
+    })();
   }, []);
 
   return (
-    <div className="card cardPad" style={{ position: "relative", opacity: locked ? 0.7 : 1 }}>
+    <div style={{ maxWidth: 900, margin: "30px auto" }}>
+      <h2>Badges / Rewards</h2>
+
       <div
+        className="card cardPad"
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
+          marginBottom: 20,
+          opacity: referralUnlocked ? 1 : 0.7,
+          border: "1px solid var(--border)",
         }}
       >
-        <div style={{ fontSize: 28 }}>🤝</div>
-
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
             <h3 style={{ margin: 0 }}>Referral Reward</h3>
-            <span
-              style={{
-                padding: "4px 10px",
-                borderRadius: 999,
-                fontSize: 12,
-                border: "1px solid var(--border)",
-                background: locked ? "#f5f5f5" : "#ecfdf3",
-                color: locked ? "#666" : "#15803d",
-                fontWeight: 600,
-              }}
-            >
-              {loading ? "Loading..." : locked ? "Locked" : "Unlocked"}
-            </span>
+            <p style={{ margin: "8px 0 4px", color: "var(--muted)" }}>
+              Refer a friend and receive a free add-on.
+            </p>
+            <p style={{ margin: 0, color: "var(--muted)" }}>
+              Code: {referralUnlocked ? "Unlocked on owner account" : "SPECIAL_REFERRAL_FRIEND"}
+            </p>
           </div>
 
-          <p style={{ margin: "8px 0 4px", color: "var(--muted)" }}>
-            Refer a friend and receive a free add-on.
-          </p>
-
-          <p style={{ margin: 0, color: "var(--muted)" }}>
-            Code:{" "}
-            <span style={{ fontWeight: 700, color: "var(--text)" }}>
-              {userReferralCode || "N/A"}
-            </span>
-          </p>
-
-          {msg && (
-            <p style={{ marginTop: 10, color: "crimson" }}>
-              {msg}
-            </p>
-          )}
-        </div>
-
-        <div style={{ fontSize: 20 }}>
-          {loading ? "⏳" : locked ? "🔒" : "🎁"}
+          <div
+            style={{
+              alignSelf: "center",
+              padding: "6px 12px",
+              borderRadius: 999,
+              fontWeight: 700,
+              background: referralUnlocked ? "#d9f3df" : "#ececec",
+              color: referralUnlocked ? "#1f7a38" : "#666",
+            }}
+          >
+            {referralUnlocked ? "Unlocked" : "Locked"}
+          </div>
         </div>
       </div>
+
+      {msg && <p style={{ color: "crimson" }}>{msg}</p>}
+
+      {!msg && rows.length === 0 && (
+        <p>No badges yet. Book 2 appointments to earn rewards.</p>
+      )}
+
+      {rows.length > 0 && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th align="left">Badge</th>
+              <th align="left">Description</th>
+              <th align="left">Earned</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i}>
+                <td style={{ padding: 8, borderTop: "1px solid #eee" }}>
+                  <b>{r.badges?.name}</b>
+                </td>
+                <td style={{ padding: 8, borderTop: "1px solid #eee" }}>
+                  {r.badges?.description}
+                </td>
+                <td style={{ padding: 8, borderTop: "1px solid #eee" }}>
+                  {new Date(r.earned_at).toLocaleString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
