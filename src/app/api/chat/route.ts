@@ -22,7 +22,7 @@ export async function POST(req: Request) {
         "X-Title": "Ginhawa Buddy",
       },
       body: JSON.stringify({
-        model: "google/gemma-3-4b-it:free",
+        model: "openai/gpt-oss-120b:free",
         messages: [
           {
             role: "system",
