@@ -1,19 +1,17 @@
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-    console.log("API KEY:", process.env.OPENROUTER_API_KEY);
   try {
     const { message } = await req.json();
 
-    if (!message || !message.trim()) {
+    if (!message?.trim()) {
       return NextResponse.json({ error: "Message is required." }, { status: 400 });
     }
 
     const apiKey = process.env.OPENROUTER_API_KEY;
-
     if (!apiKey) {
       return NextResponse.json(
-        { error: "Missing OPENROUTER_API_KEY in .env.local" },
+        { error: "Missing OPENROUTER_API_KEY" },
         { status: 500 }
       );
     }
@@ -23,40 +21,36 @@ export async function POST(req: Request) {
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost:3000",
+        "HTTP-Referer": "https://ginhawa-next.vercel.app",
         "X-Title": "Ginhawa Buddy",
       },
       body: JSON.stringify({
         model: "google/gemma-3-4b-it:free",
+        models: [
+          "google/gemma-3-4b-it:free",
+          "microsoft/phi-3-mini-128k-instruct:free",
+          "meta-llama/llama-3.2-3b-instruct:free"
+        ],
+        provider: {
+          allow_fallbacks: true
+        },
         messages: [
           {
             role: "system",
-            content: `
-You are Ginhawa Buddy, a friendly spa and wellness assistant for Ginhawa Spa & Wellness.
+            content: `You are Ginhawa Buddy, a friendly spa and wellness assistant for Ginhawa Spa & Wellness.
 
-Your job:
-- Help users choose spa services
-- Recommend suitable wellness treatments
-- Suggest relaxation options
-- Answer in a calm, friendly, short, helpful way
-- Encourage booking when appropriate
-
-Rules:
-- Do not make medical diagnoses
-- Do not give dangerous medical advice
-- If a user mentions pain, severe symptoms, or emergency concerns, advise them to seek a licensed professional
-- Keep responses simple and welcoming
-- When recommending a service, end with:
-"Would you like to proceed to booking?"
-            `.trim(),
+Help users choose spa services, suggest relaxation treatments, and encourage booking when appropriate.
+Do not make medical diagnoses.
+Keep answers short, calm, and helpful.
+When recommending a service, end with: "Would you like to proceed to booking?"`
           },
           {
             role: "user",
-            content: message,
-          },
+            content: message
+          }
         ],
         temperature: 0.7,
-        max_tokens: 300,
+        max_tokens: 300
       }),
     });
 
