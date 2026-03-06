@@ -615,7 +615,8 @@ useEffect(() => {
         <div style={{ marginTop: 12 }}>
   <label>Date</label>
 
-  <div className="calendarWrap calendarCentered">
+  <div className="bookingContainer">
+    <div className="card cardPad">
     <DayPicker
       mode="single"
       selected={date ? new Date(date) : undefined}
@@ -645,6 +646,7 @@ useEffect(() => {
         Fully booked
       </span>
     </div>
+  </div>
   </div>
 </div>
 
