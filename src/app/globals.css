@@ -776,7 +776,7 @@ select{
 }
 
 .calendarWrap {
-  margin-top: 8px;
+   margin: 8px auto 0;
   padding: 16px 18px;
   border: 1px solid #e5e7eb;
   border-radius: 20px;
