@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import SiteShell from "@/components/SiteShell";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -42,6 +43,17 @@ export default function RegisterPage() {
     throw new Error("Failed to generate unique referral code.");
   }
 
+  async function signInWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${location.origin}/dashboard`,
+      },
+    });
+
+    if (error) setMsg(error.message);
+  }
+
   async function register() {
     setMsg("");
     setLoading(true);
@@ -51,22 +63,6 @@ export default function RegisterPage() {
         setMsg("Please complete all required fields.");
         setLoading(false);
         return;
-      }
-
-      // optional: validate referred_by code if entered
-      if (referralInput.trim()) {
-        const { data: refProfile, error: refErr } = await supabase
-          .from("profiles")
-          .select("id, referral_code")
-          .eq("referral_code", referralInput.trim().toUpperCase())
-          .maybeSingle();
-
-        if (refErr) throw refErr;
-        if (!refProfile) {
-          setMsg("Referral code not found.");
-          setLoading(false);
-          return;
-        }
       }
 
       const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
@@ -94,7 +90,9 @@ export default function RegisterPage() {
         full_name: fullName,
         role: "customer",
         referral_code: referralCode,
-        referred_by: referralInput.trim() ? referralInput.trim().toUpperCase() : null,
+        referred_by: referralInput.trim()
+          ? referralInput.trim().toUpperCase()
+          : null,
       });
 
       if (profileErr) {
@@ -104,6 +102,7 @@ export default function RegisterPage() {
       }
 
       setMsg("Account created successfully ✅");
+
       setTimeout(() => {
         router.push("/login");
       }, 1000);
@@ -115,74 +114,132 @@ export default function RegisterPage() {
   }
 
   return (
-  <SiteShell>
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        minHeight: "60vh"
-      }}
-    >
-      <div className="card cardPad" style={{ maxWidth: 560, width: "100%" }}>
-        <h2 style={{ marginTop: 0 }}>Sign Up</h2>
+    <SiteShell>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
+        <div className="card cardPad" style={{ maxWidth: 560, width: "100%" }}>
+          <h2 style={{ marginTop: 0 }}>Sign Up</h2>
 
-        {msg && (
-          <div
-            className={msg.includes("✅") ? "noticeOk" : "notice"}
-            style={{ marginBottom: 12 }}
-          >
-            {msg}
+          {msg && (
+            <div
+              className={msg.includes("✅") ? "noticeOk" : "notice"}
+              style={{ marginBottom: 12 }}
+            >
+              {msg}
+            </div>
+          )}
+
+          <div style={{ marginBottom: 10 }}>
+            <label>Full Name</label>
+            <input
+              className="input"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Enter your full name"
+            />
           </div>
-        )}
 
-        <div style={{ marginBottom: 10 }}>
-          <label>Full Name</label>
-          <input
-            className="input"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Enter your full name"
-          />
+          <div style={{ marginBottom: 10 }}>
+            <label>Email</label>
+            <input
+              className="input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              type="email"
+            />
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <label>Password</label>
+            <input
+              className="input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Create a password"
+              type="password"
+            />
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <label>Referral Code (optional)</label>
+            <input
+              className="input"
+              value={referralInput}
+              onChange={(e) => setReferralInput(e.target.value)}
+              placeholder="Enter referral code"
+            />
+          </div>
+
+          <button
+            className="btn btnPrimary"
+            onClick={register}
+            disabled={loading}
+            style={{ width: "100%" }}
+          >
+            {loading ? "Creating account..." : "Create Account"}
+          </button>
+
+          <p
+            style={{
+              marginTop: 14,
+              textAlign: "center",
+              color: "var(--muted)",
+              fontSize: 14,
+            }}
+          >
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              style={{
+                color: "var(--text)",
+                fontWeight: 600,
+                textDecoration: "underline",
+                cursor: "pointer",
+              }}
+            >
+              Log in
+            </Link>
+          </p>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              margin: "18px 0",
+              gap: 10,
+            }}
+          >
+            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+            <span style={{ color: "var(--muted)", fontSize: 13 }}>OR</span>
+            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+          </div>
+
+          <button
+            className="btn"
+            style={{
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 10,
+            }}
+            onClick={signInWithGoogle}
+          >
+            <img
+              src="https://www.svgrepo.com/show/475656/google-color.svg"
+              width="18"
+            />
+            Continue with Google
+          </button>
         </div>
-
-        <div style={{ marginBottom: 10 }}>
-          <label>Email</label>
-          <input
-            className="input"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            type="email"
-          />
-        </div>
-
-        <div style={{ marginBottom: 10 }}>
-          <label>Password</label>
-          <input
-            className="input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Create a password"
-            type="password"
-          />
-        </div>
-
-        <div style={{ marginBottom: 14 }}>
-          <label>Referral Code (optional)</label>
-          <input
-            className="input"
-            value={referralInput}
-            onChange={(e) => setReferralInput(e.target.value)}
-            placeholder="Enter referral code"
-          />
-        </div>
-
-        <button className="btn btnPrimary" onClick={register} disabled={loading}>
-          {loading ? "Creating account..." : "Create Account"}
-        </button>
       </div>
-    </div>
-  </SiteShell>
-);
+    </SiteShell>
+  );
 }

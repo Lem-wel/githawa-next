@@ -24,12 +24,7 @@ export default function Home() {
           <div className="heroActions">
             <Link className="btn btnPrimary" href="/register">
               Sign Up
-            </Link>
-
-            <Link className="btn" href="/login">
-              Log In
-            </Link>
-
+            </Link> 
             <Link className="btn" href="/services">
               Explore Spa Services
             </Link>
