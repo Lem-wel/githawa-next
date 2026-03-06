@@ -115,12 +115,23 @@ export default function RegisterPage() {
   }
 
   return (
-    <SiteShell>
-      <div className="card cardPad" style={{ maxWidth: 560 }}>
+  <SiteShell>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "60vh"
+      }}
+    >
+      <div className="card cardPad" style={{ maxWidth: 560, width: "100%" }}>
         <h2 style={{ marginTop: 0 }}>Sign Up</h2>
 
         {msg && (
-          <div className={msg.includes("✅") ? "noticeOk" : "notice"} style={{ marginBottom: 12 }}>
+          <div
+            className={msg.includes("✅") ? "noticeOk" : "notice"}
+            style={{ marginBottom: 12 }}
+          >
             {msg}
           </div>
         )}
@@ -171,6 +182,7 @@ export default function RegisterPage() {
           {loading ? "Creating account..." : "Create Account"}
         </button>
       </div>
-    </SiteShell>
-  );
+    </div>
+  </SiteShell>
+);
 }

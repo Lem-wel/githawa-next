@@ -18,18 +18,20 @@ type BookingRow = {
 
 export default function DashboardPage() {
   const router = useRouter();
-
   const [msg, setMsg] = useState("");
+
   const [fullName, setFullName] = useState("Customer");
   const [email, setEmail] = useState("");
-  const [referralCode, setReferralCode] = useState("");
 
   const [bookingCount, setBookingCount] = useState(0);
   const [badgeCount, setBadgeCount] = useState(0);
 
+  // ✅ toggle
   const [showBookings, setShowBookings] = useState(false);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
+  const [unlockedBadges, setUnlockedBadges] = useState<any[]>([]);
+  const [showUnlocked, setShowUnlocked] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -40,20 +42,22 @@ export default function DashboardPage() {
 
       setEmail(auth.user.email ?? "");
 
+      // profile
       const { data: prof } = await supabase
         .from("profiles")
-        .select("full_name, role, referral_code")
+        .select("full_name, role")
         .eq("id", auth.user.id)
         .single();
 
       if (prof?.role === "staff") {
+        // staff should not use customer dashboard
         router.push("/staff");
         return;
       }
 
       setFullName(prof?.full_name || "Customer");
-      setReferralCode(prof?.referral_code || "");
 
+      // count appointments
       const { count: apptCount } = await supabase
         .from("appointments")
         .select("id", { count: "exact", head: true })
@@ -61,14 +65,25 @@ export default function DashboardPage() {
 
       setBookingCount(apptCount ?? 0);
 
-      const { count: bCount } = await supabase
-        .from("user_badges")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", auth.user.id);
+      // count badges (if you have user_badges table)
+      const { data: ub, error: ubErr } = await supabase
+  .from("user_badges")
+  .select(`
+    earned_at,
+    badge:badges (
+      id,
+      name,
+      description,
+      icon
+    )
+  `)
+  .eq("user_id", auth.user.id)
+  .order("earned_at", { ascending: false });
 
-      setBadgeCount(bCount ?? 0);
+setUnlockedBadges(ub ?? []);
     })();
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function loadBookings() {
     setLoadingBookings(true);
@@ -115,67 +130,77 @@ export default function DashboardPage() {
   async function onClickBookings() {
     const next = !showBookings;
     setShowBookings(next);
+
+    // load only when opening
     if (!showBookings) await loadBookings();
   }
 
-  async function copyReferralCode() {
-    if (!referralCode) return;
-    await navigator.clipboard.writeText(referralCode);
-    setMsg("Referral code copied ✅");
-    setTimeout(() => setMsg(""), 1500);
-  }
-
   return (
-    <SiteShell>
-      <div className="card cardPad">
-        <h2 style={{ marginTop: 0 }}>Dashboard</h2>
+  <SiteShell>
+    <div
+      className="card cardPad"
+      style={{
+        maxWidth: 900,
+        margin: "0 auto",
+      }}
+    >
+      <h2 style={{ marginTop: 0 }}>Dashboard</h2>
 
-        <div style={{ color: "var(--muted)" }}>
-          <div>
-            Welcome, <b>{fullName}</b>
-          </div>
-          <div>{email}</div>
-        </div>
+      <div className="profileBox">
+  <div className="profileName">👤 {fullName}</div>
+  <div className="profileMeta">Member since 2026</div>
+  <div className="profileMeta">
+    Status: <span className="profileStatus">Active</span>
+  </div>
+</div>
 
-        {/* referral code section */}
-        <div className="card cardPad" style={{ marginTop: 16, background: "rgba(143,175,154,.12)" }}>
-          <h3 style={{ marginTop: 0, marginBottom: 8 }}>Your Referral Code</h3>
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <div className="pill" style={{ fontWeight: 700 }}>
-              {referralCode || "No code yet"}
-            </div>
-            <button className="btn" onClick={copyReferralCode} disabled={!referralCode}>
-              Copy Code
-            </button>
-          </div>
-          <p style={{ color: "var(--muted)", marginTop: 10, marginBottom: 0 }}>
-            Share this code with friends when they sign up.
-          </p>
-        </div>
+      {/* ✅ Pills summary */}
+      <div className="pillRow" style={{ marginTop: 16 }}>
+        <button className="pill" onClick={onClickBookings} type="button">
+          Bookings <b style={{ marginLeft: 6 }}>{bookingCount}</b>
+        </button>
 
-        <div style={{ marginTop: 16, display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button className="pill" onClick={onClickBookings} type="button">
-            Bookings <b style={{ marginLeft: 6 }}>{bookingCount}</b>
-          </button>
+        <button
+          className="pill"
+           onClick={() => setShowUnlocked((v) => !v)}
+           >Badges <span className="pillNum">{unlockedBadges.length}</span>
+        </button>
+      </div>
+      {showUnlocked && (
+  <div className="card cardPad" style={{ marginTop: 14 }}>
+    <h3 style={{ marginTop: 0 }}>Unlocked Badges</h3>
 
-          <Link className="pill" href="/badges">
-            Badges <b style={{ marginLeft: 6 }}>{badgeCount}</b>
-          </Link>
+    {unlockedBadges.map((row: any) => (
+  <div key={row.badge.id} className="card cardPad" style={{ display: "flex", gap: 12 }}>
+    <div style={{ fontSize: 26 }}>{row.badge.icon ?? "🏅"}</div>
 
-          <span className="pill">
-            Status <b style={{ marginLeft: 6 }}>Active</b>
-          </span>
-        </div>
+    <div>
+      <b>{row.badge.name}</b>
 
-        {showBookings && (
-          <div className="card cardPad" style={{ marginTop: 16 }}>
-            <h3 style={{ marginTop: 0 }}>My Scheduled Bookings</h3>
+      <div style={{ color: "var(--muted)", fontSize: 13 }}>
+        {row.badge.description}
+      </div>
 
-            {loadingBookings ? (
-              <p style={{ color: "var(--muted)" }}>Loading…</p>
-            ) : bookings.length === 0 ? (
-              <p style={{ color: "var(--muted)" }}>No bookings yet.</p>
-            ) : (
+      <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>
+        Unlocked: {new Date(row.earned_at).toLocaleString()}
+      </div>
+    </div>
+  </div>
+))}
+  </div>
+)}
+
+      {/* ✅ Bookings list appears after click */}
+      {showBookings && (
+        <div className="card cardPad" style={{ marginTop: 16 }}>
+          <h3 style={{ marginTop: 0 }}>My Scheduled Bookings</h3>
+
+          {loadingBookings ? (
+            <p style={{ color: "var(--muted)" }}>Loading…</p>
+          ) : bookings.length === 0 ? (
+            <p style={{ color: "var(--muted)" }}>No bookings yet.</p>
+          ) : (
+            <div className="tableWrap">
               <table className="table">
                 <thead>
                   <tr>
@@ -200,18 +225,30 @@ export default function DashboardPage() {
                   ))}
                 </tbody>
               </table>
-            )}
-          </div>
-        )}
-
-        {msg && <div className="notice" style={{ marginTop: 12 }}>{msg}</div>}
-
-        <div style={{ marginTop: 20, display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Link className="btn btnPrimary" href="/book">Book Appointment</Link>
-          <Link className="btn" href="/services">Spa Services</Link>
-          <Link className="btn" href="/activities">Wellness Activities</Link>
+            </div>
+          )}
         </div>
+      )}
+
+      {msg && (
+        <div className="notice" style={{ marginTop: 12 }}>
+          {msg}
+        </div>
+      )}
+
+      {/* ✅ Main tabs */}
+      <div className="actionGrid" style={{ marginTop: 20 }}>
+        <Link className="btn btnPrimary" href="/book">
+          Book Appointment
+        </Link>
+        <Link className="btn" href="/services">
+          Spa Services
+        </Link>
+        <Link className="btn" href="/activities">
+          Wellness Activities
+        </Link>
       </div>
-    </SiteShell>
-  );
+    </div>
+  </SiteShell>
+);
 }
