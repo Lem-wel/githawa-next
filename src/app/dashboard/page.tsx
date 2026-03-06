@@ -134,6 +134,25 @@ export default function DashboardPage() {
             >
               Status: Active
             </p>
+
+            <div
+              style={{
+                marginTop: 14,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "10px 14px",
+                borderRadius: 999,
+                background: "#eef4ef",
+                border: "1px solid #dfe5df",
+                fontSize: 14,
+              }}
+            >
+              <span style={{ color: "var(--muted)" }}>Your Referral Code:</span>
+              <span style={{ fontWeight: 700, color: "var(--text)" }}>
+                {referralCode || "N/A"}
+              </span>
+            </div>
           </div>
 
           <div
@@ -285,20 +304,19 @@ export default function DashboardPage() {
                         flexWrap: "wrap",
                       }}
                     >
-                      <div>
-                        <div style={{ fontSize: 18, fontWeight: 700 }}>
-                          Referral Reward
-                        </div>
-                        <div style={{ color: "var(--muted)", marginTop: 6 }}>
-                          Refer a friend and receive a free add-on.
-                        </div>
-                        <div style={{ marginTop: 8, color: "var(--muted)" }}>
-                          Code:{" "}
-                          <span style={{ fontWeight: 700, color: "var(--text)" }}>
-                            {referralUnlocked
-                              ? referralCode || "N/A"
-                              : "SPECIAL_REFERRAL_FRIEND"}
-                          </span>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                        <div style={{ fontSize: 28, lineHeight: 1 }}>🎁</div>
+
+                        <div>
+                          <div style={{ fontSize: 18, fontWeight: 700 }}>
+                            Referral Reward
+                          </div>
+                          <div style={{ color: "var(--muted)", marginTop: 6 }}>
+                            Refer a friend and receive a free add-on.
+                          </div>
+                          <div style={{ marginTop: 8, color: "var(--muted)" }}>
+                            Reward Type: Free add-on
+                          </div>
                         </div>
                       </div>
 
@@ -333,14 +351,20 @@ export default function DashboardPage() {
                             background: "#fff",
                           }}
                         >
-                          <div style={{ fontWeight: 700, fontSize: 17 }}>
-                            {b.badges?.name || "Badge"}
-                          </div>
-                          <div style={{ color: "var(--muted)", marginTop: 6 }}>
-                            {b.badges?.description || "No description"}
-                          </div>
-                          <div style={{ color: "var(--muted)", marginTop: 6 }}>
-                            Earned: {new Date(b.earned_at).toLocaleString()}
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                            <div style={{ fontSize: 26, lineHeight: 1 }}>🏅</div>
+
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 17 }}>
+                                {b.badges?.name || "Badge"}
+                              </div>
+                              <div style={{ color: "var(--muted)", marginTop: 6 }}>
+                                {b.badges?.description || "No description"}
+                              </div>
+                              <div style={{ color: "var(--muted)", marginTop: 6 }}>
+                                Earned: {new Date(b.earned_at).toLocaleString()}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
