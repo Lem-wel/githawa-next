@@ -309,22 +309,7 @@ export default function DashboardPage() {
           gap: 12,
           flexWrap: "wrap",
         }}
-      >
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-          <div
-            style={{
-              fontSize: 28,
-              lineHeight: 1,
-              minWidth: 34,
-              display: "flex",
-              justifyContent: "center",
-              paddingTop: 2,
-            }}
-          >
-            🎁
-          </div>
-        </div>
-
+      >        
         <div
           style={{
             padding: "8px 14px",
