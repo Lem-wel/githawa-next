@@ -43,22 +43,51 @@ export default function RegisterPage() {
     throw new Error("Failed to generate unique referral code.");
   }
 
-
   async function register() {
     setMsg("");
     setLoading(true);
 
     try {
-      if (!fullName || !email || !password) {
+      if (!fullName.trim() || !email.trim() || !password.trim()) {
         setMsg("Please complete all required fields.");
         setLoading(false);
         return;
       }
 
-      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      let validReferralCode: string | null = null;
+      let referralUnlocked = false;
+
+      if (referralInput.trim()) {
+        const enteredCode = referralInput.trim().toUpperCase();
+
+        const { data: referralProfile, error: referralErr } = await supabase
+          .from("profiles")
+          .select("id, referral_code")
+          .eq("referral_code", enteredCode)
+          .maybeSingle();
+
+        if (referralErr) {
+          setMsg(referralErr.message);
+          setLoading(false);
+          return;
+        }
+
+        if (!referralProfile) {
+          setMsg("Invalid referral code.");
+          setLoading(false);
+          return;
+        }
+
+        validReferralCode = enteredCode;
+        referralUnlocked = true;
+      }
+
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp(
+        {
+          email: email.trim(),
+          password: password.trim(),
+        }
+      );
 
       if (signUpErr) {
         setMsg(signUpErr.message);
@@ -77,12 +106,11 @@ export default function RegisterPage() {
 
       const { error: profileErr } = await supabase.from("profiles").upsert({
         id: user.id,
-        full_name: fullName,
+        full_name: fullName.trim(),
         role: "customer",
         referral_code: referralCode,
-        referred_by: referralInput.trim()
-          ? referralInput.trim().toUpperCase()
-          : null,
+        referred_by: validReferralCode,
+        referral_unlocked: referralUnlocked,
       });
 
       if (profileErr) {
@@ -197,19 +225,6 @@ export default function RegisterPage() {
               Log in
             </Link>
           </p>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              margin: "18px 0",
-              gap: 10,
-            }}
-          >
-            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-            <span style={{ color: "var(--muted)", fontSize: 13 }}>OR</span>
-            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-          </div>
         </div>
       </div>
     </SiteShell>
