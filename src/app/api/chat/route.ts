@@ -2,63 +2,69 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { message } = await req.json();
+    const body = await req.json();
+    const message = body?.message?.trim();
 
-    if (!message?.trim()) {
-      return NextResponse.json({ error: "Message is required." }, { status: 400 });
+    if (!message) {
+      return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "Missing OPENROUTER_API_KEY" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Missing OPENROUTER_API_KEY" }, { status: 500 });
     }
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         "HTTP-Referer": "https://ginhawa-next.vercel.app",
-        "X-Title": "Ginhawa Buddy",
+        "X-Title": "Ginhawa Buddy"
       },
       body: JSON.stringify({
         model: "google/gemma-3-4b-it:free",
         messages: [
           {
             role: "system",
-            content:
-              'You are Ginhawa Buddy, a friendly spa and wellness assistant. Keep answers short, calm, and helpful. When recommending a service, end with: "Would you like to proceed to booking?"'
+            content: "You are Ginhawa Buddy, a friendly spa and wellness assistant. Keep answers short, calm, and helpful."
           },
           {
             role: "user",
             content: message
           }
         ]
-      }),
+      })
     });
 
-    const data = await response.json();
-    console.log("OpenRouter status:", response.status);
-    console.log("OpenRouter response:", JSON.stringify(data, null, 2));
+    const text = await orRes.text();
+    console.log("OpenRouter status:", orRes.status);
+    console.log("OpenRouter raw response:", text);
 
-    if (!response.ok) {
+    let data: any = {};
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
+    }
+
+    if (!orRes.ok) {
       return NextResponse.json(
-        { error: data?.error?.message || "OpenRouter request failed.", raw: data },
-        { status: response.status }
+        {
+          error: data?.error?.message || data?.message || "OpenRouter request failed",
+          raw: data
+        },
+        { status: orRes.status }
       );
     }
 
-    const reply =
-      data?.choices?.[0]?.message?.content || "Sorry, I could not generate a response.";
-
-    return NextResponse.json({ reply });
-  } catch (error) {
-    console.error("API route error:", error);
+    return NextResponse.json({
+      reply: data?.choices?.[0]?.message?.content || "No reply returned."
+    });
+  } catch (err) {
+    console.error("API route error:", err);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Server error." },
+      { error: err instanceof Error ? err.message : "Server error" },
       { status: 500 }
     );
   }
