@@ -6,11 +6,18 @@ import SiteShell from "@/components/SiteShell";
 
 type UnlockedBadgeRow = {
   earned_at: string;
-  badges?: {
-    name?: string;
-    description?: string;
-    icon?: string | null;
-  } | null;
+  badges:
+    | {
+        name?: string;
+        description?: string;
+        icon?: string | null;
+      }
+    | {
+        name?: string;
+        description?: string;
+        icon?: string | null;
+      }[]
+    | null;
 };
 
 export default function RewardsPage() {
@@ -18,7 +25,7 @@ export default function RewardsPage() {
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    (async () => {
+    async function loadUnlockedBadges() {
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user?.id;
 
@@ -39,8 +46,22 @@ export default function RewardsPage() {
       }
 
       setRows((data ?? []) as UnlockedBadgeRow[]);
-    })();
+    }
+
+    loadUnlockedBadges();
   }, []);
+
+  function getBadgeInfo(
+    badge: UnlockedBadgeRow["badges"]
+  ): { name: string; description: string; icon: string } {
+    const b = Array.isArray(badge) ? badge[0] : badge;
+
+    return {
+      name: b?.name || "Badge",
+      description: b?.description || "No description",
+      icon: b?.icon && b.icon.trim() ? b.icon : "🏅",
+    };
+  }
 
   return (
     <SiteShell>
@@ -59,43 +80,50 @@ export default function RewardsPage() {
 
         {rows.length > 0 && (
           <div style={{ display: "grid", gap: 16 }}>
-            {rows.map((r, i) => (
-              <div
-                key={i}
-                className="card cardPad"
-                style={{
-                  display: "flex",
-                  gap: 14,
-                  alignItems: "flex-start",
-                  borderRadius: 22,
-                }}
-              >
+            {rows.map((r, i) => {
+              const badge = getBadgeInfo(r.badges);
+
+              return (
                 <div
+                  key={i}
+                  className="card cardPad"
                   style={{
-                    fontSize: 30,
-                    lineHeight: 1,
-                    minWidth: 40,
-                    textAlign: "center",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 14,
+                    borderRadius: 22,
                   }}
                 >
-                  {r.badges?.icon || "🏅"}
+                  <div
+                    style={{
+                      fontSize: 30,
+                      lineHeight: 1,
+                      minWidth: 40,
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      paddingTop: 2,
+                    }}
+                  >
+                    {badge.icon}
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 17 }}>
+                      {badge.name}
+                    </div>
+
+                    <div style={{ color: "var(--muted)", marginTop: 6 }}>
+                      {badge.description}
+                    </div>
+
+                    <div style={{ color: "var(--muted)", marginTop: 8 }}>
+                      Earned: {new Date(r.earned_at).toLocaleString()}
+                    </div>
+                  </div>
                 </div>
-
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 17 }}>
-                    {r.badges?.name || "Badge"}
-                  </div>
-
-                  <div style={{ color: "var(--muted)", marginTop: 6 }}>
-                    {r.badges?.description || "No description"}
-                  </div>
-
-                  <div style={{ color: "var(--muted)", marginTop: 8 }}>
-                    Earned: {new Date(r.earned_at).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
