@@ -27,7 +27,7 @@ export async function POST(req: Request) {
         "X-Title": "Ginhawa Buddy",
       },
       body: JSON.stringify({
-        model: "mistralai/mistral-7b-instruct",
+        model: "google/gemma-3-4b-it:free",
         messages: [
           {
             role: "system",
