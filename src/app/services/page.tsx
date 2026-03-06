@@ -106,7 +106,7 @@ export default function ServicesPage() {
   }, [services]);
 
   return (
-    <SiteShell right={<Link className="btn btnPrimary" href="/book">Book</Link>}>
+    <SiteShell>
       <div className="card cardPad">
         <h2 style={{ marginTop: 0 }}>Spa Services</h2>
         <p style={{ color: "var(--muted)" }}>Browse services grouped by category.</p>

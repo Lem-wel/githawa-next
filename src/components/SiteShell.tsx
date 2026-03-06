@@ -105,26 +105,34 @@ export default function SiteShell({
 
       {children}
 
-      <button
-        onClick={() => (window.location.href = "/feedback")}
-        style={{
-          position: "fixed",
-          bottom: "20px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "var(--sage)",
-          color: "white",
-          padding: "12px 20px",
-          borderRadius: "999px",
-          border: "none",
-          fontWeight: 600,
-          boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
-          cursor: "pointer",
-          zIndex: 999,
-        }}
-      >
-        💬 Leave Feedback
-      </button>
+      {!loading && (
+        <button
+          onClick={() => {
+            if (loggedIn) {
+              router.push("/feedback");
+            } else {
+              router.push("/login");
+            }
+          }}
+          style={{
+            position: "fixed",
+            bottom: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "var(--sage)",
+            color: "white",
+            padding: "12px 20px",
+            borderRadius: "999px",
+            border: "none",
+            fontWeight: 600,
+            boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+            cursor: "pointer",
+            zIndex: 999,
+          }}
+        >
+          💬 Leave Feedback
+        </button>
+      )}
     </div>
   );
 }
