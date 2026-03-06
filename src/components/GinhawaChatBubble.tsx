@@ -215,7 +215,7 @@ export default function GinhawaChatBubble() {
                   {msg.action === "booking" && (
                     <div style={{ marginTop: 10 }}>
                       <a
-                        href="/booking"
+                        href="/book"
                         style={{
                           display: "inline-block",
                           padding: "6px 12px",
