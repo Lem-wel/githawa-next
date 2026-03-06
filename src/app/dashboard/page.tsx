@@ -314,73 +314,49 @@ export default function DashboardPage() {
               )}
 
               {activeTab === "referral" && (
-                <>
-                  <h2 style={{ marginTop: 0 }}>Referral Reward</h2>
+  <>
+    <h2 style={{ marginTop: 0 }}>Your Referral Code</h2>
 
-                  <div
-                    style={{
-                      padding: 18,
-                      borderRadius: 18,
-                      border: "1px solid var(--border)",
-                      background: referralUnlocked ? "#eef8f0" : "#f6f6f6",
-                      opacity: referralUnlocked ? 1 : 0.8,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 18, fontWeight: 700 }}>
-                          {referralUnlocked
-                            ? "Referral Reward Unlocked 🎁"
-                            : "Referral Reward Locked 🔒"}
-                        </div>
+    <div
+      style={{
+        padding: 20,
+        borderRadius: 18,
+        border: "1px solid var(--border)",
+        background: "#f6f6f6",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 12
+      }}
+    >
+      <div>
+        <div style={{ color: "var(--muted)", marginBottom: 6 }}>
+          Share this code with friends when they sign up.
+        </div>
 
-                        <div style={{ color: "var(--muted)", marginTop: 6 }}>
-                          Refer a friend and receive a free add-on.
-                        </div>
+        <div
+          style={{
+            fontSize: 22,
+            fontWeight: 700,
+            letterSpacing: 1
+          }}
+        >
+          {referralCode || "No referral code yet"}
+        </div>
+      </div>
 
-                        <div style={{ marginTop: 10 }}>
-                          <span style={{ color: "var(--muted)" }}>Your Code: </span>
-                          <span style={{ fontWeight: 700 }}>
-                            {referralCode || "N/A"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          padding: "6px 12px",
-                          borderRadius: 999,
-                          fontSize: 13,
-                          fontWeight: 700,
-                          background: referralUnlocked ? "#d9f3df" : "#ececec",
-                          color: referralUnlocked ? "#1f7a38" : "#666",
-                        }}
-                      >
-                        {referralUnlocked ? "Unlocked" : "Locked"}
-                      </div>
-                    </div>
-
-                    <div style={{ marginTop: 14 }}>
-                      <button
-                        className="btn"
-                        onClick={copyReferralCode}
-                        disabled={!referralCode}
-                        type="button"
-                      >
-                        Copy Code
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
+      <button
+        className="btn"
+        onClick={copyReferralCode}
+        disabled={!referralCode}
+        type="button"
+      >
+        Copy Code
+      </button>
+    </div>
+  </>
+)}
             </div>
           )}
 
