@@ -77,7 +77,7 @@ export default function DashboardPage() {
       .select(
         "id, appt_date, appt_time, duration_minutes, services(name), rooms(name), staff(name)"
       )
-      .eq("customer_id", user.id)
+      .eq("userr_id", user.id)
       .order("appt_date", { ascending: false });
 
     if (!bookingErr) {
@@ -113,7 +113,6 @@ export default function DashboardPage() {
         <div className="card cardPad">
           <div style={{ marginBottom: 18 }}>
             <div style={{ fontSize: 18, fontWeight: 700 }}>{fullName}</div>
-            <div style={{ color: "var(--muted)", marginTop: 4 }}>{email}</div>
             <div style={{ marginTop: 4, color: "#87a98e", fontWeight: 600 }}>
               Status: Active
             </div>
