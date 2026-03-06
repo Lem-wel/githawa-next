@@ -16,297 +16,306 @@ type BookingRow = {
   staff?: { name?: string } | null;
 };
 
+type BadgeRow = {
+  earned_at: string;
+  badges?: {
+    name?: string;
+    description?: string;
+  } | null;
+};
+
 export default function DashboardPage() {
   const router = useRouter();
-  const [msg, setMsg] = useState("");
 
+  const [msg, setMsg] = useState("");
   const [fullName, setFullName] = useState("Customer");
   const [email, setEmail] = useState("");
   const [referralCode, setReferralCode] = useState("");
+  const [referralUnlocked, setReferralUnlocked] = useState(false);
 
   const [bookingCount, setBookingCount] = useState(0);
+  const [badgeCount, setBadgeCount] = useState(0);
 
-  const [showBookings, setShowBookings] = useState(false);
+  const [activeTab, setActiveTab] = useState<"bookings" | "badges" | "referral">("bookings");
+
   const [bookings, setBookings] = useState<BookingRow[]>([]);
-  const [loadingBookings, setLoadingBookings] = useState(false);
-
-  const [unlockedBadges, setUnlockedBadges] = useState<any[]>([]);
-  const [showUnlocked, setShowUnlocked] = useState(false);
-  const [showReferral, setShowReferral] = useState(false);
+  const [badges, setBadges] = useState<BadgeRow[]>([]);
 
   useEffect(() => {
-    (async () => {
-      setMsg("");
-
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return router.push("/login");
-
-      setEmail(auth.user.email ?? "");
-
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("full_name, role, referral_code")
-        .eq("id", auth.user.id)
-        .single();
-
-      if (prof?.role === "staff") {
-        router.push("/staff");
-        return;
-      }
-
-      setFullName(prof?.full_name || "Customer");
-      setReferralCode(prof?.referral_code || "");
-
-      const { count: apptCount } = await supabase
-        .from("appointments")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", auth.user.id);
-
-      setBookingCount(apptCount ?? 0);
-
-      const { data: ub, error: ubErr } = await supabase
-        .from("user_badges")
-        .select(`
-          earned_at,
-          badge:badges (
-            id,
-            name,
-            description,
-            icon
-          )
-        `)
-        .eq("user_id", auth.user.id)
-        .order("earned_at", { ascending: false });
-
-      if (ubErr) {
-        setMsg(ubErr.message);
-      } else {
-        setUnlockedBadges(ub ?? []);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadDashboard();
   }, []);
 
-  async function loadBookings() {
-    setLoadingBookings(true);
+  async function loadDashboard() {
     setMsg("");
 
-    const { data: auth } = await supabase.auth.getUser();
-    const uid = auth.user?.id;
-    if (!uid) {
-      setLoadingBookings(false);
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabase.auth.getUser();
+
+    if (userErr || !user) {
+      setMsg("Please log in first.");
       router.push("/login");
       return;
     }
 
-    const { data, error } = await supabase
-      .from("appointments")
-      .select(`
-        id,
-        appt_date,
-        appt_time,
-        duration_minutes,
-        services(name),
-        rooms(name),
-        staff(name)
-      `)
-      .eq("user_id", uid)
-      .order("appt_date", { ascending: true })
-      .order("appt_time", { ascending: true });
+    setEmail(user.email || "");
 
-    if (error) {
-      setMsg(error.message);
-      setBookings([]);
-    } else {
-      setBookings((data ?? []) as any);
+    // PROFILE
+    const { data: profile, error: profileErr } = await supabase
+      .from("profiles")
+      .select("full_name, referral_code, referral_unlocked")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileErr) {
+      setMsg(profileErr.message);
+      return;
     }
 
-    setLoadingBookings(false);
-  }
+    setFullName(profile?.full_name || "Customer");
+    setReferralCode(profile?.referral_code || "");
+    setReferralUnlocked(profile?.referral_unlocked ?? false);
 
-  async function logout() {
-    await supabase.auth.signOut();
-    router.push("/login");
-  }
+    // BOOKINGS
+    const { data: bookingData, error: bookingErr } = await supabase
+      .from("appointments")
+      .select("id, appt_date, appt_time, duration_minutes, services(name), rooms(name), staff(name)")
+      .eq("customer_id", user.id)
+      .order("appt_date", { ascending: false });
 
-  async function onClickBookings() {
-    const next = !showBookings;
-    setShowBookings(next);
+    if (!bookingErr) {
+  const safeBookings = (bookingData ?? []) as BookingRow[];
+  setBookings(safeBookings);
+  setBookingCount(safeBookings.length);
+}
 
-    if (!showBookings) await loadBookings();
-  }
+    // BADGES
+    const { data: badgeData, error: badgeErr } = await supabase
+      .from("user_badges")
+      .select("earned_at, badges(name, description)")
+      .eq("user_id", user.id)
+      .order("earned_at", { ascending: false });
 
-  async function copyReferralCode() {
-    if (!referralCode) return;
-    try {
-      await navigator.clipboard.writeText(referralCode);
-      setMsg("Referral code copied ✅");
-      setTimeout(() => setMsg(""), 1500);
-    } catch {
-      setMsg("Failed to copy referral code.");
+    if (!badgeErr) {
+      setBadges((badgeData as BadgeRow[]) ?? []);
+      setBadgeCount((badgeData ?? []).length);
     }
   }
 
   return (
     <SiteShell>
-      <div
-        className="card cardPad"
-        style={{
-          maxWidth: 900,
-          margin: "0 auto",
-        }}
-      >
-
-        <div className="profileBox">
-          <div className="profileName">👤 {fullName}</div>
-          <div className="profileMeta">{email}</div>
-          <div className="profileMeta">
-            Status: <span className="profileStatus">Active</span>
-          </div>
-        </div>
-
-        {/* Pills summary */}
-        <div className="pillRow" style={{ marginTop: 16 }}>
-          <button className="pill" onClick={onClickBookings} type="button">
-            Bookings <b style={{ marginLeft: 6 }}>{bookingCount}</b>
-          </button>
-
-          <button
-            className="pill"
-            onClick={() => setShowUnlocked((v) => !v)}
-            type="button"
-          >
-            Badges <span className="pillNum">{unlockedBadges.length}</span>
-          </button>
-
-          <button
-            className="pill"
-            onClick={() => setShowReferral((v) => !v)}
-            type="button"
-          >
-            Referral
-          </button>
-        </div>
-
-        {/* Referral Code - hidden until clicked */}
-        {showReferral && (
-          <div className="card cardPad" style={{ marginTop: 16 }}>
-            <h3 style={{ marginTop: 0 }}>Your Referral Code</h3>
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                alignItems: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              <div className="pill">{referralCode || "No referral code yet"}</div>
-              <button
-                className="btn"
-                onClick={copyReferralCode}
-                disabled={!referralCode}
-              >
-                Copy Code
-              </button>
-            </div>
-            <p style={{ color: "var(--muted)", marginTop: 10, marginBottom: 0 }}>
-              Share this code with friends when they sign up.
-            </p>
-          </div>
-        )}
-
-        {/* Unlocked badges */}
-        {showUnlocked && (
-          <div className="card cardPad" style={{ marginTop: 14 }}>
-            <h3 style={{ marginTop: 0 }}>Unlocked Badges</h3>
-
-            {unlockedBadges.length === 0 ? (
-              <p style={{ color: "var(--muted)" }}>No badges unlocked yet.</p>
-            ) : (
-              <div style={{ display: "grid", gap: 10 }}>
-                {unlockedBadges.map((row: any) => (
-                  <div
-                    key={row.badge.id}
-                    className="card cardPad"
-                    style={{ display: "flex", gap: 12 }}
-                  >
-                    <div style={{ fontSize: 26 }}>{row.badge.icon ?? "🏅"}</div>
-
-                    <div>
-                      <b>{row.badge.name}</b>
-
-                      <div style={{ color: "var(--muted)", fontSize: 13 }}>
-                        {row.badge.description}
-                      </div>
-
-                      <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4 }}>
-                        Unlocked: {new Date(row.earned_at).toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Bookings list */}
-        {showBookings && (
-          <div className="card cardPad" style={{ marginTop: 16 }}>
-            <h3 style={{ marginTop: 0 }}>My Scheduled Bookings</h3>
-
-            {loadingBookings ? (
-              <p style={{ color: "var(--muted)" }}>Loading…</p>
-            ) : bookings.length === 0 ? (
-              <p style={{ color: "var(--muted)" }}>No bookings yet.</p>
-            ) : (
-              <div className="tableWrap">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Time</th>
-                      <th>Service</th>
-                      <th>Staff</th>
-                      <th>Room</th>
-                      <th>Duration</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookings.map((b) => (
-                      <tr key={b.id}>
-                        <td>{b.appt_date}</td>
-                        <td>{String(b.appt_time).slice(0, 5)}</td>
-                        <td>{b.services?.name ?? "—"}</td>
-                        <td>{b.staff?.name ?? "—"}</td>
-                        <td>{b.rooms?.name ?? "—"}</td>
-                        <td>{b.duration_minutes ? `${b.duration_minutes} min` : "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
+      <div style={{ maxWidth: 1100, margin: "20px auto" }}>
         {msg && (
-          <div className="notice" style={{ marginTop: 12 }}>
+          <div className="notice" style={{ marginBottom: 12 }}>
             {msg}
           </div>
         )}
 
-        {/* Main tabs */}
-        <div className="actionGrid" style={{ marginTop: 20 }}>
-          <Link className="btn btnPrimary" href="/book">
-            Book Appointment
-          </Link>
-          <Link className="btn" href="/services">
-            Spa Services
-          </Link>
-          <Link className="btn" href="/activities">
-            Wellness Activities
-          </Link>
+        <div className="card cardPad">
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>{fullName}</div>
+            <div style={{ color: "var(--muted)", marginTop: 4 }}>{email}</div>
+            <div style={{ marginTop: 4, color: "#87a98e", fontWeight: 600 }}>
+              Status: Active
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+              marginBottom: 18,
+            }}
+          >
+            <button
+              className="btn"
+              onClick={() => setActiveTab("bookings")}
+              style={{
+                borderRadius: 999,
+                padding: "12px 18px",
+                border: activeTab === "bookings" ? "2px solid #222" : "1px solid var(--border)",
+                background: "#eaf1ec",
+                fontWeight: 700,
+              }}
+            >
+              Bookings {bookingCount}
+            </button>
+
+            <button
+              className="btn"
+              onClick={() => setActiveTab("badges")}
+              style={{
+                borderRadius: 999,
+                padding: "12px 18px",
+                border: activeTab === "badges" ? "2px solid #222" : "1px solid var(--border)",
+                background: "#eaf1ec",
+                fontWeight: 700,
+              }}
+            >
+              Badges {badgeCount}
+            </button>
+
+            <button
+              className="btn"
+              onClick={() => setActiveTab("referral")}
+              style={{
+                borderRadius: 999,
+                padding: "12px 18px",
+                border: activeTab === "referral" ? "2px solid #222" : "1px solid var(--border)",
+                background: "#eaf1ec",
+                fontWeight: 700,
+              }}
+            >
+              Referral
+            </button>
+          </div>
+
+          <div
+            className="card"
+            style={{
+              padding: 24,
+              minHeight: 180,
+              borderRadius: 28,
+              background: "#fff",
+            }}
+          >
+            {activeTab === "bookings" && (
+              <>
+                <h2 style={{ marginTop: 0 }}>Your Bookings</h2>
+                {bookings.length === 0 ? (
+                  <p style={{ color: "var(--muted)" }}>No bookings yet.</p>
+                ) : (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {bookings.map((b) => (
+                      <div
+                        key={b.id}
+                        style={{
+                          padding: 14,
+                          border: "1px solid var(--border)",
+                          borderRadius: 16,
+                        }}
+                      >
+                        <div style={{ fontWeight: 700 }}>
+                          {b.services?.name || "Service"}
+                        </div>
+                        <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                          {b.appt_date} at {b.appt_time}
+                        </div>
+                        <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                          Staff: {b.staff?.name || "Not assigned"} | Room: {b.rooms?.name || "N/A"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === "badges" && (
+              <>
+                <h2 style={{ marginTop: 0 }}>Unlocked Badges</h2>
+                {badges.length === 0 ? (
+                  <p style={{ color: "var(--muted)" }}>No badges unlocked yet.</p>
+                ) : (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {badges.map((b, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: 14,
+                          border: "1px solid var(--border)",
+                          borderRadius: 16,
+                        }}
+                      >
+                        <div style={{ fontWeight: 700 }}>
+                          {b.badges?.name || "Badge"}
+                        </div>
+                        <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                          {b.badges?.description || "No description"}
+                        </div>
+                        <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                          Earned: {new Date(b.earned_at).toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === "referral" && (
+              <>
+                <h2 style={{ marginTop: 0 }}>Referral Reward</h2>
+
+                <div
+                  style={{
+                    padding: 18,
+                    borderRadius: 18,
+                    border: "1px solid var(--border)",
+                    background: referralUnlocked ? "#eef8f0" : "#f6f6f6",
+                    opacity: referralUnlocked ? 1 : 0.8,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 18, fontWeight: 700 }}>
+                        {referralUnlocked ? "Referral Reward Unlocked 🎁" : "Referral Reward Locked 🔒"}
+                      </div>
+                      <div style={{ color: "var(--muted)", marginTop: 6 }}>
+                        Refer a friend and receive a free add-on.
+                      </div>
+                      <div style={{ marginTop: 10 }}>
+                        <span style={{ color: "var(--muted)" }}>Your Code: </span>
+                        <span style={{ fontWeight: 700 }}>{referralCode || "N/A"}</span>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 999,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        background: referralUnlocked ? "#d9f3df" : "#ececec",
+                        color: referralUnlocked ? "#1f7a38" : "#666",
+                      }}
+                    >
+                      {referralUnlocked ? "Unlocked" : "Locked"}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+              marginTop: 24,
+            }}
+          >
+            <Link href="/book" className="btn btnPrimary">
+              Book Appointment
+            </Link>
+            <Link href="/services" className="btn">
+              Spa Services
+            </Link>
+            <Link href="/activities" className="btn">
+              Wellness Activities
+            </Link>
+          </div>
         </div>
       </div>
     </SiteShell>
