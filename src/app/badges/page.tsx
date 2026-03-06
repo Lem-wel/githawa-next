@@ -52,13 +52,68 @@ export default function BadgesPage() {
       // Decide which badge codes should unlock
       const unlockCodes: string[] = [];
 
-      if (totalBookings >= 1) unlockCodes.push("LEVEL_BRONZE_FIRST_VISIT");
-      if (totalBookings >= 2) {
-        unlockCodes.push("BOOKED_2_TOTAL");
-        unlockCodes.push("BOOKED_2_IN_A_ROW");
-      }
-      if (totalBookings >= 3) unlockCodes.push("LEVEL_SILVER_3_VISITS");
-      if (totalBookings >= 5) unlockCodes.push("LEVEL_GOLD_5_VISITS");
+/* APPOINTMENT BADGES */
+
+if (totalBookings >= 1)
+  unlockCodes.push("LEVEL_BRONZE_FIRST_VISIT"); // First Appointment
+
+if (totalBookings >= 2) {
+  unlockCodes.push("BOOKED_2_TOTAL"); // 2 Appointments Total
+  unlockCodes.push("BOOKED_2_IN_A_ROW"); // 2 Consecutive Appointments
+}
+
+if (totalBookings >= 3)
+  unlockCodes.push("LEVEL_SILVER_3_VISITS"); // 3 Appointments
+
+if (totalBookings >= 5)
+  unlockCodes.push("LEVEL_GOLD_5_VISITS"); // 5 Appointments
+
+if (totalBookings >= 10)
+  unlockCodes.push("LEVEL_PLATINUM_10_VISITS"); // 10 Appointments
+
+if (totalBookings >= 15)
+  unlockCodes.push("LEVEL_ELITE_15_VISITS"); // 15 Appointments
+
+
+/* SPECIAL BADGES */
+
+/* Feedback Reward */
+const { count: feedbackCount } = await supabase
+  .from("feedback")
+  .select("*", { count: "exact", head: true })
+  .eq("user_id", uid);
+
+if ((feedbackCount ?? 0) >= 1)
+  unlockCodes.push("SPECIAL_FEEDBACK_REVIEW");
+
+
+/* Referral Reward */
+const { data: profile } = await supabase
+  .from("profiles")
+  .select("referral_unlocked")
+  .eq("id", uid)
+  .maybeSingle();
+
+if (profile?.referral_unlocked)
+  unlockCodes.push("SPECIAL_REFERRAL_FRIEND");
+
+
+/* Birthday Reward */
+const today = new Date();
+const month = today.getMonth() + 1;
+
+const { data: userProfile } = await supabase
+  .from("profiles")
+  .select("birthdate")
+  .eq("id", uid)
+  .maybeSingle();
+
+if (userProfile?.birthdate) {
+  const birthMonth = new Date(userProfile.birthdate).getMonth() + 1;
+
+  if (birthMonth === month)
+    unlockCodes.push("SPECIAL_BIRTHMONTH");
+}
 
       // Convert codes to badge ids
       const badgeIdsToUnlock = badges

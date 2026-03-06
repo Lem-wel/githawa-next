@@ -1,15 +1,20 @@
 import "./globals.css";
+import GinhawaChatBubble from "@/components/GinhawaChatBubble";
 
 export const metadata = {
   title: "Ginhawa Spa & Wellness",
   description: "Modern tropical wellness spa booking and rewards",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <head>
-        {/* ✅ Global fonts */}
+        {/* Global fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
@@ -17,7 +22,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <GinhawaChatBubble />
+      </body>
     </html>
   );
 }
