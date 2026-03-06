@@ -177,48 +177,68 @@ export default function GinhawaChatBubble() {
   }, [messages, typing, open]);
 
   useEffect(() => {
-    async function loadData() {
-      const { data: staffData } = await supabase
-        .from("staff")
-        .select("id, full_name, name, department, position, role")
-        .order("id", { ascending: true });
+  async function loadData() {
+    // STAFF
+    const { data: staffData, error: staffError } = await supabase
+      .from("staff")
+      .select("*")
+      .order("id", { ascending: true });
 
-      if (Array.isArray(staffData)) {
-        const mappedStaff: StaffItem[] = staffData
-          .map((row: StaffRow) => {
-            const rawName = row.full_name ?? row.name ?? "";
-            const rawRole =
-              row.department ?? row.position ?? row.role ?? "Staff";
+    console.log("STAFF DATA:", staffData);
+    console.log("STAFF ERROR:", staffError);
 
-            return {
-              name: String(rawName).trim(),
-              role: prettyRole(String(rawRole).trim() || "Staff"),
-            };
-          })
-          .filter((item) => item.name.length > 0);
+    if (Array.isArray(staffData)) {
+      const mappedStaff: StaffItem[] = staffData
+        .map((row: any) => {
+          const rawName =
+            row.full_name ??
+            row.name ??
+            row.staff_name ??
+            row.employee_name ??
+            "";
 
-        setStaff(mappedStaff);
-      }
+          const rawRole =
+            row.department ??
+            row.position ??
+            row.role ??
+            row.job_title ??
+            "Staff";
 
-      const { data: serviceData } = await supabase
-        .from("services")
-        .select("id, name, title, description")
-        .order("id", { ascending: true });
+          return {
+            name: String(rawName).trim(),
+            role: prettyRole(String(rawRole).trim() || "Staff"),
+          };
+        })
+        .filter((item) => item.name.length > 0);
 
-      if (Array.isArray(serviceData)) {
-        const mappedServices: ServiceItem[] = serviceData
-          .map((row: ServiceRow) => {
-            const rawName = row.name ?? row.title ?? "";
-            return { name: String(rawName).trim() };
-          })
-          .filter((item) => item.name.length > 0);
-
-        setServices(mappedServices);
-      }
+      setStaff(mappedStaff);
     }
 
-    loadData();
-  }, []);
+    // SERVICES
+    const { data: serviceData, error: serviceError } = await supabase
+      .from("services")
+      .select("*")
+      .order("id", { ascending: true });
+
+    console.log("SERVICES DATA:", serviceData);
+    console.log("SERVICES ERROR:", serviceError);
+
+    if (Array.isArray(serviceData)) {
+      const mappedServices: ServiceItem[] = serviceData
+        .map((row: any) => {
+          const rawName = row.name ?? row.title ?? row.service_name ?? "";
+          return {
+            name: String(rawName).trim(),
+          };
+        })
+        .filter((item) => item.name.length > 0);
+
+      setServices(mappedServices);
+    }
+  }
+
+  loadData();
+}, []);
 
   function sendMessage(text: string) {
     const cleanText = text.trim();
@@ -379,7 +399,7 @@ export default function GinhawaChatBubble() {
                   {msg.action === "booking" && (
                     <div style={{ marginTop: 12 }}>
                       <Link
-                        href="/booking"
+                        href="/book"
                         style={{
                           display: "inline-block",
                           padding: "10px 14px",
