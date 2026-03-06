@@ -766,8 +766,8 @@ select{
 }
 
 .bookingContainer {
-  max-width: 820px;
-  margin: 40px auto;
+  max-width: 860px;
+  margin: 32px auto;
   padding: 0 16px;
 }
 
@@ -779,7 +779,7 @@ select{
   margin-top: 8px;
   padding: 16px 18px;
   border: 1px solid #e5e7eb;
-  border-radius: 22px;
+  border-radius: 20px;
   background: #fff;
   width: fit-content;
   max-width: 100%;
@@ -787,6 +787,7 @@ select{
 
 .calendarLegend {
   display: flex;
+  align-items: center;
   gap: 18px;
   flex-wrap: wrap;
   margin-top: 12px;
@@ -813,4 +814,20 @@ select{
 
 .calendarDot.green {
   background: #1f7a5a;
+}
+
+.booked-day {
+  background: #ef9a9a !important;
+  color: #fff !important;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.rdp {
+  font-family: Inter, sans-serif;
+  font-size: 15px;
+}
+
+.rdp-month {
+  width: auto;
 }

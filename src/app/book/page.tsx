@@ -36,10 +36,10 @@ type ExistingAppointment = {
   duration_minutes: number | null;
 };
 
-const OPEN_MINUTES = 8 * 60;   // 8:00 AM
-const CLOSE_MINUTES = 17 * 60; // 5:00 PM
+const OPEN_MINUTES = 8 * 60;
+const CLOSE_MINUTES = 17 * 60;
 const SLOT_INTERVAL = 15;
-const BUFFER_MINUTES = 15; // set to 0 if you do not want extra cleanup/reset time
+const BUFFER_MINUTES = 15;
 
 export default function BookPage() {
   const router = useRouter();
@@ -64,81 +64,11 @@ export default function BookPage() {
   const [fullyBookedDates, setFullyBookedDates] = useState<Date[]>([]);
 
   function formatDateLocal(d: Date) {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-  
-}
-useEffect(() => {
-  async function loadFullyBookedDates() {
-    if (allRooms.length === 0) return;
-
-    const today = new Date();
-    const end = new Date();
-    end.setDate(today.getDate() + 30);
-
-    const startStr = formatDateLocal(today);
-    const endStr = formatDateLocal(end);
-
-    const { data, error } = await supabase
-      .from("appointments")
-      .select("appt_date, appt_time, duration_minutes, room_id")
-      .gte("appt_date", startStr)
-      .lte("appt_date", endStr);
-
-    if (error) {
-      console.error(error.message);
-      return;
-    }
-
-    const rows = data ?? [];
-    const booked: Date[] = [];
-
-    const openMinutes = 8 * 60;
-    const closeMinutes = 17 * 60;
-    const slotInterval = 15;
-
-    for (let i = 0; i <= 30; i++) {
-      const day = new Date(today);
-      day.setDate(today.getDate() + i);
-
-      const dayStr = formatDateLocal(day);
-      const dayRows = rows.filter((r) => r.appt_date === dayStr);
-
-      let hasAnyAvailableSlot = false;
-
-      for (let start = openMinutes; start <= closeMinutes; start += slotInterval) {
-        const endTime = start + 75; // adjust if you want a different standard blocked slot
-
-        if (endTime > closeMinutes) continue;
-
-        const freeRooms = allRooms.filter((room) => {
-          const roomAppointments = dayRows.filter((r) => r.room_id === room.id);
-
-          return !roomAppointments.some((r) => {
-            const existingStart = timeToMinutes(String(r.appt_time).slice(0, 5));
-            const existingDur = r.duration_minutes ?? 0;
-            return overlaps(start, 75, existingStart, existingDur);
-          });
-        });
-
-        if (freeRooms.length > 0) {
-          hasAnyAvailableSlot = true;
-          break;
-        }
-      }
-
-      if (!hasAnyAvailableSlot) {
-        booked.push(new Date(day));
-      }
-    }
-
-    setFullyBookedDates(booked);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
-
-  loadFullyBookedDates();
-}, [allRooms]);
 
   function norm(v: string | null | undefined) {
     return (v ?? "")
@@ -203,7 +133,6 @@ useEffect(() => {
     return main + addonDur;
   }, [mainService, selectedAddonRows]);
 
-  // actual blocked time in scheduling, includes cleanup/reset buffer
   const blockedDuration = useMemo(() => {
     if (!mainService) return 0;
     return totalDuration + BUFFER_MINUTES;
@@ -231,12 +160,6 @@ useEffect(() => {
     const slots: { value: string; label: string }[] = [];
 
     if (!mainService || blockedDuration <= 0) {
-      for (let t = OPEN_MINUTES; t <= CLOSE_MINUTES; t += SLOT_INTERVAL) {
-        slots.push({
-          value: minutesToTimeValue(t),
-          label: formatTimeLabel(t),
-        });
-      }
       return slots;
     }
 
@@ -304,6 +227,72 @@ useEffect(() => {
 
     init();
   }, [router]);
+
+  useEffect(() => {
+    async function loadFullyBookedDates() {
+      if (allRooms.length === 0) return;
+
+      const today = new Date();
+      const end = new Date();
+      end.setDate(today.getDate() + 30);
+
+      const startStr = formatDateLocal(today);
+      const endStr = formatDateLocal(end);
+
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("appt_date, appt_time, duration_minutes, room_id")
+        .gte("appt_date", startStr)
+        .lte("appt_date", endStr);
+
+      if (error) {
+        console.error(error.message);
+        return;
+      }
+
+      const rows = data ?? [];
+      const booked: Date[] = [];
+
+      for (let i = 0; i <= 30; i++) {
+        const day = new Date(today);
+        day.setDate(today.getDate() + i);
+
+        const dayStr = formatDateLocal(day);
+        const dayRows = rows.filter((r) => r.appt_date === dayStr);
+
+        let hasAnyAvailableSlot = false;
+
+        for (let start = OPEN_MINUTES; start <= CLOSE_MINUTES; start += SLOT_INTERVAL) {
+          const endTime = start + 75;
+
+          if (endTime > CLOSE_MINUTES) continue;
+
+          const freeRooms = allRooms.filter((room) => {
+            const roomAppointments = dayRows.filter((r) => r.room_id === room.id);
+
+            return !roomAppointments.some((r) => {
+              const existingStart = timeToMinutes(String(r.appt_time).slice(0, 5));
+              const existingDur = r.duration_minutes ?? 0;
+              return overlaps(start, 75, existingStart, existingDur);
+            });
+          });
+
+          if (freeRooms.length > 0) {
+            hasAnyAvailableSlot = true;
+            break;
+          }
+        }
+
+        if (!hasAnyAvailableSlot) {
+          booked.push(new Date(day));
+        }
+      }
+
+      setFullyBookedDates(booked);
+    }
+
+    loadFullyBookedDates();
+  }, [allRooms]);
 
   useEffect(() => {
     setStaffId("");
@@ -527,206 +516,197 @@ useEffect(() => {
 
   return (
     <SiteShell>
-      <div className="card cardPad">
-        <h2 style={{ marginTop: 0 }}>Book Appointment</h2>
+      <div className="bookingContainer">
+        <div className="card cardPad bookingCard">
+          <h2 style={{ marginTop: 0 }}>Book Appointment</h2>
 
-        {msg && (
-          <div
-            className={msg.includes("✅") ? "noticeOk" : "notice"}
-            style={{ marginBottom: 12 }}
-          >
-            {msg}
-          </div>
-        )}
-
-        <div style={{ marginTop: 12 }}>
-          <label>Service</label>
-          <select
-            value={serviceId}
-            onChange={(e) => setServiceId(e.target.value ? Number(e.target.value) : "")}
-          >
-            <option value="">Select service</option>
-            {services.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} — ₱{s.price} • {s.duration_minutes} mins ({s.category || "service"})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {mainService && (
-          <div style={{ marginTop: 16 }}>
-            <label>
-              Add-Ons <span style={{ color: "var(--muted)" }}>(optional)</span>
-            </label>
-
+          {msg && (
             <div
-              className="card"
-              style={{
-                marginTop: 8,
-                padding: "14px 16px",
-                borderRadius: 16,
-                boxShadow: "none",
-              }}
+              className={msg.includes("✅") ? "noticeOk" : "notice"}
+              style={{ marginBottom: 12 }}
             >
-              {addons.length === 0 ? (
-                <p style={{ color: "var(--muted)", margin: 0 }}>No add-ons available.</p>
-              ) : (
-                <div style={{ display: "grid", gap: 8 }}>
-                  {addons.map((a) => {
-                    const checked = selectedAddons.includes(a.id);
-                    return (
-                      <label
-                        key={a.id}
-                        style={{ display: "flex", gap: 10, alignItems: "center" }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleAddon(a.id)}
-                          style={{ width: 16, height: 16 }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <b>{a.name}</b>{" "}
-                          <span style={{ color: "var(--muted)" }}>
-                            — ₱{a.price} • {a.duration_minutes} mins
-                          </span>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
+              {msg}
             </div>
+          )}
 
-            <p style={{ marginTop: 10, color: "var(--muted)" }}>
-              Total estimate: <b>₱{totalPrice}</b>
-            </p>
-            <p style={{ marginTop: 4, color: "var(--muted)" }}>
-              Service duration: <b>{totalDuration} mins</b>
-            </p>
-            <p style={{ marginTop: 4, color: "var(--muted)" }}>
-              Blocked schedule time: <b>{blockedDuration} mins</b>
-              {BUFFER_MINUTES > 0 ? ` (includes ${BUFFER_MINUTES} mins reset time)` : ""}
-            </p>
+          <div style={{ marginTop: 12 }}>
+            <label>Service</label>
+            <select
+              value={serviceId}
+              onChange={(e) => setServiceId(e.target.value ? Number(e.target.value) : "")}
+            >
+              <option value="">Select service</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} — ₱{s.price} • {s.duration_minutes} mins ({s.category || "service"})
+                </option>
+              ))}
+            </select>
           </div>
-        )}
 
-        <div style={{ marginTop: 12 }}>
-  <label>Date</label>
-  <SiteShell>
-  <div className="bookingContainer">
-    <div className="card cardPad bookingCard">
-    <DayPicker
-      mode="single"
-      selected={date ? new Date(date) : undefined}
-      onSelect={(selected) => {
-        if (!selected) return;
-        setDate(formatDateLocal(selected));
-      }}
-      disabled={[
-        { before: new Date() },
-        ...fullyBookedDates
-      ]}
-      modifiers={{
-        booked: fullyBookedDates,
-      }}
-      modifiersClassNames={{
-        booked: "booked-day",
-      }}
-    />
+          {mainService && (
+            <div style={{ marginTop: 16 }}>
+              <label>
+                Add-Ons <span style={{ color: "var(--muted)" }}>(optional)</span>
+              </label>
 
-    <div className="calendarLegend">
-      <span>
-        <i className="calendarDot green" />
-        Available
-      </span>
-      <span>
-        <i className="calendarDot red" />
-        Fully booked
-      </span>
-    </div>
-  </div>
-  </div>
-  </SiteShell>
-</div>
+              <div
+                className="card"
+                style={{
+                  marginTop: 8,
+                  padding: "14px 16px",
+                  borderRadius: 16,
+                  boxShadow: "none",
+                }}
+              >
+                {addons.length === 0 ? (
+                  <p style={{ color: "var(--muted)", margin: 0 }}>No add-ons available.</p>
+                ) : (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {addons.map((a) => {
+                      const checked = selectedAddons.includes(a.id);
+                      return (
+                        <label
+                          key={a.id}
+                          style={{ display: "flex", gap: 10, alignItems: "center" }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleAddon(a.id)}
+                            style={{ width: 16, height: 16 }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <b>{a.name}</b>{" "}
+                            <span style={{ color: "var(--muted)" }}>
+                              — ₱{a.price} • {a.duration_minutes} mins
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
-        <div style={{ marginTop: 12 }}>
-          <label>Time</label>
-          <select
-            className="input"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            disabled={!mainService}
-          >
-            <option value="">
-              {!mainService ? "Select service first" : "Select time"}
-            </option>
-            {timeSlots.map((slot) => (
-              <option key={slot.value} value={slot.value}>
-                {slot.label}
+              <p style={{ marginTop: 10, color: "var(--muted)" }}>
+                Total estimate: <b>₱{totalPrice}</b>
+              </p>
+              <p style={{ marginTop: 4, color: "var(--muted)" }}>
+                Service duration: <b>{totalDuration} mins</b>
+              </p>
+              <p style={{ marginTop: 4, color: "var(--muted)" }}>
+                Blocked schedule time: <b>{blockedDuration} mins</b>
+                {BUFFER_MINUTES > 0 ? ` (includes ${BUFFER_MINUTES} mins reset time)` : ""}
+              </p>
+            </div>
+          )}
+
+          <div style={{ marginTop: 12 }}>
+            <label>Date</label>
+            <div className="calendarWrap">
+              <DayPicker
+                mode="single"
+                selected={date ? new Date(date) : undefined}
+                onSelect={(selected) => {
+                  if (!selected) return;
+                  setDate(formatDateLocal(selected));
+                }}
+                disabled={[{ before: new Date() }, ...fullyBookedDates]}
+                modifiers={{ booked: fullyBookedDates }}
+                modifiersClassNames={{ booked: "booked-day" }}
+              />
+
+              <div className="calendarLegend">
+                <span>
+                  <i className="calendarDot green" />
+                  Available
+                </span>
+                <span>
+                  <i className="calendarDot red" />
+                  Fully booked
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <label>Time</label>
+            <select
+              className="input"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              disabled={!mainService}
+            >
+              <option value="">
+                {!mainService ? "Select service first" : "Select time"}
               </option>
-            ))}
-          </select>
-          <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-            Available booking hours: 8:00 AM to 5:00 PM, every 15 minutes.
+              {timeSlots.map((slot) => (
+                <option key={slot.value} value={slot.value}>
+                  {slot.label}
+                </option>
+              ))}
+            </select>
+            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
+              Available booking hours: 8:00 AM to 5:00 PM, every 15 minutes.
+            </div>
           </div>
-        </div>
 
-        <div style={{ marginTop: 12 }}>
-          <label>Staff</label>
-          <select
-            value={staffId}
-            disabled={!mainService || !date || !time}
-            onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : "")}
-          >
-            <option value="">
-              {!mainService || !date || !time
-                ? "Select service, date, and time first"
-                : availableStaff.length === 0
-                ? "No available staff"
-                : "Select staff"}
-            </option>
-            {availableStaff.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
+          <div style={{ marginTop: 12 }}>
+            <label>Staff</label>
+            <select
+              value={staffId}
+              disabled={!mainService || !date || !time}
+              onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : "")}
+            >
+              <option value="">
+                {!mainService || !date || !time
+                  ? "Select service, date, and time first"
+                  : availableStaff.length === 0
+                  ? "No available staff"
+                  : "Select staff"}
               </option>
-            ))}
-          </select>
-          <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-            Staff can only be booked up to 8 appointments per day.
+              {availableStaff.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
+              Staff can only be booked up to 8 appointments per day.
+            </div>
           </div>
-        </div>
 
-        <div style={{ marginTop: 12 }}>
-          <label>Room</label>
-          <select
-            value={roomId}
-            disabled={!mainService || !date || !time}
-            onChange={(e) => setRoomId(e.target.value ? Number(e.target.value) : "")}
-          >
-            <option value="">
-              {!mainService || !date || !time
-                ? "Select service, date, and time first"
-                : availableRooms.length === 0
-                ? "No available room"
-                : "Select room"}
-            </option>
-            {availableRooms.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
+          <div style={{ marginTop: 12 }}>
+            <label>Room</label>
+            <select
+              value={roomId}
+              disabled={!mainService || !date || !time}
+              onChange={(e) => setRoomId(e.target.value ? Number(e.target.value) : "")}
+            >
+              <option value="">
+                {!mainService || !date || !time
+                  ? "Select service, date, and time first"
+                  : availableRooms.length === 0
+                  ? "No available room"
+                  : "Select room"}
               </option>
-            ))}
-          </select>
-          <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-            Rooms already occupied at the selected time are hidden automatically.
+              {availableRooms.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
+              Rooms already occupied at the selected time are hidden automatically.
+            </div>
           </div>
-        </div>
 
-        <div style={{ marginTop: 16 }}>
-          <button className="btn btnPrimary" onClick={book} disabled={loading}>
-            {loading ? "Booking..." : "Book Now"}
-          </button>
+          <div style={{ marginTop: 16 }}>
+            <button className="btn btnPrimary" onClick={book} disabled={loading}>
+              {loading ? "Booking..." : "Book Now"}
+            </button>
+          </div>
         </div>
       </div>
     </SiteShell>
