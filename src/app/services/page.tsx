@@ -12,21 +12,18 @@ type Service = {
   description: string;
   duration_minutes: number;
   price: number;
-  video_url: string | null; // YouTube link stored here
+  video_url: string | null;
 };
 
-// ✅ Convert a YouTube URL to an embed URL
 function youtubeToEmbed(url: string) {
   try {
     const u = new URL(url);
 
-    // youtu.be/VIDEO_ID
     if (u.hostname.includes("youtu.be")) {
       const id = u.pathname.replace("/", "").trim();
       return id ? `https://www.youtube.com/embed/${id}` : null;
     }
 
-    // youtube.com/watch?v=VIDEO_ID
     if (u.hostname.includes("youtube.com")) {
       const id = u.searchParams.get("v");
       return id ? `https://www.youtube.com/embed/${id}` : null;
@@ -38,6 +35,17 @@ function youtubeToEmbed(url: string) {
   }
 }
 
+function normalizeCategory(category: string | null | undefined) {
+  return (category ?? "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[\s_-]+/g, "");
+}
+
+function isAddonCategory(category: string | null | undefined) {
+  return normalizeCategory(category).includes("addon");
+}
+
 export default function ServicesPage() {
   const [msg, setMsg] = useState("");
   const [services, setServices] = useState<Service[]>([]);
@@ -45,25 +53,56 @@ export default function ServicesPage() {
   useEffect(() => {
     (async () => {
       setMsg("");
+
       const { data, error } = await supabase
         .from("services")
         .select("id,name,category,description,duration_minutes,price,video_url")
-        .order("category", { ascending: true })
         .order("name", { ascending: true });
 
-      if (error) setMsg(error.message);
+      if (error) {
+        setMsg(error.message);
+        return;
+      }
+
       setServices((data ?? []) as Service[]);
     })();
   }, []);
 
   const grouped = useMemo(() => {
+    const mainServices = services.filter((s) => !isAddonCategory(s.category));
+    const addonServices = services.filter((s) => isAddonCategory(s.category));
+
     const map = new Map<string, Service[]>();
-    for (const s of services) {
-      const key = s.category || "Other";
+
+    for (const s of mainServices) {
+      const key = s.category || "Other Services";
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(s);
     }
-    return Array.from(map.entries());
+
+    const CATEGORY_ORDER = [
+      "Massage Therapies",
+      "Body Treatments",
+      "Facial Treatments",
+      "Hand & Foot Care",
+    ];
+
+    const orderedMain = Array.from(map.entries()).sort(([a], [b]) => {
+      const aIndex = CATEGORY_ORDER.indexOf(a);
+      const bIndex = CATEGORY_ORDER.indexOf(b);
+
+      const safeA = aIndex === -1 ? 999 : aIndex;
+      const safeB = bIndex === -1 ? 999 : bIndex;
+
+      if (safeA !== safeB) return safeA - safeB;
+      return a.localeCompare(b);
+    });
+
+    if (addonServices.length > 0) {
+      orderedMain.push(["Add-ons", addonServices]);
+    }
+
+    return orderedMain;
   }, [services]);
 
   return (
@@ -78,7 +117,14 @@ export default function ServicesPage() {
         <div key={cat} className="card cardPad" style={{ marginTop: 14 }}>
           <h3 style={{ marginTop: 0 }}>{cat}</h3>
 
-         <div className="servicesGrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
+          <div
+            className="servicesGrid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: 12,
+            }}
+          >
             {list.map((s) => {
               const embed = s.video_url ? youtubeToEmbed(s.video_url) : null;
 
@@ -97,7 +143,6 @@ export default function ServicesPage() {
                     {s.description}
                   </p>
 
-                  {/* ✅ YouTube Preview */}
                   {embed && (
                     <div style={{ marginTop: 10 }}>
                       <iframe
@@ -115,7 +160,6 @@ export default function ServicesPage() {
                     </div>
                   )}
 
-                  {/* If video_url exists but isn't YouTube */}
                   {s.video_url && !embed && (
                     <div className="notice" style={{ marginTop: 10 }}>
                       Invalid YouTube link for this service.
