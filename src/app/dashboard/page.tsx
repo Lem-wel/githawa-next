@@ -289,25 +289,25 @@ export default function DashboardPage() {
                   ) : (
                     <div style={{ display: "grid", gap: 12 }}>
                       {badges.map((b, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            padding: 14,
-                            border: "1px solid var(--border)",
-                            borderRadius: 16,
-                          }}
-                        >
-                          <div style={{ fontWeight: 700 }}>
-                            {b.badges?.name || "Badge"}
-                          </div>
-                          <div style={{ color: "var(--muted)", marginTop: 4 }}>
-                            {b.badges?.description || "No description"}
-                          </div>
-                          <div style={{ color: "var(--muted)", marginTop: 4 }}>
-                            Earned: {new Date(b.earned_at).toLocaleString()}
-                          </div>
-                        </div>
-                      ))}
+  <div
+    key={i}
+    style={{
+      padding: 14,
+      border: "1px solid var(--border)",
+      borderRadius: 16,
+    }}
+  >
+    <div style={{ fontWeight: 700 }}>
+      {b.badges?.name || "Badge"}
+    </div>
+    <div style={{ color: "var(--muted)", marginTop: 4 }}>
+      {b.badges?.description || "No description"}
+    </div>
+    <div style={{ color: "var(--muted)", marginTop: 4 }}>
+      Earned: {new Date(b.earned_at).toLocaleString()}
+    </div>
+  </div>
+))}
                     </div>
                   )}
                 </>

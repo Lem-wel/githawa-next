@@ -9,9 +9,11 @@ import { supabase } from "@/lib/supabaseClient";
 export default function SiteShell({
   children,
   right,
+  hideUserActions = false,
 }: {
   children: React.ReactNode;
   right?: React.ReactNode;
+  hideUserActions?: boolean;
 }) {
   const path = usePathname();
   const router = useRouter();
@@ -51,21 +53,19 @@ export default function SiteShell({
   return (
     <div className="container">
       <header className="navbar">
-        {/* ✅ Logo + Brand */}
         <div className="brand">
-  <div className="brand-badge">
-    <Image
-      src="/logo.png"
-      alt="Ginhawa Logo"
-      width={72}
-      height={72}
-      priority
-    />
-  </div>
-  <span style={{fontWeight:600}}>Ginhawa</span>
-</div>
+          <div className="brand-badge">
+            <Image
+              src="/logo.png"
+              alt="Ginhawa Logo"
+              width={72}
+              height={72}
+              priority
+            />
+          </div>
+          <span style={{ fontWeight: 600 }}>Ginhawa</span>
+        </div>
 
-        {/* Links */}
         <nav className="navlinks">
           <Link style={active("/")} href="/">
             Home
@@ -75,21 +75,23 @@ export default function SiteShell({
           </Link>
         </nav>
 
-        {/* Right area */}
         <div className="navright">
           {right}
 
-          {/* ✅ While loading: show nothing to avoid flicker */}
           {!loading && (
             <>
               {loggedIn ? (
                 <>
-                  <Link className="btn" href="/dashboard">
-                    Dashboard
-                  </Link>
-                  <button className="btn" onClick={logout}>
-                    Logout
-                  </button>
+                  {!hideUserActions && (
+                    <>
+                      <Link className="btn" href="/dashboard">
+                        Dashboard
+                      </Link>
+                      <button className="btn" onClick={logout}>
+                        Logout
+                      </button>
+                    </>
+                  )}
                 </>
               ) : (
                 <Link className="btn" href="/login">
@@ -102,26 +104,27 @@ export default function SiteShell({
       </header>
 
       {children}
+
       <button
-  onClick={() => window.location.href="/feedback"}
-  style={{
-    position: "fixed",
-    bottom: "20px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    background: "var(--sage)",
-    color: "white",
-    padding: "12px 20px",
-    borderRadius: "999px",
-    border: "none",
-    fontWeight: 600,
-    boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
-    cursor: "pointer",
-    zIndex: 999
-  }}
->
-💬 Leave Feedback
-</button>
+        onClick={() => (window.location.href = "/feedback")}
+        style={{
+          position: "fixed",
+          bottom: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "var(--sage)",
+          color: "white",
+          padding: "12px 20px",
+          borderRadius: "999px",
+          border: "none",
+          fontWeight: 600,
+          boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+          cursor: "pointer",
+          zIndex: 999,
+        }}
+      >
+        💬 Leave Feedback
+      </button>
     </div>
   );
 }
