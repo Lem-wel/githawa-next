@@ -44,6 +44,7 @@ export default function RewardsPage() {
         setMsg(error.message);
         return;
       }
+      console.log("UNLOCKED BADGES RAW:", data);
 
       console.log("UNLOCKED BADGES RAW:", data);
       setRows((data ?? []) as UnlockedBadgeRow[]);
