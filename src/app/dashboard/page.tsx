@@ -156,7 +156,6 @@ export default function DashboardPage() {
           margin: "0 auto",
         }}
       >
-        <h2 style={{ marginTop: 0 }}>Dashboard</h2>
 
         <div className="profileBox">
           <div className="profileName">👤 {fullName}</div>

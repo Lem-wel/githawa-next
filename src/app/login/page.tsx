@@ -111,9 +111,6 @@ export default function LoginPage() {
         <button className="btn btnPrimary" onClick={login}>
           Log In
         </button>
-        <button className="btn btnPrimary" onClick={login}>
-  Log In
-</button>
 
 <p
   style={{
