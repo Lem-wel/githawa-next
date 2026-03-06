@@ -32,6 +32,7 @@ export default function DashboardPage() {
 
   const [unlockedBadges, setUnlockedBadges] = useState<any[]>([]);
   const [showUnlocked, setShowUnlocked] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -165,20 +166,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Referral Code */}
-        <div className="card cardPad" style={{ marginTop: 16 }}>
-          <h3 style={{ marginTop: 0 }}>Your Referral Code</h3>
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <div className="pill">{referralCode || "No referral code yet"}</div>
-            <button className="btn" onClick={copyReferralCode} disabled={!referralCode}>
-              Copy Code
-            </button>
-          </div>
-          <p style={{ color: "var(--muted)", marginTop: 10, marginBottom: 0 }}>
-            Share this code with friends when they sign up.
-          </p>
-        </div>
-
         {/* Pills summary */}
         <div className="pillRow" style={{ marginTop: 16 }}>
           <button className="pill" onClick={onClickBookings} type="button">
@@ -192,7 +179,42 @@ export default function DashboardPage() {
           >
             Badges <span className="pillNum">{unlockedBadges.length}</span>
           </button>
+
+          <button
+            className="pill"
+            onClick={() => setShowReferral((v) => !v)}
+            type="button"
+          >
+            Referral
+          </button>
         </div>
+
+        {/* Referral Code - hidden until clicked */}
+        {showReferral && (
+          <div className="card cardPad" style={{ marginTop: 16 }}>
+            <h3 style={{ marginTop: 0 }}>Your Referral Code</h3>
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <div className="pill">{referralCode || "No referral code yet"}</div>
+              <button
+                className="btn"
+                onClick={copyReferralCode}
+                disabled={!referralCode}
+              >
+                Copy Code
+              </button>
+            </div>
+            <p style={{ color: "var(--muted)", marginTop: 10, marginBottom: 0 }}>
+              Share this code with friends when they sign up.
+            </p>
+          </div>
+        )}
 
         {/* Unlocked badges */}
         {showUnlocked && (
