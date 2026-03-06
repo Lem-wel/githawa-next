@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const [bookingCount, setBookingCount] = useState(0);
   const [badgeCount, setBadgeCount] = useState(0);
 
-  const [activeTab, setActiveTab] = useState<"bookings" | "badges" | "referral" | null>(null);
+  const [activeTab, setActiveTab] = useState<"bookings" | "badges" | null>(null);
 
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [badges, setBadges] = useState<BadgeRow[]>([]);
@@ -74,7 +74,9 @@ export default function DashboardPage() {
 
     const { data: bookingData, error: bookingErr } = await supabase
       .from("appointments")
-      .select("id, appt_date, appt_time, duration_minutes, services(name), rooms(name), staff(name)")
+      .select(
+        "id, appt_date, appt_time, duration_minutes, services(name), rooms(name), staff(name)"
+      )
       .eq("customer_id", user.id)
       .order("appt_date", { ascending: false });
 
@@ -93,12 +95,10 @@ export default function DashboardPage() {
     if (!badgeErr) {
       const safeBadges = (badgeData ?? []) as BadgeRow[];
       setBadges(safeBadges);
-      setBadgeCount(safeBadges.length);
-    }
-  }
 
-  function toggleTab(tab: "bookings" | "badges" | "referral") {
-    setActiveTab((prev) => (prev === tab ? null : tab));
+      // +1 if referral reward is unlocked, because it should count in badges area
+      setBadgeCount(safeBadges.length + (profile?.referral_unlocked ? 1 : 0));
+    }
   }
 
   return (
@@ -129,47 +129,36 @@ export default function DashboardPage() {
           >
             <button
               className="btn"
-              onClick={() => toggleTab("bookings")}
+              onClick={() => setActiveTab("bookings")}
               style={{
                 borderRadius: 999,
                 padding: "12px 18px",
-                border: activeTab === "bookings" ? "2px solid #222" : "1px solid var(--border)",
+                border:
+                  activeTab === "bookings"
+                    ? "2px solid #222"
+                    : "1px solid var(--border)",
                 background: "#eaf1ec",
                 fontWeight: 700,
               }}
-              type="button"
             >
               Bookings {bookingCount}
             </button>
 
             <button
               className="btn"
-              onClick={() => toggleTab("badges")}
+              onClick={() => setActiveTab("badges")}
               style={{
                 borderRadius: 999,
                 padding: "12px 18px",
-                border: activeTab === "badges" ? "2px solid #222" : "1px solid var(--border)",
+                border:
+                  activeTab === "badges"
+                    ? "2px solid #222"
+                    : "1px solid var(--border)",
                 background: "#eaf1ec",
                 fontWeight: 700,
               }}
-              type="button"
             >
               Badges {badgeCount}
-            </button>
-
-            <button
-              className="btn"
-              onClick={() => toggleTab("referral")}
-              style={{
-                borderRadius: 999,
-                padding: "12px 18px",
-                border: activeTab === "referral" ? "2px solid #222" : "1px solid var(--border)",
-                background: "#eaf1ec",
-                fontWeight: 700,
-              }}
-              type="button"
-            >
-              Referral
             </button>
           </div>
 
@@ -186,6 +175,7 @@ export default function DashboardPage() {
               {activeTab === "bookings" && (
                 <>
                   <h2 style={{ marginTop: 0 }}>Your Bookings</h2>
+
                   {bookings.length === 0 ? (
                     <p style={{ color: "var(--muted)" }}>No bookings yet.</p>
                   ) : (
@@ -206,7 +196,8 @@ export default function DashboardPage() {
                             {b.appt_date} at {b.appt_time}
                           </div>
                           <div style={{ color: "var(--muted)", marginTop: 4 }}>
-                            Staff: {b.staff?.name || "Not assigned"} | Room: {b.rooms?.name || "N/A"}
+                            Staff: {b.staff?.name || "Not assigned"} | Room:{" "}
+                            {b.rooms?.name || "N/A"}
                           </div>
                         </div>
                       ))}
@@ -218,8 +209,62 @@ export default function DashboardPage() {
               {activeTab === "badges" && (
                 <>
                   <h2 style={{ marginTop: 0 }}>Unlocked Badges</h2>
+
+                  <div
+                    style={{
+                      marginBottom: 16,
+                      padding: 18,
+                      borderRadius: 18,
+                      border: "1px solid var(--border)",
+                      background: referralUnlocked ? "#eef8f0" : "#f6f6f6",
+                      opacity: referralUnlocked ? 1 : 0.75,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 700 }}>
+                          Referral Reward
+                        </div>
+                        <div style={{ color: "var(--muted)", marginTop: 6 }}>
+                          Refer a friend and receive a free add-on.
+                        </div>
+                        <div style={{ marginTop: 10 }}>
+                          <span style={{ color: "var(--muted)" }}>Code: </span>
+                          <span style={{ fontWeight: 700 }}>
+                            {referralUnlocked
+                              ? referralCode || "N/A"
+                              : "SPECIAL_REFERRAL_FRIEND"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 999,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          background: referralUnlocked ? "#d9f3df" : "#ececec",
+                          color: referralUnlocked ? "#1f7a38" : "#666",
+                        }}
+                      >
+                        {referralUnlocked ? "Unlocked" : "Locked"}
+                      </div>
+                    </div>
+                  </div>
+
                   {badges.length === 0 ? (
-                    <p style={{ color: "var(--muted)" }}>No badges unlocked yet.</p>
+                    <p style={{ color: "var(--muted)" }}>
+                      No other badges unlocked yet.
+                    </p>
                   ) : (
                     <div style={{ display: "grid", gap: 12 }}>
                       {badges.map((b, i) => (
@@ -244,60 +289,6 @@ export default function DashboardPage() {
                       ))}
                     </div>
                   )}
-                </>
-              )}
-
-              {activeTab === "referral" && (
-                <>
-                  <h2 style={{ marginTop: 0 }}>Referral Reward</h2>
-
-                  <div
-                    style={{
-                      padding: 18,
-                      borderRadius: 18,
-                      border: "1px solid var(--border)",
-                      background: referralUnlocked ? "#eef8f0" : "#f6f6f6",
-                      opacity: referralUnlocked ? 1 : 0.8,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 18, fontWeight: 700 }}>
-                          {referralUnlocked
-                            ? "Referral Reward Unlocked 🎁"
-                            : "Referral Reward Locked 🔒"}
-                        </div>
-                        <div style={{ color: "var(--muted)", marginTop: 6 }}>
-                          Refer a friend and receive a free add-on.
-                        </div>
-                        <div style={{ marginTop: 10 }}>
-                          <span style={{ color: "var(--muted)" }}>Your Code: </span>
-                          <span style={{ fontWeight: 700 }}>{referralCode || "N/A"}</span>
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          padding: "6px 12px",
-                          borderRadius: 999,
-                          fontSize: 13,
-                          fontWeight: 700,
-                          background: referralUnlocked ? "#d9f3df" : "#ececec",
-                          color: referralUnlocked ? "#1f7a38" : "#666",
-                        }}
-                      >
-                        {referralUnlocked ? "Unlocked" : "Locked"}
-                      </div>
-                    </div>
-                  </div>
                 </>
               )}
             </div>
