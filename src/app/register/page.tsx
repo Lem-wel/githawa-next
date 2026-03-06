@@ -43,16 +43,6 @@ export default function RegisterPage() {
     throw new Error("Failed to generate unique referral code.");
   }
 
-  async function signInWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${location.origin}/auth/callback`,
-      },
-    });
-
-    if (error) setMsg(error.message);
-  }
 
   async function register() {
     setMsg("");
@@ -220,24 +210,6 @@ export default function RegisterPage() {
             <span style={{ color: "var(--muted)", fontSize: 13 }}>OR</span>
             <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
           </div>
-
-          <button
-            className="btn"
-            style={{
-              width: "100%",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: 10,
-            }}
-            onClick={signInWithGoogle}
-          >
-            <img
-              src="https://www.svgrepo.com/show/475656/google-color.svg"
-              width="18"
-            />
-            Continue with Google
-          </button>
         </div>
       </div>
     </SiteShell>
