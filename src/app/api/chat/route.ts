@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
+    console.log("API KEY:", process.env.OPENROUTER_API_KEY);
   try {
     const { message } = await req.json();
 
