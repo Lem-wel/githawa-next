@@ -77,7 +77,7 @@ export default function DashboardPage() {
       .select(
         "id, appt_date, appt_time, duration_minutes, services(name), rooms(name), staff(name)"
       )
-      .eq("customer_id", user.id)
+      .eq("user_id", user.id)
       .order("appt_date", { ascending: false });
 
     if (bookingErr) {
