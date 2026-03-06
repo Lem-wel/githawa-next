@@ -1,140 +1,121 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import SiteShell from "@/components/SiteShell";
-import Link from "next/link";
 
-type BadgeRow = {
-  id: number;
-  code: string | null;
-  name: string;                 // ✅ your table uses name
-  description: string | null;
-  icon: string | null;          // ✅ you added icon column
-};
-
-export default function BadgesPage() {
+export default function RewardsPage() {
+  const [rows, setRows] = useState<any[]>([]);
   const [msg, setMsg] = useState("");
-  const [allBadges, setAllBadges] = useState<BadgeRow[]>([]);
-  const [unlockedSet, setUnlockedSet] = useState<Set<number>>(new Set());
+  const [referralUnlocked, setReferralUnlocked] = useState(false);
 
   useEffect(() => {
     (async () => {
-      setMsg("");
-
-      // 1) Load ALL badges (locked + unlocked)
-      const { data: b, error: bErr } = await supabase
-        .from("badges")
-        .select("id,code,name,description,icon,type,required_count,reward")
-        .order("id", { ascending: true });
-
-      if (bErr) setMsg(bErr.message);
-      setAllBadges((b ?? []) as BadgeRow[]);
-
-      // 2) If logged in, load unlocked badge ids
       const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return; // not logged in => just show all locked
+      const uid = auth.user?.id;
 
-      const { data: ub, error: ubErr } = await supabase
+      if (!uid) {
+        setMsg("Please login first.");
+        return;
+      }
+
+      const { data: profile, error: profileErr } = await supabase
+        .from("profiles")
+        .select("referral_unlocked")
+        .eq("id", uid)
+        .maybeSingle();
+
+      if (profileErr) {
+        setMsg(profileErr.message);
+        return;
+      }
+
+      setReferralUnlocked(profile?.referral_unlocked ?? false);
+
+      const { data, error } = await supabase
         .from("user_badges")
-        .select("badge_id")
-        .eq("user_id", auth.user.id);
+        .select("earned_at, badges(name, description)")
+        .eq("user_id", uid)
+        .order("earned_at", { ascending: false });
 
-      if (ubErr) setMsg((m) => (m ? m + " | " : "") + ubErr.message);
+      if (error) {
+        setMsg(error.message);
+        return;
+      }
 
-      const set = new Set<number>((ub ?? []).map((x: any) => Number(x.badge_id)));
-      setUnlockedSet(set);
+      setRows(data ?? []);
     })();
   }, []);
 
-  const unlockedCount = useMemo(() => {
-    let c = 0;
-    for (const b of allBadges) if (unlockedSet.has(b.id)) c++;
-    return c;
-  }, [allBadges, unlockedSet]);
-
   return (
-    <SiteShell>
-      <div className="card cardPad">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
+    <div style={{ maxWidth: 900, margin: "30px auto" }}>
+      <h2>Badges / Rewards</h2>
+
+      <div
+        className="card cardPad"
+        style={{
+          marginBottom: 20,
+          opacity: referralUnlocked ? 1 : 0.7,
+          border: "1px solid var(--border)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
-            <h2 style={{ margin: 0 }}>Badges</h2>
-            <p style={{ color: "var(--muted)", marginTop: 6 }}>
-              Unlocked {unlockedCount} / {allBadges.length}
+            <h3 style={{ margin: 0 }}>Referral Reward</h3>
+            <p style={{ margin: "8px 0 4px", color: "var(--muted)" }}>
+              Refer a friend and receive a free add-on.
+            </p>
+            <p style={{ margin: 0, color: "var(--muted)" }}>
+              Code: {referralUnlocked ? "Unlocked on owner account" : "SPECIAL_REFERRAL_FRIEND"}
             </p>
           </div>
+
+          <div
+            style={{
+              alignSelf: "center",
+              padding: "6px 12px",
+              borderRadius: 999,
+              fontWeight: 700,
+              background: referralUnlocked ? "#d9f3df" : "#ececec",
+              color: referralUnlocked ? "#1f7a38" : "#666",
+            }}
+          >
+            {referralUnlocked ? "Unlocked" : "Locked"}
+          </div>
         </div>
-
-        {msg && (
-          <div className="notice" style={{ marginTop: 12 }}>
-            {msg}
-          </div>
-        )}
       </div>
 
-      <div className="card cardPad" style={{ marginTop: 14 }}>
-        {allBadges.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>No badges found.</p>
-        ) : (
-          <div style={{ display: "grid", gap: 12 }}>
-            {allBadges.map((b) => {
-              const unlocked = unlockedSet.has(b.id);
+      {msg && <p style={{ color: "crimson" }}>{msg}</p>}
 
-              return (
-                <div
-                  key={b.id}
-                  className="card cardPad"
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "center",
-                    opacity: unlocked ? 1 : 0.55,
-                  }}
-                >
-                  <div style={{ fontSize: 28 }}>{b.icon ?? "🏅"}</div>
+      {!msg && rows.length === 0 && (
+        <p>No badges yet. Book 2 appointments to earn rewards.</p>
+      )}
 
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 10,
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <b>{b.name}</b>
-
-                      <span className={unlocked ? "tagOk" : "tag"}>
-                        {unlocked ? "Unlocked" : "Locked"}
-                      </span>
-                    </div>
-
-                    <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>
-                      {b.description ?? "—"}
-                    </div>
-
-                    {b.code && (
-                      <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 6 }}>
-                        Code: {b.code}
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ fontSize: 18 }}>{unlocked ? "✅" : "🔒"}</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </SiteShell>
+      {rows.length > 0 && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th align="left">Badge</th>
+              <th align="left">Description</th>
+              <th align="left">Earned</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i}>
+                <td style={{ padding: 8, borderTop: "1px solid #eee" }}>
+                  <b>{r.badges?.name}</b>
+                </td>
+                <td style={{ padding: 8, borderTop: "1px solid #eee" }}>
+                  {r.badges?.description}
+                </td>
+                <td style={{ padding: 8, borderTop: "1px solid #eee" }}>
+                  {new Date(r.earned_at).toLocaleString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
   );
 }
