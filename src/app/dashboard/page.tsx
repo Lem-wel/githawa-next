@@ -25,6 +25,7 @@ type BadgeRow = {
   badges?: {
     name?: string;
     description?: string;
+    icon?: string | null;
   } | null;
 };
 
@@ -297,9 +298,25 @@ export default function DashboardPage() {
       borderRadius: 16,
     }}
   >
-    <div style={{ fontWeight: 700 }}>
+    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+  <div style={{ fontSize: 24 }}>
+    {b.badges?.icon || "🏅"}
+  </div>
+
+  <div>
+    <div style={{ fontWeight: 700, fontSize: 17 }}>
       {b.badges?.name || "Badge"}
     </div>
+
+    <div style={{ color: "var(--muted)", marginTop: 6 }}>
+      {b.badges?.description || "No description"}
+    </div>
+
+    <div style={{ color: "var(--muted)", marginTop: 6 }}>
+      Earned: {new Date(b.earned_at).toLocaleString()}
+    </div>
+  </div>
+</div>
     <div style={{ color: "var(--muted)", marginTop: 4 }}>
       {b.badges?.description || "No description"}
     </div>
