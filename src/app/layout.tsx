@@ -1,5 +1,5 @@
 import "./globals.css";
-import GinhawaChatBubble from "@/components/GinhawaChatBubble";
+import GinhawaBuddy from "@/components/GinhawaBuddy";
 
 export const metadata = {
   title: "Ginhawa Spa & Wellness",
@@ -14,7 +14,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Global fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
@@ -24,7 +23,7 @@ export default function RootLayout({
       </head>
       <body>
         {children}
-        <GinhawaChatBubble />
+        <GinhawaBuddy />
       </body>
     </html>
   );
