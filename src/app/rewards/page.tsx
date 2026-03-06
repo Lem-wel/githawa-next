@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import SiteShell from "@/components/SiteShell";
 
 type UnlockedBadgeRow = {
   earned_at: string;
@@ -42,49 +43,62 @@ export default function RewardsPage() {
   }, []);
 
   return (
-    <div style={{ maxWidth: 1100, margin: "30px auto" }}>
-      <h2>Unlocked Badges</h2>
+    <SiteShell>
+      <div className="card cardPad">
+        <h2 style={{ marginTop: 0 }}>Unlocked Badges</h2>
 
-      {msg && <p style={{ color: "crimson" }}>{msg}</p>}
+        {msg && (
+          <div className="notice" style={{ marginTop: 12 }}>
+            {msg}
+          </div>
+        )}
 
-      {!msg && rows.length === 0 && (
-        <p style={{ color: "var(--muted)" }}>No badges unlocked yet.</p>
-      )}
+        {!msg && rows.length === 0 && (
+          <p style={{ color: "var(--muted)" }}>No badges unlocked yet.</p>
+        )}
 
-      {rows.length > 0 && (
-        <div style={{ display: "grid", gap: 16 }}>
-          {rows.map((r, i) => (
-            <div
-              key={i}
-              className="card cardPad"
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 14,
-                borderRadius: 22,
-              }}
-            >
-              <div style={{ fontSize: 30, lineHeight: 1 }}>
-                {r.badges?.icon || "🏅"}
+        {rows.length > 0 && (
+          <div style={{ display: "grid", gap: 16 }}>
+            {rows.map((r, i) => (
+              <div
+                key={i}
+                className="card cardPad"
+                style={{
+                  display: "flex",
+                  gap: 14,
+                  alignItems: "flex-start",
+                  borderRadius: 22,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 30,
+                    lineHeight: 1,
+                    minWidth: 40,
+                    textAlign: "center",
+                  }}
+                >
+                  {r.badges?.icon || "🏅"}
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 17 }}>
+                    {r.badges?.name || "Badge"}
+                  </div>
+
+                  <div style={{ color: "var(--muted)", marginTop: 6 }}>
+                    {r.badges?.description || "No description"}
+                  </div>
+
+                  <div style={{ color: "var(--muted)", marginTop: 8 }}>
+                    Earned: {new Date(r.earned_at).toLocaleString()}
+                  </div>
+                </div>
               </div>
-
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 17 }}>
-                  {r.badges?.name || "Badge"}
-                </div>
-
-                <div style={{ color: "var(--muted)", marginTop: 6 }}>
-                  {r.badges?.description || "No description"}
-                </div>
-
-                <div style={{ color: "var(--muted)", marginTop: 8 }}>
-                  Earned: {new Date(r.earned_at).toLocaleString()}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </SiteShell>
   );
 }
