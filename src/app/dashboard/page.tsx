@@ -291,43 +291,9 @@ export default function DashboardPage() {
       Unlocked Badges
     </h2>
 
-    <div
-      style={{
-        marginBottom: 16,
-        padding: 18,
-        borderRadius: 22,
-        border: "1px solid #dfe5df",
-        background: referralUnlocked ? "#eef6ef" : "#f6f6f6",
-        opacity: referralUnlocked ? 1 : 0.75,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >        
-        <div
-          style={{
-            padding: "8px 14px",
-            borderRadius: 999,
-            fontSize: 14,
-            fontWeight: 700,
-            background: referralUnlocked ? "#d8f0dc" : "#ececec",
-            color: referralUnlocked ? "#1d7c38" : "#666",
-          }}
-        >
-          {referralUnlocked ? "Unlocked" : "Locked"}
-        </div>
-      </div>
-    </div>
-
     {badges.length === 0 ? (
       <p style={{ color: "var(--muted)", fontSize: 16 }}>
-        No other badges unlocked yet.
+        No badges unlocked yet.
       </p>
     ) : (
       <div style={{ display: "grid", gap: 14 }}>
