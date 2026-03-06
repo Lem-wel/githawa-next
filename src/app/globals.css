@@ -743,3 +743,61 @@ select{
     word-break: break-word;
   }
 }
+.rdp {
+  --rdp-accent-color: #1f7a5a;
+  --rdp-background-color: #eefaf5;
+  font-family: Inter, sans-serif;
+}
+
+.booked-day {
+  background: #dc2626 !important;
+  color: white !important;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.booked-day:hover {
+  background: #b91c1c !important;
+}
+
+.available-day {
+  border-radius: 10px;
+}
+
+.calendarWrap {
+  margin-top: 8px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.calendarLegend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.calendarLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.calendarDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.calendarDot.red {
+  background: #dc2626;
+}
+
+.calendarDot.green {
+  background: #1f7a5a;
+}

@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import SiteShell from "@/components/SiteShell";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 
 type Service = {
   id: number;
@@ -59,6 +61,84 @@ export default function BookPage() {
   const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
   const [availableStaff, setAvailableStaff] = useState<StaffRow[]>([]);
   const [availableRooms, setAvailableRooms] = useState<RoomRow[]>([]);
+  const [fullyBookedDates, setFullyBookedDates] = useState<Date[]>([]);
+
+  function formatDateLocal(d: Date) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+  
+}
+useEffect(() => {
+  async function loadFullyBookedDates() {
+    if (allRooms.length === 0) return;
+
+    const today = new Date();
+    const end = new Date();
+    end.setDate(today.getDate() + 30);
+
+    const startStr = formatDateLocal(today);
+    const endStr = formatDateLocal(end);
+
+    const { data, error } = await supabase
+      .from("appointments")
+      .select("appt_date, appt_time, duration_minutes, room_id")
+      .gte("appt_date", startStr)
+      .lte("appt_date", endStr);
+
+    if (error) {
+      console.error(error.message);
+      return;
+    }
+
+    const rows = data ?? [];
+    const booked: Date[] = [];
+
+    const openMinutes = 8 * 60;
+    const closeMinutes = 17 * 60;
+    const slotInterval = 15;
+
+    for (let i = 0; i <= 30; i++) {
+      const day = new Date(today);
+      day.setDate(today.getDate() + i);
+
+      const dayStr = formatDateLocal(day);
+      const dayRows = rows.filter((r) => r.appt_date === dayStr);
+
+      let hasAnyAvailableSlot = false;
+
+      for (let start = openMinutes; start <= closeMinutes; start += slotInterval) {
+        const endTime = start + 75; // adjust if you want a different standard blocked slot
+
+        if (endTime > closeMinutes) continue;
+
+        const freeRooms = allRooms.filter((room) => {
+          const roomAppointments = dayRows.filter((r) => r.room_id === room.id);
+
+          return !roomAppointments.some((r) => {
+            const existingStart = timeToMinutes(String(r.appt_time).slice(0, 5));
+            const existingDur = r.duration_minutes ?? 0;
+            return overlaps(start, 75, existingStart, existingDur);
+          });
+        });
+
+        if (freeRooms.length > 0) {
+          hasAnyAvailableSlot = true;
+          break;
+        }
+      }
+
+      if (!hasAnyAvailableSlot) {
+        booked.push(new Date(day));
+      }
+    }
+
+    setFullyBookedDates(booked);
+  }
+
+  loadFullyBookedDates();
+}, [allRooms]);
 
   function norm(v: string | null | undefined) {
     return (v ?? "")
@@ -533,15 +613,40 @@ export default function BookPage() {
         )}
 
         <div style={{ marginTop: 12 }}>
-          <label>Date</label>
-          <input
-            className="input"
-            type="date"
-            value={date}
-            min={new Date().toISOString().split("T")[0]}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </div>
+  <label>Date</label>
+
+  <div className="calendarWrap">
+    <DayPicker
+      mode="single"
+      selected={date ? new Date(date) : undefined}
+      onSelect={(selected) => {
+        if (!selected) return;
+        setDate(formatDateLocal(selected));
+      }}
+      disabled={[
+        { before: new Date() },
+        ...fullyBookedDates
+      ]}
+      modifiers={{
+        booked: fullyBookedDates,
+      }}
+      modifiersClassNames={{
+        booked: "booked-day",
+      }}
+    />
+
+    <div className="calendarLegend">
+      <span>
+        <i className="calendarDot green" />
+        Available
+      </span>
+      <span>
+        <i className="calendarDot red" />
+        Fully booked
+      </span>
+    </div>
+  </div>
+</div>
 
         <div style={{ marginTop: 12 }}>
           <label>Time</label>
