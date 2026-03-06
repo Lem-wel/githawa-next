@@ -280,55 +280,128 @@ export default function DashboardPage() {
               )}
 
               {activeTab === "badges" && (
-                <>
-                  <h2 style={{ marginTop: 0 }}>Unlocked Badges</h2>
+  <>
+    <h2
+      style={{
+        marginTop: 0,
+        marginBottom: 20,
+        fontSize: 30,
+      }}
+    >
+      Unlocked Badges
+    </h2>
 
-                  {badges.length === 0 ? (
-                    <p style={{ color: "var(--muted)" }}>
-                      No badges unlocked yet.
-                    </p>
-                  ) : (
-                    <div style={{ display: "grid", gap: 12 }}>
-                      {badges.map((b, i) => (
-  <div
-    key={i}
-    style={{
-      padding: 14,
-      border: "1px solid var(--border)",
-      borderRadius: 16,
-    }}
-  >
-    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-  <div style={{ fontSize: 24 }}>
-    {b.badges?.icon || "🏅"}
-  </div>
+    <div
+      style={{
+        marginBottom: 16,
+        padding: 18,
+        borderRadius: 22,
+        border: "1px solid #dfe5df",
+        background: referralUnlocked ? "#eef6ef" : "#f6f6f6",
+        opacity: referralUnlocked ? 1 : 0.75,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <div
+            style={{
+              fontSize: 28,
+              lineHeight: 1,
+              minWidth: 34,
+              display: "flex",
+              justifyContent: "center",
+              paddingTop: 2,
+            }}
+          >
+            🎁
+          </div>
 
-  <div>
-    <div style={{ fontWeight: 700, fontSize: 17 }}>
-      {b.badges?.name || "Badge"}
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>
+              Referral Reward
+            </div>
+            <div style={{ color: "var(--muted)", marginTop: 6 }}>
+              Refer a friend and receive a free add-on.
+            </div>
+            <div style={{ marginTop: 8, color: "var(--muted)" }}>
+              Reward Type: Free add-on
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: "8px 14px",
+            borderRadius: 999,
+            fontSize: 14,
+            fontWeight: 700,
+            background: referralUnlocked ? "#d8f0dc" : "#ececec",
+            color: referralUnlocked ? "#1d7c38" : "#666",
+          }}
+        >
+          {referralUnlocked ? "Unlocked" : "Locked"}
+        </div>
+      </div>
     </div>
 
-    <div style={{ color: "var(--muted)", marginTop: 6 }}>
-      {b.badges?.description || "No description"}
-    </div>
+    {badges.length === 0 ? (
+      <p style={{ color: "var(--muted)", fontSize: 16 }}>
+        No other badges unlocked yet.
+      </p>
+    ) : (
+      <div style={{ display: "grid", gap: 14 }}>
+        {badges.map((b, i) => (
+          <div
+            key={i}
+            style={{
+              border: "1px solid #dfe5df",
+              borderRadius: 22,
+              padding: "18px 20px",
+              background: "#fff",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <div
+                style={{
+                  fontSize: 28,
+                  lineHeight: 1,
+                  minWidth: 34,
+                  display: "flex",
+                  justifyContent: "center",
+                  paddingTop: 2,
+                }}
+              >
+                {b.badges?.icon || "🏅"}
+              </div>
 
-    <div style={{ color: "var(--muted)", marginTop: 6 }}>
-      Earned: {new Date(b.earned_at).toLocaleString()}
-    </div>
-  </div>
-</div>
-    <div style={{ color: "var(--muted)", marginTop: 4 }}>
-      {b.badges?.description || "No description"}
-    </div>
-    <div style={{ color: "var(--muted)", marginTop: 4 }}>
-      Earned: {new Date(b.earned_at).toLocaleString()}
-    </div>
-  </div>
-))}
-                    </div>
-                  )}
-                </>
-              )}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 17 }}>
+                  {b.badges?.name || "Badge"}
+                </div>
+
+                <div style={{ color: "var(--muted)", marginTop: 6 }}>
+                  {b.badges?.description || "No description"}
+                </div>
+
+                <div style={{ color: "var(--muted)", marginTop: 6 }}>
+                  Earned: {new Date(b.earned_at).toLocaleString()}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </>
+)}
 
               {activeTab === "referral" && (
   <>
