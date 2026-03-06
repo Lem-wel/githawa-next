@@ -105,7 +105,7 @@ export default function DashboardPage() {
 
     const { data: badgeData, error: badgeErr } = await supabase
       .from("user_badges")
-      .select("earned_at, badges(name, description)")
+      .select("earned_at, badges(name, description, icon)")
       .eq("user_id", user.id)
       .order("earned_at", { ascending: false });
 
