@@ -17,14 +17,19 @@ export default function Home() {
           </h1>
 
           <p className="sub">
-            Book spa services, view service previews inside Services, and earn milestone badges — guided
-            by Ginhawa Buddy.
+            Book spa services, view service previews inside Services, and earn
+            milestone badges — guided by Ginhawa Buddy.
           </p>
 
           <div className="heroActions">
-            <Link className="btn btnPrimary" href="/dashboard">
-              Book an Appointment
+            <Link className="btn btnPrimary" href="/register">
+              Sign Up
             </Link>
+
+            <Link className="btn" href="/login">
+              Log In
+            </Link>
+
             <Link className="btn" href="/services">
               Explore Spa Services
             </Link>
