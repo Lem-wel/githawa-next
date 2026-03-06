@@ -60,6 +60,27 @@ export default function BookPage() {
     [services, serviceId]
   );
 
+  const timeSlots = useMemo(() => {
+    const slots: { value: string; label: string }[] = [];
+    const start = 8 * 60; // 8:00 AM
+    const end = 17 * 60; // 5:00 PM
+
+    for (let t = start; t <= end; t += 15) {
+      const hour24 = Math.floor(t / 60);
+      const minute = t % 60;
+
+      const value = `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+
+      const displayHour = hour24 % 12 === 0 ? 12 : hour24 % 12;
+      const ampm = hour24 < 12 ? "AM" : "PM";
+      const label = `${displayHour}:${String(minute).padStart(2, "0")} ${ampm}`;
+
+      slots.push({ value, label });
+    }
+
+    return slots;
+  }, []);
+
   function norm(v: string | null | undefined) {
     return (v ?? "")
       .toLowerCase()
@@ -269,7 +290,6 @@ export default function BookPage() {
         return;
       }
 
-      // final re-check before insert
       const { data: existing, error: existingErr } = await supabase
         .from("appointments")
         .select("id,staff_id,room_id,appt_date,appt_time,duration_minutes")
@@ -459,12 +479,21 @@ export default function BookPage() {
 
         <div style={{ marginTop: 12 }}>
           <label>Time</label>
-          <input
+          <select
             className="input"
-            type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
-          />
+          >
+            <option value="">Select time</option>
+            {timeSlots.map((slot) => (
+              <option key={slot.value} value={slot.value}>
+                {slot.label}
+              </option>
+            ))}
+          </select>
+          <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
+            Available booking hours: 8:00 AM to 5:00 PM, every 15 minutes.
+          </div>
         </div>
 
         <div style={{ marginTop: 12 }}>

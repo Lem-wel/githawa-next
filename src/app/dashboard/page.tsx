@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import SiteShell from "@/components/SiteShell";
-import { supabase } from "@/lib/supabaseClient";
 
 type BookingRow = {
   id: number;
@@ -13,6 +13,11 @@ type BookingRow = {
   services?: { name?: string } | null;
   rooms?: { name?: string } | null;
   staff?: { name?: string } | null;
+  appointment_addons?:
+    | {
+        addon_service?: { name?: string } | null;
+      }[]
+    | null;
 };
 
 type BadgeRow = {
@@ -74,18 +79,28 @@ export default function DashboardPage() {
 
     const { data: bookingData, error: bookingErr } = await supabase
       .from("appointments")
-      .select(
-        "id, appt_date, appt_time, duration_minutes, services(name), rooms(name), staff(name)"
-      )
+      .select(`
+        id,
+        appt_date,
+        appt_time,
+        duration_minutes,
+        services(name),
+        rooms(name),
+        staff(name),
+        appointment_addons(
+          addon_service:services(name)
+        )
+      `)
       .eq("user_id", user.id)
-      .order("appt_date", { ascending: false });
+      .order("appt_date", { ascending: false })
+      .order("appt_time", { ascending: false });
 
-    if (bookingErr) {
-      console.error("BOOKING ERROR:", bookingErr);
-    } else {
+    if (!bookingErr) {
       const safeBookings = (bookingData ?? []) as BookingRow[];
       setBookings(safeBookings);
       setBookingCount(safeBookings.length);
+    } else {
+      setMsg(bookingErr.message);
     }
 
     const { data: badgeData, error: badgeErr } = await supabase
@@ -94,113 +109,74 @@ export default function DashboardPage() {
       .eq("user_id", user.id)
       .order("earned_at", { ascending: false });
 
-    if (badgeErr) {
-      console.error("BADGE ERROR:", badgeErr);
-    } else {
+    if (!badgeErr) {
       const safeBadges = (badgeData ?? []) as BadgeRow[];
       setBadges(safeBadges);
       setBadgeCount(safeBadges.length + (profile?.referral_unlocked ? 1 : 0));
     }
   }
 
+  function toggleTab(tab: "bookings" | "badges") {
+    setActiveTab((prev) => (prev === tab ? null : tab));
+  }
+
   return (
     <SiteShell>
-      <div style={{ maxWidth: 1150, margin: "24px auto" }}>
+      <div style={{ maxWidth: 1100, margin: "20px auto" }}>
         {msg && (
-          <div className="notice" style={{ marginBottom: 14 }}>
+          <div className="notice" style={{ marginBottom: 12 }}>
             {msg}
           </div>
         )}
 
-        <div
-          className="card cardPad"
-          style={{
-            borderRadius: 34,
-            padding: 28,
-          }}
-        >
+        <div className="card cardPad">
           <div style={{ marginBottom: 18 }}>
-            <h2 style={{ margin: 0, fontSize: 24 }}>{fullName}</h2>
-            <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: 15 }}>
-              {email}
-            </p>
-            <p
-              style={{
-                margin: "4px 0 0",
-                color: "#8aad91",
-                fontWeight: 700,
-                fontSize: 15,
-              }}
-            >
+            <div style={{ fontSize: 18, fontWeight: 700 }}>{fullName}</div>
+            <div style={{ marginTop: 4, color: "#87a98e", fontWeight: 600 }}>
               Status: Active
-            </p>
-
-            <div
-              style={{
-                marginTop: 14,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "10px 14px",
-                borderRadius: 999,
-                background: "#eef4ef",
-                border: "1px solid #dfe5df",
-                fontSize: 14,
-              }}
-            >
-              <span style={{ color: "var(--muted)" }}>Your Referral Code:</span>
-              <span style={{ fontWeight: 700, color: "var(--text)" }}>
-                {referralCode || "N/A"}
-              </span>
             </div>
           </div>
 
           <div
             style={{
               display: "flex",
-              gap: 14,
+              gap: 12,
               flexWrap: "wrap",
-              marginBottom: 22,
+              marginBottom: 18,
             }}
           >
             <button
               className="btn"
-              onClick={() =>setActiveTab((prev) => (prev === "bookings" ? null : "bookings"))}
+              onClick={() => toggleTab("bookings")}
               style={{
                 borderRadius: 999,
-                padding: "14px 26px",
-                minWidth: 128,
-                fontWeight: 700,
-                fontSize: 15,
+                padding: "12px 18px",
                 border:
                   activeTab === "bookings"
-                    ? "2px solid #2d2d2d"
-                    : "1px solid #d5ddd6",
-                background: "#e8efe9",
-                boxShadow: "none",
+                    ? "2px solid #222"
+                    : "1px solid var(--border)",
+                background: "#eaf1ec",
+                fontWeight: 700,
               }}
+              type="button"
             >
               Bookings {bookingCount}
             </button>
 
             <button
               className="btn"
-              onClick={() =>
-  setActiveTab((prev) => (prev === "badges" ? null : "badges"))
-}
+              onClick={() => toggleTab("badges")}
               style={{
                 borderRadius: 999,
-                padding: "14px 26px",
-                minWidth: 128,
-                fontWeight: 700,
-                fontSize: 15,
+                padding: "12px 18px",
                 border:
                   activeTab === "badges"
-                    ? "2px solid #2d2d2d"
-                    : "1px solid #d5ddd6",
-                background: "#e8efe9",
-                boxShadow: "none",
+                    ? "2px solid #222"
+                    : "1px solid var(--border)",
+                background: "#eaf1ec",
+                fontWeight: 700,
               }}
+              type="button"
             >
               Badges {badgeCount}
             </button>
@@ -208,68 +184,63 @@ export default function DashboardPage() {
 
           {activeTab && (
             <div
+              className="card"
               style={{
-                background: "#ffffff",
-                border: "1px solid #e7ebe7",
-                borderRadius: 34,
-                padding: 30,
-                minHeight: 260,
+                padding: 24,
+                minHeight: 180,
+                borderRadius: 28,
+                background: "#fff",
               }}
             >
               {activeTab === "bookings" && (
                 <>
-                  <h2
-                    style={{
-                      marginTop: 0,
-                      marginBottom: 20,
-                      fontSize: 30,
-                    }}
-                  >
-                    Your Bookings
-                  </h2>
+                  <h2 style={{ marginTop: 0 }}>Your Bookings</h2>
 
                   {bookings.length === 0 ? (
-                    <p style={{ color: "var(--muted)", fontSize: 16 }}>
-                      No bookings yet.
-                    </p>
+                    <p style={{ color: "var(--muted)" }}>No bookings yet.</p>
                   ) : (
-                    <div style={{ display: "grid", gap: 16 }}>
-                      {bookings.map((b) => (
-                        <div
-                          key={b.id}
-                          style={{
-                            border: "1px solid #dfe5df",
-                            borderRadius: 22,
-                            padding: "18px 20px",
-                            background: "#fff",
-                          }}
-                        >
+                    <div style={{ display: "grid", gap: 12 }}>
+                      {bookings.map((b) => {
+                        const addonNames =
+                          b.appointment_addons
+                            ?.map((a) => a.addon_service?.name)
+                            .filter(Boolean)
+                            .join(", ") || "";
+
+                        return (
                           <div
+                            key={b.id}
                             style={{
-                              fontSize: 18,
-                              fontWeight: 700,
-                              marginBottom: 8,
+                              padding: 14,
+                              border: "1px solid var(--border)",
+                              borderRadius: 16,
                             }}
                           >
-                            {b.services?.name || "Service"}
-                          </div>
+                            <div style={{ fontWeight: 700 }}>
+                              {b.services?.name || "Service"}
+                            </div>
 
-                          <div style={{ color: "var(--muted)", fontSize: 15 }}>
-                            {b.appt_date} at {b.appt_time}
-                          </div>
+                            <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                              {b.appt_date} at {String(b.appt_time).slice(0, 5)}
+                            </div>
 
-                          <div
-                            style={{
-                              color: "var(--muted)",
-                              fontSize: 15,
-                              marginTop: 6,
-                            }}
-                          >
-                            Staff: {b.staff?.name || "Not assigned"} | Room:{" "}
-                            {b.rooms?.name || "N/A"}
+                            <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                              Staff: {b.staff?.name || "Not assigned"} | Room:{" "}
+                              {b.rooms?.name || "N/A"}
+                            </div>
+
+                            {addonNames && (
+                              <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                                Add-ons: {addonNames}
+                              </div>
+                            )}
+
+                            <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                              Duration: {b.duration_minutes ? `${b.duration_minutes} min` : "N/A"}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </>
@@ -277,23 +248,15 @@ export default function DashboardPage() {
 
               {activeTab === "badges" && (
                 <>
-                  <h2
-                    style={{
-                      marginTop: 0,
-                      marginBottom: 20,
-                      fontSize: 30,
-                    }}
-                  >
-                    Unlocked Badges
-                  </h2>
+                  <h2 style={{ marginTop: 0 }}>Unlocked Badges</h2>
 
                   <div
                     style={{
                       marginBottom: 16,
                       padding: 18,
-                      borderRadius: 22,
-                      border: "1px solid #dfe5df",
-                      background: referralUnlocked ? "#eef6ef" : "#f6f6f6",
+                      borderRadius: 18,
+                      border: "1px solid var(--border)",
+                      background: referralUnlocked ? "#eef8f0" : "#f6f6f6",
                       opacity: referralUnlocked ? 1 : 0.75,
                     }}
                   >
@@ -306,30 +269,31 @@ export default function DashboardPage() {
                         flexWrap: "wrap",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                        <div style={{ fontSize: 28, lineHeight: 1 }}>🎁</div>
-
-                        <div>
-                          <div style={{ fontSize: 18, fontWeight: 700 }}>
-                            Referral Reward
-                          </div>
-                          <div style={{ color: "var(--muted)", marginTop: 6 }}>
-                            Refer a friend and receive a free add-on.
-                          </div>
-                          <div style={{ marginTop: 8, color: "var(--muted)" }}>
-                            Reward Type: Free add-on
-                          </div>
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 700 }}>
+                          Referral Reward
+                        </div>
+                        <div style={{ color: "var(--muted)", marginTop: 6 }}>
+                          Refer a friend and receive a free add-on.
+                        </div>
+                        <div style={{ marginTop: 10 }}>
+                          <span style={{ color: "var(--muted)" }}>Code: </span>
+                          <span style={{ fontWeight: 700 }}>
+                            {referralUnlocked
+                              ? referralCode || "N/A"
+                              : "SPECIAL_REFERRAL_FRIEND"}
+                          </span>
                         </div>
                       </div>
 
                       <div
                         style={{
-                          padding: "8px 14px",
+                          padding: "6px 12px",
                           borderRadius: 999,
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: 700,
-                          background: referralUnlocked ? "#d8f0dc" : "#ececec",
-                          color: referralUnlocked ? "#1d7c38" : "#666",
+                          background: referralUnlocked ? "#d9f3df" : "#ececec",
+                          color: referralUnlocked ? "#1f7a38" : "#666",
                         }}
                       >
                         {referralUnlocked ? "Unlocked" : "Locked"}
@@ -338,35 +302,28 @@ export default function DashboardPage() {
                   </div>
 
                   {badges.length === 0 ? (
-                    <p style={{ color: "var(--muted)", fontSize: 16 }}>
+                    <p style={{ color: "var(--muted)" }}>
                       No other badges unlocked yet.
                     </p>
                   ) : (
-                    <div style={{ display: "grid", gap: 14 }}>
+                    <div style={{ display: "grid", gap: 12 }}>
                       {badges.map((b, i) => (
                         <div
                           key={i}
                           style={{
-                            border: "1px solid #dfe5df",
-                            borderRadius: 22,
-                            padding: "18px 20px",
-                            background: "#fff",
+                            padding: 14,
+                            border: "1px solid var(--border)",
+                            borderRadius: 16,
                           }}
                         >
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                            <div style={{ fontSize: 26, lineHeight: 1 }}>🏅</div>
-
-                            <div>
-                              <div style={{ fontWeight: 700, fontSize: 17 }}>
-                                {b.badges?.name || "Badge"}
-                              </div>
-                              <div style={{ color: "var(--muted)", marginTop: 6 }}>
-                                {b.badges?.description || "No description"}
-                              </div>
-                              <div style={{ color: "var(--muted)", marginTop: 6 }}>
-                                Earned: {new Date(b.earned_at).toLocaleString()}
-                              </div>
-                            </div>
+                          <div style={{ fontWeight: 700 }}>
+                            {b.badges?.name || "Badge"}
+                          </div>
+                          <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                            {b.badges?.description || "No description"}
+                          </div>
+                          <div style={{ color: "var(--muted)", marginTop: 4 }}>
+                            Earned: {new Date(b.earned_at).toLocaleString()}
                           </div>
                         </div>
                       ))}
@@ -380,41 +337,18 @@ export default function DashboardPage() {
           <div
             style={{
               display: "flex",
-              gap: 14,
+              gap: 12,
               flexWrap: "wrap",
               marginTop: 24,
             }}
           >
-            <Link
-              href="/book"
-              className="btn btnPrimary"
-              style={{
-                borderRadius: 999,
-                padding: "14px 28px",
-              }}
-            >
+            <Link href="/book" className="btn btnPrimary">
               Book Appointment
             </Link>
-
-            <Link
-              href="/services"
-              className="btn"
-              style={{
-                borderRadius: 999,
-                padding: "14px 28px",
-              }}
-            >
+            <Link href="/services" className="btn">
               Spa Services
             </Link>
-
-            <Link
-              href="/activities"
-              className="btn"
-              style={{
-                borderRadius: 999,
-                padding: "14px 28px",
-              }}
-            >
+            <Link href="/activities" className="btn">
               Wellness Activities
             </Link>
           </div>
