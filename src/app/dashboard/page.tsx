@@ -97,10 +97,11 @@ export default function DashboardPage() {
       .eq("user_id", user.id)
       .order("earned_at", { ascending: false });
 
-    if (!badgeErr) {
-      setBadges((badgeData as BadgeRow[]) ?? []);
-      setBadgeCount((badgeData ?? []).length);
-    }
+if (!badgeErr) {
+  const safeBadges = (badgeData ?? []) as BadgeRow[];
+  setBadges(safeBadges);
+  setBadgeCount(safeBadges.length);
+}
   }
 
   return (
