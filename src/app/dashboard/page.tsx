@@ -286,12 +286,6 @@ export default function DashboardPage() {
           <Link className="btn" href="/activities">
             Wellness Activities
           </Link>
-          <Link className="btn" href="/badges">
-            All Badges
-          </Link>
-          <button className="btn" onClick={logout}>
-            Logout
-          </button>
         </div>
       </div>
     </SiteShell>

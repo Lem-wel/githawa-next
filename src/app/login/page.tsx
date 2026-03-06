@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import SiteShell from "@/components/SiteShell";
@@ -110,7 +111,33 @@ export default function LoginPage() {
         <button className="btn btnPrimary" onClick={login}>
           Log In
         </button>
+        <button className="btn btnPrimary" onClick={login}>
+  Log In
+</button>
+
+<p
+  style={{
+    marginTop: 14,
+    textAlign: "center",
+    color: "var(--muted)",
+    fontSize: 14
+  }}
+>
+  Don’t have an account?{" "}
+  <Link
+    href="/register"
+    style={{
+      color: "var(--text)",
+      fontWeight: 600,
+      textDecoration: "underline",
+      cursor: "pointer"
+    }}
+  >
+    Sign up
+  </Link>
+</p>
       {/* your login form here */}
+      
     </div>
   </div>
 </SiteShell>
