@@ -22,10 +22,10 @@ type StaffItem = {
 };
 
 const QUICK_REPLIES = [
-  "What services do you offer?",
-  "How much are your services?",
-  "Who are your staff?",
-  "Where are you located?",
+  "Services",
+  "Prices",
+  "Staff",
+  "Location",
 ];
 
 function includesAny(text: string, keywords: string[]) {
@@ -74,7 +74,7 @@ function getBotReply(
   if (includesAny(msg, ["hello", "hi", "hey"])) {
     return {
       text: randomAnswer([
-        "Hello. Welcome to Ginhawa Spa & Wellness. How may I assist you today?",
+        "Hello. Welcome to Ginhawa Spa & Wellness. How may I help you today?",
         "Hi there. I'm here to help with information about our spa services.",
         "Welcome to Ginhawa. Feel free to ask about our services.",
         "Hello and welcome. What would you like to know today?",
@@ -342,45 +342,42 @@ export default function GinhawaWixChat() {
 
       setMessages((prev) => [...prev, botMsg]);
       setTyping(false);
-    }, 1100);
+    }, 900);
   }
 
   return (
     <div
       style={{
         width: "100%",
-        minHeight: "100vh",
+        height: "100%",
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        alignItems: "stretch",
+        justifyContent: "stretch",
         background: "transparent",
-        padding: 16,
-        boxSizing: "border-box",
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: 430,
-          height: 640,
+          height: "100%",
           display: "flex",
           flexDirection: "column",
           background: "#f7f3ee",
-          borderRadius: 24,
+          borderRadius: 0,
           overflow: "hidden",
-          border: "1px solid rgba(90,104,84,0.14)",
-          boxShadow: "0 18px 45px rgba(60,70,50,0.14)",
+          border: "none",
+          boxShadow: "none",
         }}
       >
         <div
           style={{
             background: "linear-gradient(180deg,#9ab59d 0%,#88a98e 100%)",
             color: "#fff",
-            padding: "18px 20px",
+            padding: "14px 16px",
           }}
         >
-          <div style={{ fontSize: 22, fontWeight: 700 }}>Ginhawa Buddy</div>
-          <div style={{ fontSize: 12, opacity: 0.92 }}>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>Ginhawa Buddy</div>
+          <div style={{ fontSize: 11, opacity: 0.92 }}>
             Wellness information assistant
           </div>
         </div>
@@ -388,7 +385,7 @@ export default function GinhawaWixChat() {
         <div
           style={{
             flex: 1,
-            padding: 16,
+            padding: 12,
             overflowY: "auto",
             background: "#f7f3ee",
           }}
@@ -399,21 +396,21 @@ export default function GinhawaWixChat() {
               style={{
                 display: "flex",
                 justifyContent: msg.sender === "user" ? "flex-end" : "flex-start",
-                marginBottom: 12,
+                marginBottom: 10,
               }}
             >
               <div
                 style={{
-                  maxWidth: "82%",
-                  padding: "12px 14px",
+                  maxWidth: "85%",
+                  padding: "10px 12px",
                   borderRadius:
                     msg.sender === "user"
-                      ? "18px 18px 8px 18px"
-                      : "18px 18px 18px 8px",
+                      ? "16px 16px 8px 16px"
+                      : "16px 16px 16px 8px",
                   background: msg.sender === "user" ? "#879f87" : "#ebe4d8",
                   color: msg.sender === "user" ? "#fff" : "#3f4d40",
-                  fontSize: 14,
-                  lineHeight: 1.45,
+                  fontSize: 13,
+                  lineHeight: 1.4,
                   whiteSpace: "pre-wrap",
                   wordBreak: "break-word",
                 }}
@@ -428,17 +425,17 @@ export default function GinhawaWixChat() {
               style={{
                 display: "flex",
                 justifyContent: "flex-start",
-                marginBottom: 12,
+                marginBottom: 10,
               }}
             >
               <div
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 6,
+                  gap: 5,
                   background: "#ebe4d8",
-                  borderRadius: 20,
-                  padding: "10px 14px",
+                  borderRadius: 18,
+                  padding: "9px 12px",
                 }}
               >
                 <span className="ginhawa-dot" />
@@ -453,7 +450,7 @@ export default function GinhawaWixChat() {
 
         <div
           style={{
-            padding: 12,
+            padding: 10,
             borderTop: "1px solid rgba(90,104,84,0.08)",
             background: "#f7f3ee",
           }}
@@ -461,8 +458,8 @@ export default function GinhawaWixChat() {
           <div
             style={{
               display: "flex",
-              gap: 8,
-              marginBottom: 10,
+              gap: 6,
+              marginBottom: 8,
               overflowX: "auto",
             }}
           >
@@ -471,14 +468,15 @@ export default function GinhawaWixChat() {
                 key={q}
                 onClick={() => sendMessage(q)}
                 style={{
-                  padding: "7px 12px",
+                  padding: "6px 10px",
                   borderRadius: 999,
                   border: "1px solid #d6d1c7",
                   background: "#f0eadf",
                   cursor: "pointer",
-                  fontSize: 12,
+                  fontSize: 11,
                   whiteSpace: "nowrap",
                   color: "#4a5648",
+                  flexShrink: 0,
                 }}
               >
                 {q}
@@ -486,19 +484,20 @@ export default function GinhawaWixChat() {
             ))}
           </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 6 }}>
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about services, staff, or spa info..."
+              placeholder="Ask here..."
               style={{
                 flex: 1,
-                padding: "12px 14px",
+                padding: "10px 12px",
                 borderRadius: 999,
                 border: "1px solid #d0cbc2",
                 outline: "none",
-                fontSize: 14,
+                fontSize: 13,
                 background: "#fffdfa",
+                minWidth: 0,
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") sendMessage(input);
@@ -508,13 +507,15 @@ export default function GinhawaWixChat() {
             <button
               onClick={() => sendMessage(input)}
               style={{
-                padding: "0 18px",
+                padding: "0 14px",
                 borderRadius: 999,
                 border: "none",
                 background: "#6f8f72",
                 color: "#fff",
                 cursor: "pointer",
                 fontWeight: 600,
+                fontSize: 13,
+                flexShrink: 0,
               }}
             >
               Send
@@ -524,8 +525,8 @@ export default function GinhawaWixChat() {
 
         <style jsx>{`
           .ginhawa-dot {
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
             background: #7f8d78;
             display: inline-block;
@@ -548,7 +549,7 @@ export default function GinhawaWixChat() {
               opacity: 0.4;
             }
             40% {
-              transform: translateY(-5px);
+              transform: translateY(-4px);
               opacity: 1;
             }
           }

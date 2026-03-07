@@ -1,5 +1,5 @@
 import "./globals.css";
-import GinhawaBuddy from "@/components/GinhawaBuddy";
+import LayoutWithOptionalBuddy from "@/components/LayoutWithOptionalBuddy";
 
 export const metadata = {
   title: "Ginhawa Spa & Wellness",
@@ -23,7 +23,7 @@ export default function RootLayout({
       </head>
       <body>
         {children}
-        <GinhawaBuddy />
+        <LayoutWithOptionalBuddy />
       </body>
     </html>
   );
