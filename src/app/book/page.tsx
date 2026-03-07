@@ -81,7 +81,7 @@ function BookPageInner() {
   const [couponCode, setCouponCode] = useState("");
   const [couponReward, setCouponReward] = useState("");
 
-  const hasPrefilledFromQuery = useRef(false);
+  const didInitialPrefill = useRef(false);
 
   function formatDateLocal(d: Date) {
     const year = d.getFullYear();
@@ -347,38 +347,47 @@ function BookPageInner() {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    if (hasPrefilledFromQuery.current) return;
-    if (services.length === 0) return;
+useEffect(() => {
+  if (didInitialPrefill.current) return;
+  if (services.length === 0) return;
 
-    const serviceName = searchParams.get("service");
-    const addonNames = searchParams.get("addons");
+  const serviceName = searchParams.get("service");
+  const addonNames = searchParams.get("addons");
 
-    if (serviceName) {
-      const matchedService = services.find(
-        (s) => s.name.trim().toLowerCase() === serviceName.trim().toLowerCase()
-      );
+  let matchedServiceId: number | "" = "";
+  let matchedAddonIds: number[] = [];
 
-      if (matchedService) {
-        setServiceId(matchedService.id);
-      }
+  if (serviceName) {
+    const matchedService = services.find(
+      (s) => s.name.trim().toLowerCase() === serviceName.trim().toLowerCase()
+    );
+
+    if (matchedService) {
+      matchedServiceId = matchedService.id;
     }
+  }
 
-    if (addonNames && addons.length > 0) {
-      const names = addonNames
-        .split(",")
-        .map((x) => x.trim().toLowerCase())
-        .filter(Boolean);
+  if (addonNames && addons.length > 0) {
+    const names = addonNames
+      .split(",")
+      .map((x) => x.trim().toLowerCase())
+      .filter(Boolean);
 
-      const matchedAddons = addons
-        .filter((a) => names.includes(a.name.trim().toLowerCase()))
-        .map((a) => a.id);
+    matchedAddonIds = addons
+      .filter((a) => names.includes(a.name.trim().toLowerCase()))
+      .map((a) => a.id);
+  }
 
-      setSelectedAddons(matchedAddons);
-    }
+  if (matchedServiceId !== "") {
+    setServiceId(matchedServiceId);
+  }
 
-    hasPrefilledFromQuery.current = true;
-  }, [searchParams, services, addons]);
+  if (matchedAddonIds.length > 0) {
+    setSelectedAddons(matchedAddonIds);
+  }
+
+  didInitialPrefill.current = true;
+}, [searchParams, services, addons]);
 
   useEffect(() => {
     async function loadFullyBookedDates() {
@@ -445,18 +454,24 @@ function BookPageInner() {
     loadFullyBookedDates();
   }, [allRooms]);
 
-  useEffect(() => {
-    setStaffId("");
-    setRoomId("");
-    setTime("");
+  const previousServiceId = useRef<number | "">("");
 
-    if (hasPrefilledFromQuery.current) {
-      hasPrefilledFromQuery.current = false;
-      return;
-    }
+useEffect(() => {
+  if (serviceId === "") return;
 
+  const isInitialAutofill =
+    previousServiceId.current === "" && didInitialPrefill.current;
+
+  setStaffId("");
+  setRoomId("");
+  setTime("");
+
+  if (!isInitialAutofill) {
     setSelectedAddons([]);
-  }, [serviceId]);
+  }
+
+  previousServiceId.current = serviceId;
+}, [serviceId]);
 
   useEffect(() => {
     setStaffId("");
