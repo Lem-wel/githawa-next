@@ -189,7 +189,7 @@ export default function ManagerPage() {
         <h2 style={{ marginTop: 0 }}>Manager — Reschedule / Reassign</h2>
 
         <p style={{ marginTop: 6, color: "var(--muted)" }}>
-          Good day {isAdmin ? "Admin" : "Manager"} <b>{managerName}</b> !
+          Good day {isAdmin ? "" : "Manager"} <b>{managerName}</b> !
         </p>
 
         <p style={{ color: "var(--muted)" }}>
