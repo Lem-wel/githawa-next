@@ -740,31 +740,31 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
       )}
 
       {!forceOpen && (
-        <button
-          onClick={() => setOpen((prev) => !prev)}
-          aria-label="Open chat"
-          style={{
-            position: "fixed",
-            left: 24,
-            bottom: 24,
-            width: 68,
-            height: 68,
-            borderRadius: "50%",
-            border: "1px solid rgba(111,143,114,0.16)",
-            background: "linear-gradient(180deg, #98b39a 0%, #7d9d81 100%)",
-            color: "#fffdf9",
-            fontSize: 28,
-            cursor: "pointer",
-            boxShadow: "0 14px 30px rgba(111,143,114,0.22)",
-            zIndex: 1000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          💬
-        </button>
-      )}
+  <button
+    onClick={() => setOpen((prev) => !prev)}
+    aria-label="Open chat"
+    style={{
+      position: "fixed",
+      left: 24,
+      bottom: 24,
+      width: 68,
+      height: 68,
+      borderRadius: "50%",
+      border: "1px solid rgba(111,143,114,0.16)",
+      background: "linear-gradient(180deg, #98b39a 0%, #7d9d81 100%)",
+      color: "#fffdf9",
+      fontSize: 28,
+      cursor: "pointer",
+      boxShadow: "0 14px 30px rgba(111,143,114,0.22)",
+      zIndex: 1000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    💬
+  </button>
+)}
 
       <style jsx>{`
         .ginhawa-dot {
