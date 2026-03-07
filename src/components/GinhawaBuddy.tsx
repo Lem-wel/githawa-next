@@ -102,272 +102,133 @@ function findStaffByRole(staff: StaffItem[], roleKeywords: string[]) {
     roleKeywords.some((keyword) => s.role.toLowerCase().includes(keyword))
   );
 }
+function randomAnswer(answers: string[]) {
+  return answers[Math.floor(Math.random() * answers.length)];
+}
 
 function getBotReply(
   input: string,
   staff: StaffItem[],
   services: ServiceItem[]
 ): BotReply {
-  const msg = normalizeText(input);
 
-  if (includesAny(msg, ["hello", "hi", "hey", "good morning", "good afternoon"])) {
+  const msg = input.toLowerCase();
+
+  // GREETING
+  if (msg.includes("hello") || msg.includes("hi") || msg.includes("hey")) {
     return {
-      text: pickRandom([
-        "Hello. I’m Ginhawa Buddy. I can help you with services, booking, staff, schedules, and other website information.",
-        "Hi there. I’m Ginhawa Buddy, your website assistant. You can ask me about services, bookings, staff, and contact details.",
-        "Welcome to Ginhawa. I’m here to help with booking, services, staff information, and general website questions.",
-      ]),
+      text: randomAnswer([
+        "Hello! I'm Ginhawa Buddy. How may I assist you today?",
+        "Hi there. I'm here to help you explore Ginhawa services or bookings.",
+        "Welcome! Feel free to ask about services, booking, or our staff.",
+        "Hello and welcome to Ginhawa. What would you like to know today?",
+        "Hi! I'm the Ginhawa website assistant. How can I help?"
+      ])
     };
   }
 
-  if (includesAny(msg, ["thank you", "thanks", "ty"])) {
+  // STAFF
+  if (msg.includes("staff") || msg.includes("employee") || msg.includes("therapist")) {
+
+    if (staff.length === 0) {
+      return {
+        text: randomAnswer([
+          "It seems the staff information is still being updated in the system.",
+          "I can't retrieve the staff list right now. The system may still be loading the data.",
+          "Our staff list is currently unavailable, but it should appear soon once the system finishes updating.",
+          "The staff information may still be syncing in the database."
+        ])
+      };
+    }
+
     return {
-      text: pickRandom([
-        "You’re welcome. Let me know if you’d like help with booking, staff, or services.",
-        "Glad to help. You can also ask me about appointments, services, or contact details.",
-        "You’re welcome. I’m here if you need anything else about Ginhawa.",
-      ]),
+      text: randomAnswer([
+        `Our team currently includes ${formatStaff(staff)}.`,
+        `Here are the staff members currently listed: ${formatStaff(staff)}.`,
+        `The Ginhawa team includes ${formatStaff(staff)}.`,
+        `Our available staff members are ${formatStaff(staff)}.`,
+        `These are the staff members currently registered in the system: ${formatStaff(staff)}.`,
+      ])
     };
   }
 
-  if (includesAny(msg, ["bye", "goodbye", "see you"])) {
+  // SERVICES
+  if (msg.includes("service") || msg.includes("massage") || msg.includes("treatment")) {
+
+    if (services.length === 0) {
+      return {
+        text: randomAnswer([
+          "Our services are still being updated in the system.",
+          "I can't retrieve the services right now, but they should appear soon.",
+          "The service list may still be syncing in the database.",
+          "Our available treatments will appear once the system finishes loading."
+        ])
+      };
+    }
+
     return {
-      text: pickRandom([
-        "Take care, and thank you for visiting Ginhawa.",
-        "Goodbye. Wishing you a relaxing day ahead.",
-        "See you again soon at Ginhawa.",
-      ]),
+      text: randomAnswer([
+        `Currently, we offer services such as ${formatServices(services)}.`,
+        `Our available spa services include ${formatServices(services)}.`,
+        `You can explore services like ${formatServices(services)}.`,
+        `Some of our treatments include ${formatServices(services)}.`,
+        `Here are some services currently available: ${formatServices(services)}.`,
+      ])
     };
   }
 
+  // BOOKING
   if (
-    includesAny(msg, [
-      "book",
-      "appointment",
-      "schedule",
-      "reserve",
-      "booking",
-      "set appointment",
-      "make appointment",
-    ])
+    msg.includes("book") ||
+    msg.includes("appointment") ||
+    msg.includes("schedule")
   ) {
     return {
-      text: pickRandom([
-        "Of course. You can proceed to the booking page to choose your preferred service, date, and schedule.",
-        "I can help with that. Please continue to the booking page to select your service and preferred appointment time.",
-        "Sure. You may now proceed to the booking page to arrange your appointment.",
+      text: randomAnswer([
+        "Sure. You can proceed to the booking page to schedule your appointment.",
+        "I'd be happy to help with that. Please continue to the booking page.",
+        "You can book an appointment through the booking section of the website.",
+        "To schedule a visit, please proceed to the booking page below.",
+        "Appointments can be arranged through the booking page."
       ]),
-      action: "booking",
+      action: "booking"
     };
   }
 
-  if (
-    includesAny(msg, [
-      "service",
-      "services",
-      "massage",
-      "offer",
-      "offers",
-      "treatment",
-      "treatments",
-      "spa service",
-    ])
-  ) {
+  // CONTACT
+  if (msg.includes("contact") || msg.includes("phone") || msg.includes("email")) {
     return {
-      text:
-        services.length > 0
-          ? pickRandom([
-              `Our available services currently include ${formatServices(services)}. You may check the services or booking page for the latest details.`,
-              `Here are some of the services available at Ginhawa: ${formatServices(services)}. The full list is best viewed on the services page.`,
-              `At the moment, our listed services include ${formatServices(services)}. You can explore them further on the website.`,
-            ])
-          : pickRandom([
-              "Our service information appears to still be under update right now, so I can’t show the full list yet.",
-              "I’m not seeing the full service list at the moment. That part of the website may still be updating.",
-            ]),
+      text: randomAnswer([
+        "You may check the Contact page on the website for our official communication channels.",
+        "Our contact details are listed in the Contact section of the website.",
+        "For inquiries, please visit the Contact page.",
+        "You can find our official contact information in the Contact section.",
+        "The best way to reach us is through the Contact page on the website."
+      ])
     };
   }
 
-  if (
-    includesAny(msg, [
-      "staff",
-      "staffs",
-      "employee",
-      "employees",
-      "who works",
-      "team",
-      "staff member",
-      "staff members",
-    ])
-  ) {
+  // LOCATION
+  if (msg.includes("location") || msg.includes("where")) {
     return {
-      text:
-        staff.length > 0
-          ? pickRandom([
-              `Our current team includes ${formatAllStaff(staff)}. Staff availability still depends on the appointment schedule selected.`,
-              `Here are the staff members currently in the system: ${formatAllStaff(staff)}. Availability may vary by schedule.`,
-              `Our listed staff members are ${formatAllStaff(staff)}. The assigned staff may depend on the selected service and time.`,
-            ])
-          : "I can’t retrieve the staff list right now because the data may still be unavailable or restricted in the system.",
+      text: randomAnswer([
+        "Our location details are available on the Contact page.",
+        "You can find our address in the Contact section of the website.",
+        "Please check the Contact page to see our location details.",
+        "The website should display our location information on the Contact page."
+      ])
     };
   }
 
-  if (
-    includesAny(msg, [
-      "therapist",
-      "therapists",
-      "massage therapist",
-      "massage therapists",
-    ])
-  ) {
-    const therapists = findStaffByRole(staff, ["massage therapist", "therapist", "massage"]);
-    return {
-      text:
-        therapists.length > 0
-          ? `Our massage therapy team currently includes ${formatAllStaff(therapists)}. Their availability depends on the selected booking schedule.`
-          : "I’m not seeing therapist details right now. That information may still be under update in the system.",
-    };
-  }
-
-  if (includesAny(msg, ["manager", "who is the manager"])) {
-    const managers = findStaffByRole(staff, ["manager"]);
-    return {
-      text:
-        managers.length > 0
-          ? `The manager listed in the system is ${formatAllStaff(managers)}.`
-          : "I’m not seeing a manager record right now in the available data.",
-    };
-  }
-
-  if (includesAny(msg, ["receptionist", "front desk"])) {
-    const receptionists = findStaffByRole(staff, ["receptionist", "front desk"]);
-    return {
-      text:
-        receptionists.length > 0
-          ? `Our front desk team currently includes ${formatAllStaff(receptionists)}.`
-          : "I’m not seeing front desk details right now in the available data.",
-    };
-  }
-
-  if (
-    includesAny(msg, [
-      "contact",
-      "email",
-      "phone",
-      "facebook",
-      "social",
-      "how can i contact",
-    ])
-  ) {
-    return {
-      text: pickRandom([
-        "You may contact Ginhawa through the website contact page or the official communication channels listed there.",
-        "For contact details, please visit the Contact page on the website. That section contains the official channels available.",
-        "The best place to check our communication details is the Contact page of the website.",
-      ]),
-    };
-  }
-
-  if (
-    includesAny(msg, [
-      "location",
-      "where",
-      "address",
-      "where are you located",
-      "where is ginhawa",
-    ])
-  ) {
-    return {
-      text: pickRandom([
-        "Our location details can be found on the Contact or About page of the website.",
-        "Please check the Contact section for the location details currently posted on the website.",
-        "The website’s Contact or About page should show the available location information.",
-      ]),
-    };
-  }
-
-  if (
-    includesAny(msg, [
-      "price",
-      "prices",
-      "cost",
-      "how much",
-      "rate",
-      "rates",
-      "pricing",
-    ])
-  ) {
-    return {
-      text: pickRandom([
-        "Service pricing should be shown on the website. If exact prices are not visible yet, that information may still be under update.",
-        "Pricing details are usually listed on the website. If you don’t see them yet, that part may still be incomplete.",
-        "You can check the website for the latest prices. Some pricing information may still be under update.",
-      ]),
-    };
-  }
-
-  if (
-    includesAny(msg, [
-      "reward",
-      "rewards",
-      "badge",
-      "badges",
-      "points",
-      "loyalty",
-    ])
-  ) {
-    return {
-      text: pickRandom([
-        "Ginhawa includes a rewards and badge feature for customer engagement. Some reward details may still be under development.",
-        "The platform includes rewards-related features such as badges and engagement tracking, although some parts may still be incomplete.",
-        "Ginhawa supports a rewards system for customer engagement. Any missing details may still be under update.",
-      ]),
-    };
-  }
-
-  if (
-    includesAny(msg, [
-      "hours",
-      "open",
-      "opening",
-      "closing",
-      "what time",
-      "schedule today",
-    ])
-  ) {
-    return {
-      text: pickRandom([
-        "Please check the website schedule or contact page for the latest operating hours.",
-        "Operating hours may depend on the current setup shown on the website, so the best reference is the Contact or booking section.",
-        "For the latest opening hours, please refer to the website pages that show current scheduling information.",
-      ]),
-    };
-  }
-
-  if (
-    includesAny(msg, [
-      "who are you",
-      "what are you",
-      "are you ai",
-      "what can you do",
-      "ginhawa buddy",
-    ])
-  ) {
-    return {
-      text: pickRandom([
-        "I’m Ginhawa Buddy, the website assistant for Ginhawa Spa & Wellness. I help answer common questions about the site, services, staff, and booking.",
-        "I’m Ginhawa Buddy. I’m here to guide visitors through the website and help with general information such as booking, services, and staff.",
-        "I’m Ginhawa Buddy, a website assistant designed to help with Ginhawa-related questions and guide users through the booking experience.",
-      ]),
-    };
-  }
-
+  // FALLBACK
   return {
-    text: pickRandom([
-      "I’m sorry, but I don’t have complete information for that yet. That part of the system may still be under update.",
-      "I’m not fully sure about that yet because some website information may still be incomplete.",
-      "That information may still be under review or not yet available in the current Ginhawa system.",
-    ]),
+    text: randomAnswer([
+      "I'm not completely sure about that yet. Some parts of the system may still be updating.",
+      "That information might still be unavailable in the current system.",
+      "I may not have the exact details for that yet.",
+      "The website may still be updating that information.",
+      "I'm still learning about that part of the system."
+    ])
   };
 }
 
@@ -477,7 +338,7 @@ export default function GinhawaChatBubble() {
     setInput("");
     setTyping(true);
 
-    const delay = getRandomReplyDelay(cleanText);
+    const delay = 1200 + Math.random() * 2000;
 
     typingTimeoutRef.current = setTimeout(() => {
       const reply = getBotReply(cleanText, staff, services);
