@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
+type Props = {
+  forceOpen?: boolean;
+};
+
 type Sender = "user" | "bot";
 type ActionType = "booking";
 
@@ -40,16 +44,8 @@ function prettyRole(role: string) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function normalizeText(text: string) {
-  return text.toLowerCase().trim();
-}
-
 function includesAny(text: string, keywords: string[]) {
   return keywords.some((word) => text.includes(word));
-}
-
-function pickRandom<T>(items: T[]) {
-  return items[Math.floor(Math.random() * items.length)];
 }
 
 function formatStaff(staff: StaffItem[]) {
@@ -69,7 +65,6 @@ function formatStaff(staff: StaffItem[]) {
   return `${mapped.slice(0, -1).join(", ")}, and ${mapped[mapped.length - 1]}`;
 }
 
-
 function formatServices(services: ServiceItem[]) {
   if (services.length === 0) {
     return "I can’t retrieve the service list right now because it may still be under update in the system.";
@@ -87,6 +82,7 @@ function findStaffByRole(staff: StaffItem[], roleKeywords: string[]) {
     roleKeywords.some((keyword) => s.role.toLowerCase().includes(keyword))
   );
 }
+
 function randomAnswer(answers: string[]) {
   return answers[Math.floor(Math.random() * answers.length)];
 }
@@ -98,7 +94,6 @@ function getBotReply(
 ): BotReply {
   const msg = input.toLowerCase().trim();
 
-  // GREETING
   if (
     includesAny(msg, ["hello", "hi", "hey", "good morning", "good afternoon"])
   ) {
@@ -112,8 +107,6 @@ function getBotReply(
       ]),
     };
   }
-
-  // SPECIFIC ROLES FIRST
 
   if (
     includesAny(msg, [
@@ -240,7 +233,6 @@ function getBotReply(
     };
   }
 
-  // ALL STAFF
   if (
     includesAny(msg, [
       "staff",
@@ -274,7 +266,6 @@ function getBotReply(
     };
   }
 
-  // SERVICES
   if (
     includesAny(msg, [
       "service",
@@ -305,7 +296,6 @@ function getBotReply(
     };
   }
 
-  // BOOKING
   if (
     includesAny(msg, [
       "book",
@@ -328,7 +318,6 @@ function getBotReply(
     };
   }
 
-  // CONTACT
   if (includesAny(msg, ["contact", "phone", "email"])) {
     return {
       text: randomAnswer([
@@ -341,7 +330,6 @@ function getBotReply(
     };
   }
 
-  // LOCATION
   if (includesAny(msg, ["location", "where", "address"])) {
     return {
       text: randomAnswer([
@@ -353,7 +341,6 @@ function getBotReply(
     };
   }
 
-  // FALLBACK
   return {
     text: randomAnswer([
       "I'm not completely sure about that yet. Some parts of the system may still be updating.",
@@ -365,8 +352,8 @@ function getBotReply(
   };
 }
 
-export default function GinhawaChatBubble() {
-  const [open, setOpen] = useState(false);
+export default function GinhawaChatBubble({ forceOpen = false }: Props) {
+  const [open, setOpen] = useState(forceOpen);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [staff, setStaff] = useState<StaffItem[]>([]);
@@ -383,6 +370,10 @@ export default function GinhawaChatBubble() {
   const nextIdRef = useRef(2);
   const endRef = useRef<HTMLDivElement | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setOpen(forceOpen);
+  }, [forceOpen]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -450,13 +441,6 @@ export default function GinhawaChatBubble() {
     };
   }, []);
 
-  function getRandomReplyDelay(text: string) {
-    const base = 900;
-    const variable = Math.floor(Math.random() * 1800);
-    const extraByLength = Math.min(text.length * 18, 1600);
-    return base + variable + extraByLength;
-  }
-
   function sendMessage(text: string) {
     const cleanText = text.trim();
     if (!cleanText) return;
@@ -493,19 +477,24 @@ export default function GinhawaChatBubble() {
       {open && (
         <div
           style={{
-            position: "fixed",
-            left: 24,
-            bottom: 96,
-            width: 360,
-            height: 500,
+            position: forceOpen ? "relative" : "fixed",
+            left: forceOpen ? undefined : 24,
+            bottom: forceOpen ? undefined : 96,
+            width: forceOpen ? "100%" : 360,
+            maxWidth: forceOpen ? "100%" : 360,
+            height: forceOpen ? "100vh" : 500,
             background: "#f7f3ee",
-            borderRadius: 28,
-            boxShadow: "0 18px 45px rgba(60, 70, 50, 0.14)",
+            borderRadius: forceOpen ? 0 : 28,
+            boxShadow: forceOpen
+              ? "none"
+              : "0 18px 45px rgba(60, 70, 50, 0.14)",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             zIndex: 999,
-            border: "1px solid rgba(90, 104, 84, 0.14)",
+            border: forceOpen
+              ? "none"
+              : "1px solid rgba(90, 104, 84, 0.14)",
             backdropFilter: "blur(10px)",
           }}
         >
@@ -544,22 +533,24 @@ export default function GinhawaChatBubble() {
               </div>
             </div>
 
-            <button
-              onClick={() => setOpen(false)}
-              aria-label="Close chat"
-              style={{
-                background: "rgba(255,255,255,0.18)",
-                border: "1px solid rgba(255,255,255,0.22)",
-                color: "#fff",
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                fontSize: 18,
-                cursor: "pointer",
-              }}
-            >
-              ✕
-            </button>
+            {!forceOpen && (
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Close chat"
+                style={{
+                  background: "rgba(255,255,255,0.18)",
+                  border: "1px solid rgba(255,255,255,0.22)",
+                  color: "#fff",
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  fontSize: 18,
+                  cursor: "pointer",
+                }}
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           <div
@@ -748,30 +739,32 @@ export default function GinhawaChatBubble() {
         </div>
       )}
 
-      <button
-        onClick={() => setOpen((prev) => !prev)}
-        aria-label="Open chat"
-        style={{
-          position: "fixed",
-          left: 24,
-          bottom: 24,
-          width: 68,
-          height: 68,
-          borderRadius: "50%",
-          border: "1px solid rgba(111,143,114,0.16)",
-          background: "linear-gradient(180deg, #98b39a 0%, #7d9d81 100%)",
-          color: "#fffdf9",
-          fontSize: 28,
-          cursor: "pointer",
-          boxShadow: "0 14px 30px rgba(111,143,114,0.22)",
-          zIndex: 1000,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        💬
-      </button>
+      {!forceOpen && (
+        <button
+          onClick={() => setOpen((prev) => !prev)}
+          aria-label="Open chat"
+          style={{
+            position: "fixed",
+            left: 24,
+            bottom: 24,
+            width: 68,
+            height: 68,
+            borderRadius: "50%",
+            border: "1px solid rgba(111,143,114,0.16)",
+            background: "linear-gradient(180deg, #98b39a 0%, #7d9d81 100%)",
+            color: "#fffdf9",
+            fontSize: 28,
+            cursor: "pointer",
+            boxShadow: "0 14px 30px rgba(111,143,114,0.22)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          💬
+        </button>
+      )}
 
       <style jsx>{`
         .ginhawa-dot {
