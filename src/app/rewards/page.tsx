@@ -2,56 +2,52 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
 import SiteShell from "@/components/SiteShell";
 
 type BadgeInfo = {
-  name?: string;
-  description?: string;
+  name?: string | null;
+  description?: string | null;
   icon?: string | null;
+  code?: string | null;
+  reward?: string | null;
 };
 
-type UnlockedBadgeRow = {
+type Row = {
   earned_at: string;
   badges?: BadgeInfo | BadgeInfo[] | null;
 };
 
 export default function RewardsPage() {
-  const [rows, setRows] = useState<UnlockedBadgeRow[]>([]);
+  const router = useRouter();
+  const [rows, setRows] = useState<Row[]>([]);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    async function loadUnlockedBadges() {
-      const { data: auth, error: authErr } = await supabase.auth.getUser();
+    loadBadges();
+  }, []);
 
-      if (authErr) {
-        setMsg(authErr.message);
-        return;
-      }
+  async function loadBadges() {
+    const { data: auth } = await supabase.auth.getUser();
 
-      const uid = auth.user?.id;
-      if (!uid) {
-        setMsg("Please login first.");
-        return;
-      }
+    const uid = auth.user?.id;
 
-      const { data, error } = await supabase
-        .from("user_badges")
-        .select("earned_at, badges(name, description, icon)")
-        .eq("user_id", uid)
-        .order("earned_at", { ascending: false });
-
-      if (error) {
-        setMsg(error.message);
-        return;
-      }
-      console.log("UNLOCKED BADGES RAW:", data);
-
-      console.log("UNLOCKED BADGES RAW:", data);
-      setRows((data ?? []) as UnlockedBadgeRow[]);
+    if (!uid) {
+      setMsg("Please login first.");
+      return;
     }
 
-    loadUnlockedBadges();
-  }, []);
+    const { data } = await supabase
+      .from("user_badges")
+      .select(`
+        earned_at,
+        badges(name, description, icon, code, reward)
+      `)
+      .eq("user_id", uid)
+      .order("earned_at", { ascending: false });
+
+    setRows((data ?? []) as Row[]);
+  }
 
   function normalizeBadge(
     badge: BadgeInfo | BadgeInfo[] | null | undefined
@@ -62,73 +58,93 @@ export default function RewardsPage() {
       name: b?.name || "Badge",
       description: b?.description || "No description",
       icon: b?.icon?.trim() || "🏅",
+      code: b?.code || "",
+      reward: b?.reward || "Special reward",
     };
+  }
+
+  async function useCoupon(badge: Required<BadgeInfo>) {
+    try {
+      await navigator.clipboard.writeText(badge.code || "");
+    } catch {}
+
+    localStorage.setItem("selected_coupon_code", badge.code || "");
+    localStorage.setItem("selected_coupon_reward", badge.reward || "");
+
+    setMsg(`Coupon copied: ${badge.code}`);
+
+    router.push(`/book?coupon=${encodeURIComponent(badge.code || "")}`);
   }
 
   return (
     <SiteShell>
       <div className="card cardPad">
-        <h2 style={{ marginTop: 0 }}>Unlocked Badges</h2>
+        <h2>Unlocked Rewards</h2>
 
-        {msg && (
-          <div className="notice" style={{ marginTop: 12 }}>
-            {msg}
-          </div>
-        )}
+        {msg && <div className="notice">{msg}</div>}
 
-        {!msg && rows.length === 0 && (
-          <p style={{ color: "var(--muted)" }}>No badges unlocked yet.</p>
-        )}
+        <div style={{ display: "grid", gap: 16 }}>
+          {rows.map((r, i) => {
+            const badge = normalizeBadge(r.badges);
 
-        {rows.length > 0 && (
-          <div style={{ display: "grid", gap: 16 }}>
-            {rows.map((row, i) => {
-              const badge = normalizeBadge(row.badges);
+            return (
+              <button
+                key={i}
+                onClick={() => useCoupon(badge)}
+                style={{
+                  border: "1px solid #dfe5df",
+                  borderRadius: 22,
+                  padding: 18,
+                  background: "#fff",
+                  textAlign: "left",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ display: "flex", gap: 14 }}>
+                  <div style={{ fontSize: 28 }}>{badge.icon}</div>
 
-              return (
-                <div
-                  key={i}
-                  className="card cardPad"
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 16,
-                    borderRadius: 22,
-                  }}
-                >
-                  <div
-                    style={{
-                      minWidth: 44,
-                      width: 44,
-                      height: 44,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 28,
-                      lineHeight: 1,
-                    }}
-                  >
-                    {badge.icon}
-                  </div>
-
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 17 }}>
+                  <div>
+                    <div style={{ fontWeight: 700 }}>
                       {badge.name}
                     </div>
 
-                    <div style={{ color: "var(--muted)", marginTop: 6 }}>
+                    <div style={{ marginTop: 6 }}>
                       {badge.description}
                     </div>
 
-                    <div style={{ color: "var(--muted)", marginTop: 8 }}>
-                      Earned: {new Date(row.earned_at).toLocaleString()}
+                    <div
+                      style={{
+                        marginTop: 8,
+                        color: "#4c7c59",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Coupon: {badge.code}
+                    </div>
+
+                    <div style={{ marginTop: 4 }}>
+                      Reward: {badge.reward}
+                    </div>
+
+                    <div style={{ marginTop: 6, fontSize: 13 }}>
+                      Earned: {new Date(r.earned_at).toLocaleString()}
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 8,
+                        fontSize: 13,
+                        color: "#6b8f74",
+                      }}
+                    >
+                      Click to use reward
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </SiteShell>
   );

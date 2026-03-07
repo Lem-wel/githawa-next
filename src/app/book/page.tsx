@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter, useSearchParams } from "next/navigation";
 import SiteShell from "@/components/SiteShell";
@@ -63,6 +63,8 @@ function BookPageInner() {
   const [availableStaff, setAvailableStaff] = useState<StaffRow[]>([]);
   const [availableRooms, setAvailableRooms] = useState<RoomRow[]>([]);
   const [fullyBookedDates, setFullyBookedDates] = useState<Date[]>([]);
+
+  const hasPrefilledFromQuery = useRef(false);
 
   function formatDateLocal(d: Date) {
     const year = d.getFullYear();
@@ -227,27 +229,41 @@ function BookPageInner() {
     init();
   }, [router]);
 
+  // Prefill service + add-ons from onboarding package
   useEffect(() => {
+    if (hasPrefilledFromQuery.current) return;
     if (services.length === 0) return;
 
     const serviceName = searchParams.get("service");
     const addonNames = searchParams.get("addons");
 
+    let matchedServiceId: number | "" = "";
+
     if (serviceName) {
       const matchedService = services.find(
-        (s) => s.name.toLowerCase() === serviceName.toLowerCase()
+        (s) => s.name.trim().toLowerCase() === serviceName.trim().toLowerCase()
       );
-      if (matchedService) setServiceId(matchedService.id);
+
+      if (matchedService) {
+        matchedServiceId = matchedService.id;
+        setServiceId(matchedService.id);
+      }
     }
 
     if (addonNames && addons.length > 0) {
-      const names = addonNames.split(",").map((x) => x.trim().toLowerCase());
+      const names = addonNames
+        .split(",")
+        .map((x) => x.trim().toLowerCase())
+        .filter(Boolean);
+
       const matchedAddons = addons
-        .filter((a) => names.includes(a.name.toLowerCase()))
+        .filter((a) => names.includes(a.name.trim().toLowerCase()))
         .map((a) => a.id);
 
       setSelectedAddons(matchedAddons);
     }
+
+    hasPrefilledFromQuery.current = true;
   }, [searchParams, services, addons]);
 
   useEffect(() => {
@@ -304,7 +320,9 @@ function BookPageInner() {
           }
         }
 
-        if (!hasAnyAvailableSlot) booked.push(new Date(day));
+        if (!hasAnyAvailableSlot) {
+          booked.push(new Date(day));
+        }
       }
 
       setFullyBookedDates(booked);
@@ -313,11 +331,19 @@ function BookPageInner() {
     loadFullyBookedDates();
   }, [allRooms]);
 
+  // Reset dependent fields when user manually changes service,
+  // but do not wipe prefilled add-ons on first onboarding load.
   useEffect(() => {
     setStaffId("");
     setRoomId("");
-    setSelectedAddons([]);
     setTime("");
+
+    if (hasPrefilledFromQuery.current) {
+      hasPrefilledFromQuery.current = false;
+      return;
+    }
+
+    setSelectedAddons([]);
   }, [serviceId]);
 
   useEffect(() => {
@@ -401,6 +427,17 @@ function BookPageInner() {
 
     checkAvailability();
   }, [mainService, date, time, blockedDuration, candidateStaff, allRooms, staffId, roomId]);
+
+const [couponCode, setCouponCode] = useState("");
+const [couponReward, setCouponReward] = useState("");
+
+useEffect(() => {
+  const savedCoupon = localStorage.getItem("selected_coupon_code");
+  const savedReward = localStorage.getItem("selected_coupon_reward");
+
+  if (savedCoupon) setCouponCode(savedCoupon);
+  if (savedReward) setCouponReward(savedReward);
+}, []);
 
   async function book() {
     setMsg("");
@@ -536,7 +573,10 @@ function BookPageInner() {
           <h2 style={{ marginTop: 0 }}>Book Appointment</h2>
 
           {msg && (
-            <div className={msg.includes("✅") ? "noticeOk" : "notice"} style={{ marginBottom: 12 }}>
+            <div
+              className={msg.includes("✅") ? "noticeOk" : "notice"}
+              style={{ marginBottom: 12 }}
+            >
               {msg}
             </div>
           )}
@@ -578,7 +618,10 @@ function BookPageInner() {
                     {addons.map((a) => {
                       const checked = selectedAddons.includes(a.id);
                       return (
-                        <label key={a.id} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <label
+                          key={a.id}
+                          style={{ display: "flex", gap: 10, alignItems: "center" }}
+                        >
                           <input
                             type="checkbox"
                             checked={checked}
