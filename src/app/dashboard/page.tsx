@@ -255,6 +255,12 @@ export default function DashboardPage() {
             <Link href="/book" className="btn btnPrimary">
               Book Appointment
             </Link>
+            <Link href="/services" className="btn btnPrimary">
+              Book Appointment
+            </Link>
+            <Link href="/activities" className="btn btnPrimary">
+              Wellness Activities
+            </Link>
           </div>
         </div>
       </div>
