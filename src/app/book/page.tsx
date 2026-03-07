@@ -64,6 +64,9 @@ function BookPageInner() {
   const [availableRooms, setAvailableRooms] = useState<RoomRow[]>([]);
   const [fullyBookedDates, setFullyBookedDates] = useState<Date[]>([]);
 
+  const [couponCode, setCouponCode] = useState("");
+  const [couponReward, setCouponReward] = useState("");
+
   const hasPrefilledFromQuery = useRef(false);
 
   function formatDateLocal(d: Date) {
@@ -147,6 +150,32 @@ function BookPageInner() {
     return main + addonPrice;
   }, [mainService, selectedAddonRows]);
 
+  const discountAmount = useMemo(() => {
+    if (!couponCode && !couponReward) return 0;
+
+    const rewardText = couponReward.toLowerCase();
+
+    if (
+      couponCode === "SPECIAL_FEEDBACK_REVIEW" ||
+      rewardText.includes("5% discount")
+    ) {
+      return totalPrice * 0.05;
+    }
+
+    if (
+      couponCode === "LEVEL_SILVER_3_VISITS" ||
+      rewardText.includes("10% discount")
+    ) {
+      return totalPrice * 0.1;
+    }
+
+    return 0;
+  }, [couponCode, couponReward, totalPrice]);
+
+  const finalTotal = useMemo(() => {
+    return Math.max(0, totalPrice - discountAmount);
+  }, [totalPrice, discountAmount]);
+
   const candidateStaff = useMemo(() => {
     if (!mainService) return [];
 
@@ -228,6 +257,22 @@ function BookPageInner() {
 
     init();
   }, [router]);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("coupon");
+    const savedCoupon = localStorage.getItem("selected_coupon_code");
+    const savedReward = localStorage.getItem("selected_coupon_reward");
+
+    if (fromUrl) {
+      setCouponCode(fromUrl);
+    } else if (savedCoupon) {
+      setCouponCode(savedCoupon);
+    }
+
+    if (savedReward) {
+      setCouponReward(savedReward);
+    }
+  }, [searchParams]);
 
   // Prefill service + add-ons from onboarding package
   useEffect(() => {
@@ -331,8 +376,6 @@ function BookPageInner() {
     loadFullyBookedDates();
   }, [allRooms]);
 
-  // Reset dependent fields when user manually changes service,
-  // but do not wipe prefilled add-ons on first onboarding load.
   useEffect(() => {
     setStaffId("");
     setRoomId("");
@@ -428,17 +471,6 @@ function BookPageInner() {
     checkAvailability();
   }, [mainService, date, time, blockedDuration, candidateStaff, allRooms, staffId, roomId]);
 
-const [couponCode, setCouponCode] = useState("");
-const [couponReward, setCouponReward] = useState("");
-
-useEffect(() => {
-  const savedCoupon = localStorage.getItem("selected_coupon_code");
-  const savedReward = localStorage.getItem("selected_coupon_reward");
-
-  if (savedCoupon) setCouponCode(savedCoupon);
-  if (savedReward) setCouponReward(savedReward);
-}, []);
-
   async function book() {
     setMsg("");
 
@@ -529,6 +561,10 @@ useEffect(() => {
             appt_date: date,
             appt_time: time,
             duration_minutes: blockedDuration,
+            total_price: finalTotal,
+            coupon_code: couponCode || null,
+            coupon_reward: couponReward || null,
+            discount_amount: discountAmount || 0,
           },
         ])
         .select("id")
@@ -556,6 +592,9 @@ useEffect(() => {
           return;
         }
       }
+
+      localStorage.removeItem("selected_coupon_code");
+      localStorage.removeItem("selected_coupon_reward");
 
       setMsg("Appointment booked successfully ✅");
       setTimeout(() => {
@@ -641,9 +680,38 @@ useEffect(() => {
                 )}
               </div>
 
+              {(couponCode || couponReward) && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: 14,
+                    border: "1px solid #dfe5df",
+                    borderRadius: 14,
+                    background: "#f8fff8",
+                  }}
+                >
+                  <div style={{ fontWeight: 700 }}>Applied Coupon</div>
+                  <div style={{ marginTop: 6 }}>
+                    {couponCode || "No coupon selected"}
+                  </div>
+                  {couponReward && (
+                    <div style={{ marginTop: 6, color: "#4c7c59" }}>
+                      {couponReward}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <p style={{ marginTop: 10, color: "var(--muted)" }}>
-                Total estimate: <b>₱{totalPrice}</b>
+                Total estimate: <b>₱{finalTotal.toFixed(0)}</b>
               </p>
+
+              {discountAmount > 0 && (
+                <p style={{ marginTop: 4, color: "#4c7c59", fontWeight: 600 }}>
+                  Discount applied: -₱{discountAmount.toFixed(0)}
+                </p>
+              )}
+
               <p style={{ marginTop: 4, color: "var(--muted)" }}>
                 Service duration: <b>{totalDuration} mins</b>
               </p>
@@ -699,9 +767,6 @@ useEffect(() => {
                 </option>
               ))}
             </select>
-            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-              Available booking hours: 8:00 AM to 5:00 PM, every 15 minutes.
-            </div>
           </div>
 
           <div style={{ marginTop: 12 }}>
@@ -724,9 +789,6 @@ useEffect(() => {
                 </option>
               ))}
             </select>
-            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-              Staff can only be booked up to 8 appointments per day.
-            </div>
           </div>
 
           <div style={{ marginTop: 12 }}>
@@ -749,9 +811,6 @@ useEffect(() => {
                 </option>
               ))}
             </select>
-            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-              Rooms already occupied at the selected time are hidden automatically.
-            </div>
           </div>
 
           <div style={{ marginTop: 16 }}>
