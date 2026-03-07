@@ -661,6 +661,36 @@ function BookPageInner() {
           return;
         }
       }
+      const selectedStaff = allStaff.find((s) => s.id === Number(staffId));
+const selectedRoom = allRooms.find((r) => r.id === Number(roomId));
+
+try {
+  await fetch("/api/send-booking-email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      to: auth.user?.email,
+      customerName:
+        auth.user?.user_metadata?.full_name ||
+        auth.user?.email?.split("@")[0] ||
+        "Customer",
+      serviceName: mainService.name,
+      addonNames: selectedAddonRows.map((a) => a.name),
+      apptDate: date,
+      apptTime: time,
+      durationMinutes: totalDuration,
+      staffName: selectedStaff?.name || "Not assigned",
+      roomName: selectedRoom?.name || "Not assigned",
+      totalPrice: finalTotal,
+      couponCode: couponCode || "",
+      couponReward: couponReward || "",
+    }),
+  });
+} catch (emailErr) {
+  console.error("Failed to send booking email:", emailErr);
+}
 
       setCouponInput("");
       setCouponCode("");
