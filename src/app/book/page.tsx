@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter, useSearchParams } from "next/navigation";
 import SiteShell from "@/components/SiteShell";
@@ -41,8 +41,9 @@ const CLOSE_MINUTES = 17 * 60;
 const SLOT_INTERVAL = 15;
 const BUFFER_MINUTES = 15;
 
-export default function BookPage() {
+function BookPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
@@ -57,7 +58,6 @@ export default function BookPage() {
   const [roomId, setRoomId] = useState<number | "">("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const searchParams = useSearchParams();
 
   const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
   const [availableStaff, setAvailableStaff] = useState<StaffRow[]>([]);
@@ -160,9 +160,7 @@ export default function BookPage() {
   const timeSlots = useMemo(() => {
     const slots: { value: string; label: string }[] = [];
 
-    if (!mainService || blockedDuration <= 0) {
-      return slots;
-    }
+    if (!mainService || blockedDuration <= 0) return slots;
 
     for (let t = OPEN_MINUTES; t <= CLOSE_MINUTES; t += SLOT_INTERVAL) {
       const end = t + blockedDuration;
@@ -230,6 +228,29 @@ export default function BookPage() {
   }, [router]);
 
   useEffect(() => {
+    if (services.length === 0) return;
+
+    const serviceName = searchParams.get("service");
+    const addonNames = searchParams.get("addons");
+
+    if (serviceName) {
+      const matchedService = services.find(
+        (s) => s.name.toLowerCase() === serviceName.toLowerCase()
+      );
+      if (matchedService) setServiceId(matchedService.id);
+    }
+
+    if (addonNames && addons.length > 0) {
+      const names = addonNames.split(",").map((x) => x.trim().toLowerCase());
+      const matchedAddons = addons
+        .filter((a) => names.includes(a.name.toLowerCase()))
+        .map((a) => a.id);
+
+      setSelectedAddons(matchedAddons);
+    }
+  }, [searchParams, services, addons]);
+
+  useEffect(() => {
     async function loadFullyBookedDates() {
       if (allRooms.length === 0) return;
 
@@ -265,7 +286,6 @@ export default function BookPage() {
 
         for (let start = OPEN_MINUTES; start <= CLOSE_MINUTES; start += SLOT_INTERVAL) {
           const endTime = start + 75;
-
           if (endTime > CLOSE_MINUTES) continue;
 
           const freeRooms = allRooms.filter((room) => {
@@ -284,9 +304,7 @@ export default function BookPage() {
           }
         }
 
-        if (!hasAnyAvailableSlot) {
-          booked.push(new Date(day));
-        }
+        if (!hasAnyAvailableSlot) booked.push(new Date(day));
       }
 
       setFullyBookedDates(booked);
@@ -351,7 +369,7 @@ export default function BookPage() {
 
         if (staffAppointments.length >= 8) return false;
 
-        const hasOverlap = staffAppointments.some((r) =>
+        return !staffAppointments.some((r) =>
           overlaps(
             start,
             blockedDuration,
@@ -359,14 +377,12 @@ export default function BookPage() {
             r.duration_minutes ?? 0
           )
         );
-
-        return !hasOverlap;
       });
 
       const freeRooms = allRooms.filter((room) => {
         const roomAppointments = rows.filter((r) => r.room_id === room.id);
 
-        const hasOverlap = roomAppointments.some((r) =>
+        return !roomAppointments.some((r) =>
           overlaps(
             start,
             blockedDuration,
@@ -374,8 +390,6 @@ export default function BookPage() {
             r.duration_minutes ?? 0
           )
         );
-
-        return !hasOverlap;
       });
 
       setAvailableStaff(freeStaff);
@@ -386,34 +400,7 @@ export default function BookPage() {
     }
 
     checkAvailability();
-  }, [mainService, date, time, blockedDuration, candidateStaff, allRooms, staffId, roomId])
-;
-useEffect(() => {
-  if (services.length === 0) return;
-
-  const serviceName = searchParams.get("service");
-  const addonNames = searchParams.get("addons");
-
-  if (serviceName) {
-    const matchedService = services.find(
-      (s) => s.name.toLowerCase() === serviceName.toLowerCase()
-    );
-
-    if (matchedService) {
-      setServiceId(matchedService.id);
-    }
-  }
-
-  if (addonNames && addons.length > 0) {
-    const names = addonNames.split(",").map((x) => x.trim().toLowerCase());
-
-    const matchedAddons = addons
-      .filter((a) => names.includes(a.name.toLowerCase()))
-      .map((a) => a.id);
-
-    setSelectedAddons(matchedAddons);
-  }
-}, [searchParams, services, addons]);
+  }, [mainService, date, time, blockedDuration, candidateStaff, allRooms, staffId, roomId]);
 
   async function book() {
     setMsg("");
@@ -549,10 +536,7 @@ useEffect(() => {
           <h2 style={{ marginTop: 0 }}>Book Appointment</h2>
 
           {msg && (
-            <div
-              className={msg.includes("✅") ? "noticeOk" : "notice"}
-              style={{ marginBottom: 12 }}
-            >
+            <div className={msg.includes("✅") ? "noticeOk" : "notice"} style={{ marginBottom: 12 }}>
               {msg}
             </div>
           )}
@@ -594,10 +578,7 @@ useEffect(() => {
                     {addons.map((a) => {
                       const checked = selectedAddons.includes(a.id);
                       return (
-                        <label
-                          key={a.id}
-                          style={{ display: "flex", gap: 10, alignItems: "center" }}
-                        >
+                        <label key={a.id} style={{ display: "flex", gap: 10, alignItems: "center" }}>
                           <input
                             type="checkbox"
                             checked={checked}
@@ -738,5 +719,13 @@ useEffect(() => {
         </div>
       </div>
     </SiteShell>
+  );
+}
+
+export default function BookPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading booking page...</div>}>
+      <BookPageInner />
+    </Suspense>
   );
 }
