@@ -21,12 +21,7 @@ type StaffItem = {
   position: string;
 };
 
-const QUICK_REPLIES = [
-  "Services",
-  "Prices",
-  "Staff",
-  "Location",
-];
+const QUICK_REPLIES = ["Services", "Prices", "Staff", "Location"];
 
 function includesAny(text: string, keywords: string[]) {
   return keywords.some((word) => text.includes(word));
@@ -74,7 +69,7 @@ function getBotReply(
   if (includesAny(msg, ["hello", "hi", "hey"])) {
     return {
       text: randomAnswer([
-        "Hello. Welcome to Ginhawa Spa & Wellness. How may I help you today?",
+        "Hello. Welcome to Ginhawa Spa & Wellness. How may I assist you today?",
         "Hi there. I'm here to help with information about our spa services.",
         "Welcome to Ginhawa. Feel free to ask about our services.",
         "Hello and welcome. What would you like to know today?",
@@ -283,13 +278,13 @@ export default function GinhawaWixChat() {
         .select("name");
 
       if (Array.isArray(serviceData)) {
-        const mappedServices: ServiceItem[] = serviceData
-          .map((row: any) => ({
-            name: String(row.name ?? "").trim(),
-          }))
-          .filter((s) => s.name.length > 0);
-
-        setServices(mappedServices);
+        setServices(
+          serviceData
+            .map((row: any) => ({
+              name: String(row.name ?? "").trim(),
+            }))
+            .filter((s) => s.name.length > 0)
+        );
       }
 
       const { data: staffData } = await supabase
@@ -298,15 +293,15 @@ export default function GinhawaWixChat() {
         .order("name", { ascending: true });
 
       if (Array.isArray(staffData)) {
-        const mappedStaff: StaffItem[] = staffData
-          .map((row: any) => ({
-            name: String(row.name ?? "").trim(),
-            specialization: String(row.specialization ?? "").trim(),
-            position: String(row.position ?? "").trim(),
-          }))
-          .filter((s) => s.name.length > 0);
-
-        setStaff(mappedStaff);
+        setStaff(
+          staffData
+            .map((row: any) => ({
+              name: String(row.name ?? "").trim(),
+              specialization: String(row.specialization ?? "").trim(),
+              position: String(row.position ?? "").trim(),
+            }))
+            .filter((s) => s.name.length > 0)
+        );
       }
     }
 
@@ -342,21 +337,10 @@ export default function GinhawaWixChat() {
 
       setMessages((prev) => [...prev, botMsg]);
       setTyping(false);
-    }, 900);
+    }, 850);
   }
 
   return (
-  <div
-    style={{
-      width: "100%",
-      height: "100%",
-      display: "flex",
-      alignItems: "stretch",
-      justifyContent: "stretch",
-      background: "transparent",
-      overflow: "hidden",
-    }}
-  >
     <div
       style={{
         width: "100%",
@@ -364,200 +348,201 @@ export default function GinhawaWixChat() {
         display: "flex",
         flexDirection: "column",
         background: "#f7f3ee",
-        borderRadius: 0,
         overflow: "hidden",
-        border: "none",
-        boxShadow: "none",
       }}
     >
-        <div
-          style={{
-            background: "linear-gradient(180deg,#9ab59d 0%,#88a98e 100%)",
-            color: "#fff",
-            padding: "14px 16px",
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 700 }}>Ginhawa Buddy</div>
-          <div style={{ fontSize: 11, opacity: 0.92 }}>
-            Wellness information assistant
-          </div>
+      <div
+        style={{
+          background: "linear-gradient(180deg,#9ab59d 0%,#88a98e 100%)",
+          color: "#fff",
+          padding: "14px 16px 12px",
+          borderBottom: "1px solid rgba(255,255,255,0.15)",
+        }}
+      >
+        <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.1 }}>
+          Ginhawa Buddy
         </div>
-
-        <div
-  style={{
-    flex: 1,
-    padding: 12,
-    overflowY: "auto",
-    overflowX: "hidden",
-    background: "#f7f3ee",
-    minHeight: 0,
-  }}
->
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              style={{
-                display: "flex",
-                justifyContent: msg.sender === "user" ? "flex-end" : "flex-start",
-                marginBottom: 10,
-              }}
-            >
-              <div
-                style={{
-                  maxWidth: "85%",
-                  padding: "10px 12px",
-                  borderRadius:
-                    msg.sender === "user"
-                      ? "16px 16px 8px 16px"
-                      : "16px 16px 16px 8px",
-                  background: msg.sender === "user" ? "#879f87" : "#ebe4d8",
-                  color: msg.sender === "user" ? "#fff" : "#3f4d40",
-                  fontSize: 13,
-                  lineHeight: 1.4,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                }}
-              >
-                {msg.text}
-              </div>
-            </div>
-          ))}
-
-          {typing && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-start",
-                marginBottom: 10,
-              }}
-            >
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  background: "#ebe4d8",
-                  borderRadius: 18,
-                  padding: "9px 12px",
-                }}
-              >
-                <span className="ginhawa-dot" />
-                <span className="ginhawa-dot delay1" />
-                <span className="ginhawa-dot delay2" />
-              </div>
-            </div>
-          )}
-
-          <div ref={endRef} />
+        <div style={{ fontSize: 11, opacity: 0.92, marginTop: 4 }}>
+          Wellness information assistant
         </div>
+      </div>
 
-        <div
-          style={{
-            padding: 10,
-            borderTop: "1px solid rgba(90,104,84,0.08)",
-            background: "#f7f3ee",
-          }}
-        >
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          padding: "14px 12px 8px",
+          background: "#f7f3ee",
+        }}
+      >
+        {messages.map((msg) => (
           <div
-  style={{
-    padding: 10,
-    borderTop: "1px solid rgba(90,104,84,0.08)",
-    background: "#f7f3ee",
-    flexShrink: 0,
-  }}
->
-            {QUICK_REPLIES.map((q) => (
-              <button
-                key={q}
-                onClick={() => sendMessage(q)}
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: 999,
-                  border: "1px solid #d6d1c7",
-                  background: "#f0eadf",
-                  cursor: "pointer",
-                  fontSize: 11,
-                  whiteSpace: "nowrap",
-                  color: "#4a5648",
-                  flexShrink: 0,
-                }}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ display: "flex", gap: 6 }}>
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask here..."
+            key={msg.id}
+            style={{
+              display: "flex",
+              justifyContent: msg.sender === "user" ? "flex-end" : "flex-start",
+              marginBottom: 10,
+            }}
+          >
+            <div
               style={{
-                flex: 1,
+                maxWidth: "84%",
                 padding: "10px 12px",
-                borderRadius: 999,
-                border: "1px solid #d0cbc2",
-                outline: "none",
+                borderRadius:
+                  msg.sender === "user"
+                    ? "16px 16px 8px 16px"
+                    : "16px 16px 16px 8px",
+                background: msg.sender === "user" ? "#879f87" : "#ebe4d8",
+                color: msg.sender === "user" ? "#fff" : "#3f4d40",
                 fontSize: 13,
-                background: "#fffdfa",
-                minWidth: 0,
+                lineHeight: 1.45,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                boxShadow:
+                  msg.sender === "user"
+                    ? "0 4px 10px rgba(111,143,114,0.14)"
+                    : "0 4px 10px rgba(70,80,60,0.05)",
               }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") sendMessage(input);
-              }}
-            />
+            >
+              {msg.text}
+            </div>
+          </div>
+        ))}
 
-            <button
-              onClick={() => sendMessage(input)}
+        {typing && (
+          <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 10 }}>
+            <div
               style={{
-                padding: "0 14px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                background: "#ebe4d8",
+                borderRadius: 18,
+                padding: "9px 12px",
+              }}
+            >
+              <span className="ginhawa-dot" />
+              <span className="ginhawa-dot delay1" />
+              <span className="ginhawa-dot delay2" />
+            </div>
+          </div>
+        )}
+
+        <div ref={endRef} />
+      </div>
+
+      <div
+        style={{
+          padding: "10px 12px 12px",
+          borderTop: "1px solid rgba(90,104,84,0.08)",
+          background: "#f7f3ee",
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            marginBottom: 8,
+            overflowX: "auto",
+            paddingBottom: 2,
+          }}
+        >
+          {QUICK_REPLIES.map((q) => (
+            <button
+              key={q}
+              onClick={() => sendMessage(q)}
+              style={{
+                padding: "6px 11px",
                 borderRadius: 999,
-                border: "none",
-                background: "#6f8f72",
-                color: "#fff",
+                border: "1px solid #d7d0c3",
+                background: "#f0eadf",
                 cursor: "pointer",
-                fontWeight: 600,
-                fontSize: 13,
+                fontSize: 11,
+                whiteSpace: "nowrap",
+                color: "#4a5648",
                 flexShrink: 0,
               }}
             >
-              Send
+              {q}
             </button>
-          </div>
+          ))}
         </div>
 
-        <style jsx>{`
-          .ginhawa-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #7f8d78;
-            display: inline-block;
-            animation: ginhawa-bounce 1.1s infinite ease-in-out;
-          }
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask here..."
+            style={{
+              flex: 1,
+              minWidth: 0,
+              height: 42,
+              padding: "0 14px",
+              borderRadius: 999,
+              border: "1px solid #d0cbc2",
+              outline: "none",
+              fontSize: 13,
+              background: "#fffdfa",
+              color: "#3f4d40",
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") sendMessage(input);
+            }}
+          />
 
-          .delay1 {
-            animation-delay: 0.2s;
-          }
-
-          .delay2 {
-            animation-delay: 0.4s;
-          }
-
-          @keyframes ginhawa-bounce {
-            0%,
-            80%,
-            100% {
-              transform: translateY(0);
-              opacity: 0.4;
-            }
-            40% {
-              transform: translateY(-4px);
-              opacity: 1;
-            }
-          }
-        `}</style>
+          <button
+            onClick={() => sendMessage(input)}
+            style={{
+              height: 42,
+              padding: "0 16px",
+              borderRadius: 999,
+              border: "none",
+              background: "#6f8f72",
+              color: "#fff",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: 13,
+              flexShrink: 0,
+            }}
+          >
+            Send
+          </button>
+        </div>
       </div>
+
+      <style jsx>{`
+        .ginhawa-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #7f8d78;
+          display: inline-block;
+          animation: ginhawa-bounce 1.1s infinite ease-in-out;
+        }
+
+        .delay1 {
+          animation-delay: 0.2s;
+        }
+
+        .delay2 {
+          animation-delay: 0.4s;
+        }
+
+        @keyframes ginhawa-bounce {
+          0%,
+          80%,
+          100% {
+            transform: translateY(0);
+            opacity: 0.4;
+          }
+          40% {
+            transform: translateY(-4px);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }
