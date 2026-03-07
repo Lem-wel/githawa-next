@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import SiteShell from "@/components/SiteShell";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
@@ -57,6 +57,7 @@ export default function BookPage() {
   const [roomId, setRoomId] = useState<number | "">("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const searchParams = useSearchParams();
 
   const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
   const [availableStaff, setAvailableStaff] = useState<StaffRow[]>([]);
@@ -385,7 +386,34 @@ export default function BookPage() {
     }
 
     checkAvailability();
-  }, [mainService, date, time, blockedDuration, candidateStaff, allRooms, staffId, roomId]);
+  }, [mainService, date, time, blockedDuration, candidateStaff, allRooms, staffId, roomId])
+;
+useEffect(() => {
+  if (services.length === 0) return;
+
+  const serviceName = searchParams.get("service");
+  const addonNames = searchParams.get("addons");
+
+  if (serviceName) {
+    const matchedService = services.find(
+      (s) => s.name.toLowerCase() === serviceName.toLowerCase()
+    );
+
+    if (matchedService) {
+      setServiceId(matchedService.id);
+    }
+  }
+
+  if (addonNames && addons.length > 0) {
+    const names = addonNames.split(",").map((x) => x.trim().toLowerCase());
+
+    const matchedAddons = addons
+      .filter((a) => names.includes(a.name.toLowerCase()))
+      .map((a) => a.id);
+
+    setSelectedAddons(matchedAddons);
+  }
+}, [searchParams, services, addons]);
 
   async function book() {
     setMsg("");

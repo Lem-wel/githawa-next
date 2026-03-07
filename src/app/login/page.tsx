@@ -15,28 +15,46 @@ export default function LoginPage() {
   async function login() {
     setMsg("");
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return setMsg(error.message);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
 
     const { data: authData, error: authErr } = await supabase.auth.getUser();
-    if (authErr || !authData.user) return setMsg("Login succeeded but session not found.");
+    if (authErr || !authData.user) {
+      setMsg("Login succeeded but session not found.");
+      return;
+    }
 
     const userId = authData.user.id;
 
     const { data: prof, error: profErr } = await supabase
       .from("profiles")
-      .select("role, staff_id")
+      .select("role, staff_id, onboarding_done")
       .eq("id", userId)
       .single();
 
-    if (profErr || !prof) return setMsg("No profile found for this account.");
-
-    // Customer
-    if (prof.role !== "staff") {
-      router.push("/");
+    if (profErr || !prof) {
+      setMsg("No profile found for this account.");
       return;
     }
 
+    // CUSTOMER FLOW
+    if (prof.role !== "staff") {
+      if (!prof.onboarding_done) {
+        router.push("/onboarding");
+      } else {
+        router.push("/");
+      }
+      return;
+    }
+
+    // STAFF FLOW
     if (!prof.staff_id) {
       setMsg("Staff not linked yet (profiles.staff_id is null).");
       return;
@@ -48,95 +66,98 @@ export default function LoginPage() {
       .eq("id", prof.staff_id)
       .single();
 
-    if (stErr || !st) return setMsg("Staff record missing.");
+    if (stErr || !st) {
+      setMsg("Staff record missing.");
+      return;
+    }
 
     const pos = String(st.position || "").trim().toLowerCase();
+
     if (pos === "manager") router.push("/manager");
     else if (pos === "receptionist") router.push("/receptionist");
     else if (pos === "spa_attendant") router.push("/attendant");
-    else router.push("/staff"); // massage therapist default
+    else router.push("/staff");
   }
 
   return (
-  <SiteShell>
-  <div
-    style={{
-      maxWidth: 1280,
-      margin: "0 auto",
-      padding: "46px 28px 64px", // like your .container spacing
-      display: "flex",
-      justifyContent: "center"
-    }}
-  >
-    <div
-      className="card cardPad"
-      style={{
-        width: "100%",
-        maxWidth: 620,
-        padding: 34,
-      }}
-    >
-       <h2
+    <SiteShell>
+      <div
+        style={{
+          maxWidth: 1280,
+          margin: "0 auto",
+          padding: "46px 28px 64px",
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          className="card cardPad"
           style={{
-            marginTop: 0,
-            fontFamily: "var(--font-heading)",
-            fontSize: 34,
+            width: "100%",
+            maxWidth: 620,
+            padding: 34,
           }}
         >
-          Log In
-        </h2>
+          <h2
+            style={{
+              marginTop: 0,
+              fontFamily: "var(--font-heading)",
+              fontSize: 34,
+            }}
+          >
+            Log In
+          </h2>
 
-        {msg && (
-          <div className="notice" style={{ marginBottom: 12 }}>
-            {msg}
-          </div>
-        )}
+          {msg && (
+            <div className="notice" style={{ marginBottom: 12 }}>
+              {msg}
+            </div>
+          )}
 
-        <input
-          className="input"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <div style={{ height: 12 }} />
-        <input
-          className="input"
-          placeholder="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <div style={{ height: 16 }} />
+          <input
+            className="input"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <div style={{ height: 12 }} />
 
-        <button className="btn btnPrimary" onClick={login}>
-          Log In
-        </button>
+          <input
+            className="input"
+            placeholder="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <div style={{ height: 16 }} />
 
-<p
-  style={{
-    marginTop: 14,
-    textAlign: "center",
-    color: "var(--muted)",
-    fontSize: 14
-  }}
->
-  Don’t have an account?{" "}
-  <Link
-    href="/register"
-    style={{
-      color: "var(--text)",
-      fontWeight: 600,
-      textDecoration: "underline",
-      cursor: "pointer"
-    }}
-  >
-    Sign up
-  </Link>
-</p>
-      {/* your login form here */}
-      
-    </div>
-  </div>
-</SiteShell>
-);
+          <button className="btn btnPrimary" onClick={login}>
+            Log In
+          </button>
+
+          <p
+            style={{
+              marginTop: 14,
+              textAlign: "center",
+              color: "var(--muted)",
+              fontSize: 14,
+            }}
+          >
+            Don’t have an account?{" "}
+            <Link
+              href="/register"
+              style={{
+                color: "var(--text)",
+                fontWeight: 600,
+                textDecoration: "underline",
+                cursor: "pointer",
+              }}
+            >
+              Sign up
+            </Link>
+          </p>
+        </div>
+      </div>
+    </SiteShell>
+  );
 }
