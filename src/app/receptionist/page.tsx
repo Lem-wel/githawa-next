@@ -24,6 +24,7 @@ export default function ReceptionistPage() {
   const [msg, setMsg] = useState("");
   const [name, setName] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -36,35 +37,62 @@ export default function ReceptionistPage() {
   useEffect(() => {
     (async () => {
       setMsg("");
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return router.push("/login");
 
-      const { data: prof } = await supabase
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data: prof, error: profErr } = await supabase
         .from("profiles")
         .select("full_name, role, staff_id")
         .eq("id", auth.user.id)
         .single();
 
-      if (!prof) return setMsg("Profile not found.");
-      if (prof.role !== "staff") return router.push("/dashboard");
-      if (!prof.staff_id) return setMsg("Staff not linked (profiles.staff_id is null).");
-
-      const { data: st } = await supabase
-        .from("staff")
-        .select("name, position")
-        .eq("id", prof.staff_id)
-        .single();
-
-      const pos = String(st?.position || "").trim().toLowerCase();
-      if (pos !== "receptionist") {
-        if (pos === "manager") router.push("/manager");
-        else if (pos === "massage_therapist") router.push("/staff");
-        else if (pos === "spa_attendant") router.push("/attendant");
-        else router.push("/dashboard");
+      if (profErr || !prof) {
+        setMsg("Profile not found.");
         return;
       }
 
-      setName(st?.name || prof.full_name || "Receptionist");
+      const adminMode = prof.role === "admin";
+      setIsAdmin(adminMode);
+
+      if (!adminMode && prof.role !== "staff") {
+        router.push("/dashboard");
+        return;
+      }
+
+      if (!prof.staff_id) {
+        if (adminMode) {
+          setName(prof.full_name || "Admin");
+        } else {
+          setMsg("Staff not linked (profiles.staff_id is null).");
+          return;
+        }
+      }
+
+      if (!adminMode) {
+        const { data: st } = await supabase
+          .from("staff")
+          .select("name, position")
+          .eq("id", prof.staff_id)
+          .single();
+
+        const pos = String(st?.position || "").trim().toLowerCase();
+
+        if (pos !== "receptionist") {
+          if (pos === "manager") router.push("/manager");
+          else if (pos === "massage_therapist") router.push("/staff");
+          else if (pos === "spa_attendant") router.push("/attendant");
+          else router.push("/dashboard");
+          return;
+        }
+
+        setName(st?.name || prof.full_name || "Receptionist");
+      } else {
+        setName(prof.full_name || "Admin");
+      }
 
       const { data: appts, error: aErr } = await supabase
         .from("appointments")
@@ -80,35 +108,47 @@ export default function ReceptionistPage() {
         .eq("appt_date", today)
         .order("appt_time", { ascending: true });
 
-      if (aErr) return setMsg(aErr.message);
+      if (aErr) {
+        setMsg(aErr.message);
+        return;
+      }
 
       const { data: staffList, error: sErr } = await supabase
         .from("staff")
         .select("id,name,position,email");
 
-      if (sErr) return setMsg(sErr.message);
+      if (sErr) {
+        setMsg(sErr.message);
+        return;
+      }
 
       const staffMap = new Map<number, { name: string; position: string; email: string | null }>();
       (staffList ?? []).forEach((s: any) => {
-        staffMap.set(s.id, { name: s.name, position: s.position, email: s.email ?? null });
+        staffMap.set(s.id, {
+          name: s.name,
+          position: s.position,
+          email: s.email ?? null,
+        });
       });
 
-      setRows((appts ?? []).map((r: any) => {
-        const s = r.staff_id ? staffMap.get(r.staff_id) : null;
-        return {
-          id: r.id,
-          appt_time: String(r.appt_time).slice(0, 5),
-          duration_minutes: r.duration_minutes,
-          service_name: r.services?.name ?? null,
-          category: r.services?.category ?? null,
-          room_name: r.rooms?.name ?? null,
-          customer_name: r.customer?.full_name ?? null,
-          staff_id: r.staff_id ?? null,
-          staff_name: s?.name ?? null,
-          staff_position: s?.position ?? null,
-          staff_email: s?.email ?? null,
-        };
-      }));
+      setRows(
+        (appts ?? []).map((r: any) => {
+          const s = r.staff_id ? staffMap.get(r.staff_id) : null;
+          return {
+            id: r.id,
+            appt_time: String(r.appt_time).slice(0, 5),
+            duration_minutes: r.duration_minutes,
+            service_name: r.services?.name ?? null,
+            category: r.services?.category ?? null,
+            room_name: r.rooms?.name ?? null,
+            customer_name: r.customer?.full_name ?? null,
+            staff_id: r.staff_id ?? null,
+            staff_name: s?.name ?? null,
+            staff_position: s?.position ?? null,
+            staff_email: s?.email ?? null,
+          };
+        })
+      );
     })();
   }, [router, today]);
 
@@ -131,8 +171,19 @@ export default function ReceptionistPage() {
     <SiteShell>
       <div className="card cardPad">
         <h2 style={{ marginTop: 0 }}>Receptionist — Today’s Schedule</h2>
-        <p style={{ color: "var(--muted)" }}>Hello, <b>{name}</b> • Date: <b>{today}</b></p>
+
+        <p style={{ color: "var(--muted)" }}>
+          Hello, <b>{name}</b> • Date: <b>{today}</b>
+        </p>
+
+        {isAdmin && (
+          <div className="notice" style={{ marginTop: 12 }}>
+            Admin mode: you can access the receptionist page here.
+          </div>
+        )}
+
         <button className="btn" onClick={logout}>Logout</button>
+
         {msg && <div className="notice" style={{ marginTop: 12 }}>{msg}</div>}
       </div>
 
@@ -140,7 +191,13 @@ export default function ReceptionistPage() {
         <table className="table">
           <thead>
             <tr>
-              <th>Time</th><th>Customer</th><th>Service</th><th>Category</th><th>Staff</th><th>Room</th><th>Ping</th>
+              <th>Time</th>
+              <th>Customer</th>
+              <th>Service</th>
+              <th>Category</th>
+              <th>Staff</th>
+              <th>Room</th>
+              <th>Ping</th>
             </tr>
           </thead>
           <tbody>
@@ -170,7 +227,10 @@ Room: ${r.room_name ?? "-"}
                   <td>{r.room_name ?? "—"}</td>
                   <td>
                     {r.staff_email ? (
-                      <button className="btn btnPrimary" onClick={() => window.open(gmailLink(r.staff_email!, subject, body), "_blank")}>
+                      <button
+                        className="btn btnPrimary"
+                        onClick={() => window.open(gmailLink(r.staff_email!, subject, body), "_blank")}
+                      >
                         Ping Gmail
                       </button>
                     ) : (

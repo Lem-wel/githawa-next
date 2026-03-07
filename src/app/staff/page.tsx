@@ -20,6 +20,7 @@ export default function StaffPage() {
   const [msg, setMsg] = useState("");
   const [staffName, setStaffName] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -27,7 +28,10 @@ export default function StaffPage() {
 
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
-      if (!user) return router.push("/login");
+      if (!user) {
+        router.push("/login");
+        return;
+      }
 
       const { data: profile, error: pErr } = await supabase
         .from("profiles")
@@ -35,9 +39,30 @@ export default function StaffPage() {
         .eq("id", user.id)
         .single();
 
-      if (pErr || !profile) return setMsg("Profile not found.");
-      if (profile.role !== "staff") return router.push("/dashboard");
-      if (!profile.staff_id) return setMsg("Staff not linked (profiles.staff_id is null).");
+      if (pErr || !profile) {
+        setMsg("Profile not found.");
+        return;
+      }
+
+      const adminMode = profile.role === "admin";
+      setIsAdmin(adminMode);
+
+      if (!adminMode && profile.role !== "staff") {
+        router.push("/dashboard");
+        return;
+      }
+
+      if (!profile.staff_id) {
+        if (adminMode) {
+          setStaffName(profile.full_name || "Admin");
+          setMsg("Admin mode: no linked staff_id, so this page cannot load assigned staff appointments.");
+          setRows([]);
+          return;
+        }
+
+        setMsg("Staff not linked (profiles.staff_id is null).");
+        return;
+      }
 
       const { data: st, error: stErr } = await supabase
         .from("staff")
@@ -45,12 +70,21 @@ export default function StaffPage() {
         .eq("id", profile.staff_id)
         .single();
 
-      if (stErr || !st) return setMsg("Staff record missing.");
+      if (stErr || !st) {
+        if (adminMode) {
+          setStaffName(profile.full_name || "Admin");
+          setMsg("Admin mode: linked staff record missing.");
+          setRows([]);
+          return;
+        }
+
+        setMsg("Staff record missing.");
+        return;
+      }
 
       const position = String(st.position || "").trim().toLowerCase();
 
-      // Redirect by position
-      if (position !== "massage_therapist") {
+      if (!adminMode && position !== "massage_therapist") {
         if (position === "manager") router.push("/manager");
         else if (position === "receptionist") router.push("/receptionist");
         else if (position === "spa_attendant") router.push("/attendant");
@@ -58,7 +92,7 @@ export default function StaffPage() {
         return;
       }
 
-      setStaffName(st.name || profile.full_name || "Massage Therapist");
+      setStaffName(st.name || profile.full_name || (adminMode ? "Admin" : "Massage Therapist"));
 
       const { data: appts, error: aErr } = await supabase
         .from("appointments")
@@ -76,7 +110,10 @@ export default function StaffPage() {
         .order("appt_date", { ascending: true })
         .order("appt_time", { ascending: true });
 
-      if (aErr) return setMsg(aErr.message);
+      if (aErr) {
+        setMsg(aErr.message);
+        return;
+      }
 
       setRows(
         (appts ?? []).map((r: any) => ({
@@ -101,8 +138,13 @@ export default function StaffPage() {
     <SiteShell>
       <div className="card cardPad">
         <h2 style={{ marginTop: 0 }}>My Schedule</h2>
-        <p style={{ color: "var(--muted)" }}>Hello, <b>{staffName}</b> (Massage Therapist)</p>
+
+        <p style={{ color: "var(--muted)" }}>
+          Hello, <b>{staffName}</b> ({isAdmin ? "Admin viewing staff page" : "Massage Therapist"})
+        </p>
+
         <button className="btn" onClick={logout}>Logout</button>
+
         {msg && <div className="notice" style={{ marginTop: 12 }}>{msg}</div>}
       </div>
 
@@ -110,7 +152,12 @@ export default function StaffPage() {
         <table className="table">
           <thead>
             <tr>
-              <th>Date</th><th>Time</th><th>Customer</th><th>Service</th><th>Room</th><th>Duration</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Customer</th>
+              <th>Service</th>
+              <th>Room</th>
+              <th>Duration</th>
             </tr>
           </thead>
           <tbody>

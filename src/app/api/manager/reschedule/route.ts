@@ -12,41 +12,68 @@ export async function POST(req: Request) {
     const authHeader = req.headers.get("authorization") || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
-    if (!token) return NextResponse.json({ error: "Unauthorized (missing token)" }, { status: 401 });
+    if (!token) {
+      return NextResponse.json(
+        { error: "Unauthorized (missing token)" },
+        { status: 401 }
+      );
+    }
 
     const { data: userRes, error: userErr } = await supabaseAnon.auth.getUser(token);
     const user = userRes.user;
-    if (userErr || !user) return NextResponse.json({ error: "Unauthorized (invalid token)" }, { status: 401 });
+
+    if (userErr || !user) {
+      return NextResponse.json(
+        { error: "Unauthorized (invalid token)" },
+        { status: 401 }
+      );
+    }
 
     const body = await req.json();
     const { appointmentId, appt_date, appt_time, staff_id, room_id } = body;
 
     if (!appointmentId || !appt_date || !appt_time || !staff_id || !room_id) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
-    // Verify manager
     const { data: prof, error: pErr } = await supabaseAdmin
       .from("profiles")
       .select("role, staff_id")
       .eq("id", user.id)
       .single();
 
-    if (pErr || !prof || prof.role !== "staff" || !prof.staff_id) {
+    if (pErr || !prof) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { data: st, error: sErr } = await supabaseAdmin
-      .from("staff")
-      .select("position")
-      .eq("id", prof.staff_id)
-      .single();
+    const adminMode = prof.role === "admin";
 
-    if (sErr || !st || String(st.position).trim().toLowerCase() !== "manager") {
-      return NextResponse.json({ error: "Forbidden: manager only" }, { status: 403 });
+    if (!adminMode) {
+      if (prof.role !== "staff" || !prof.staff_id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
+      const { data: st, error: sErr } = await supabaseAdmin
+        .from("staff")
+        .select("position")
+        .eq("id", prof.staff_id)
+        .single();
+
+      if (
+        sErr ||
+        !st ||
+        String(st.position || "").trim().toLowerCase() !== "manager"
+      ) {
+        return NextResponse.json(
+          { error: "Forbidden: manager only" },
+          { status: 403 }
+        );
+      }
     }
 
-    // Update appointment
     const { data: updated, error: upErr } = await supabaseAdmin
       .from("appointments")
       .update({ appt_date, appt_time, staff_id, room_id })
@@ -54,10 +81,15 @@ export async function POST(req: Request) {
       .select()
       .single();
 
-    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+    if (upErr) {
+      return NextResponse.json({ error: upErr.message }, { status: 500 });
+    }
 
     return NextResponse.json({ ok: true, appointment: updated });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Unknown error" }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message || "Unknown error" },
+      { status: 500 }
+    );
   }
 }

@@ -12,7 +12,7 @@ type Appt = {
   duration_minutes: number | null;
   staff_id: number | null;
   room_id: number | null;
-  services?: { name?: string; category?: string | null } | null; // ✅ include category
+  services?: { name?: string; category?: string | null } | null;
   rooms?: { name?: string } | null;
   customer?: { full_name?: string } | null;
 };
@@ -35,19 +35,21 @@ function isMassageCategory(category: string | null | undefined) {
 export default function ManagerPage() {
   const router = useRouter();
   const [msg, setMsg] = useState("");
-
   const [appts, setAppts] = useState<Appt[]>([]);
   const [staff, setStaff] = useState<StaffRow[]>([]);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
-
   const [managerName, setManagerName] = useState("Manager");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     (async () => {
       setMsg("");
 
       const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return router.push("/login");
+      if (!auth.user) {
+        router.push("/login");
+        return;
+      }
 
       const { data: prof, error: pErr } = await supabase
         .from("profiles")
@@ -55,8 +57,22 @@ export default function ManagerPage() {
         .eq("id", auth.user.id)
         .single();
 
-      if (pErr || !prof || prof.role !== "staff" || !prof.staff_id) {
+      if (pErr || !prof) {
         router.push("/dashboard");
+        return;
+      }
+
+      const adminMode = prof.role === "admin";
+      setIsAdmin(adminMode);
+
+      if (!adminMode && (prof.role !== "staff" || !prof.staff_id)) {
+        router.push("/dashboard");
+        return;
+      }
+
+      if (adminMode) {
+        setManagerName(prof.full_name || "Admin");
+        await loadData();
         return;
       }
 
@@ -72,6 +88,7 @@ export default function ManagerPage() {
       }
 
       const pos = String(st.position || "").trim().toLowerCase();
+
       if (pos !== "manager") {
         if (pos === "receptionist") router.push("/receptionist");
         else if (pos === "spa_attendant") router.push("/attendant");
@@ -83,8 +100,7 @@ export default function ManagerPage() {
 
       await loadData();
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [router]);
 
   async function loadData() {
     setMsg("");
@@ -111,7 +127,6 @@ export default function ManagerPage() {
       return;
     }
 
-    // ✅ only staff that can be assigned
     const { data: stList, error: stErr } = await supabase
       .from("staff")
       .select("id,name,position")
@@ -144,7 +159,10 @@ export default function ManagerPage() {
 
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
-    if (!token) return setMsg("Unauthorized (no session token). Logout/login again.");
+    if (!token) {
+      setMsg("Unauthorized (no session token). Logout/login again.");
+      return;
+    }
 
     const res = await fetch("/api/manager/reschedule", {
       method: "POST",
@@ -156,7 +174,10 @@ export default function ManagerPage() {
     });
 
     const json = await res.json();
-    if (!res.ok) return setMsg(json.error || "Failed to update");
+    if (!res.ok) {
+      setMsg(json.error || "Failed to update");
+      return;
+    }
 
     setMsg("Appointment updated ✅");
     await loadData();
@@ -168,12 +189,13 @@ export default function ManagerPage() {
         <h2 style={{ marginTop: 0 }}>Manager — Reschedule / Reassign</h2>
 
         <p style={{ marginTop: 6, color: "var(--muted)" }}>
-          Good day Manager <b>{managerName}</b> !
+          Good day {isAdmin ? "Admin" : "Manager"} <b>{managerName}</b> !
         </p>
 
         <p style={{ color: "var(--muted)" }}>
           Change date, time, therapist, or room per booking.
         </p>
+
         {msg && (
           <div
             className={msg.includes("✅") ? "noticeOk" : "notice"}
@@ -236,7 +258,6 @@ function ManagerRow({
   const [staffId, setStaffId] = useState<string>(appt.staff_id ? String(appt.staff_id) : "");
   const [roomId, setRoomId] = useState<string>(appt.room_id ? String(appt.room_id) : "");
 
-  // ✅ categorize therapist list per appointment’s service category
   const allowedStaff = useMemo(() => {
     const serviceCat = appt.services?.category ?? null;
     const needsMassageTherapist = isMassageCategory(serviceCat);
@@ -271,6 +292,7 @@ function ManagerRow({
       </td>
 
       <td>{appt.customer?.full_name ?? "—"}</td>
+
       <td>
         {appt.services?.name ?? "—"}
         <div style={{ color: "var(--muted)", fontSize: 12 }}>
