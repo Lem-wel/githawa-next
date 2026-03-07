@@ -51,6 +51,7 @@ export default function DashboardPage() {
 
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [badges, setBadges] = useState<BadgeRow[]>([]);
+  const [pageReady, setPageReady] = useState(false);
 
   useEffect(() => {
     loadDashboard();
@@ -58,6 +59,7 @@ export default function DashboardPage() {
 
   async function loadDashboard() {
     setMsg("");
+    setPageReady(false);
 
     const {
       data: { user },
@@ -65,7 +67,7 @@ export default function DashboardPage() {
     } = await supabase.auth.getUser();
 
     if (userErr || !user) {
-      setMsg("Please login first.");
+      router.replace("/login");
       return;
     }
 
@@ -73,7 +75,7 @@ export default function DashboardPage() {
 
     const { data: profile, error: profileErr } = await supabase
       .from("profiles")
-      .select("full_name, referral_code, referral_unlocked")
+      .select("full_name, referral_code, referral_unlocked, role")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -82,9 +84,25 @@ export default function DashboardPage() {
       return;
     }
 
-    setFullName(profile?.full_name || "Customer");
-    setReferralCode(profile?.referral_code || "");
-    setReferralUnlocked(profile?.referral_unlocked ?? false);
+    if (!profile) {
+      router.replace("/login");
+      return;
+    }
+
+    if (profile.role !== "customer") {
+      if (profile.role === "manager") {
+        router.replace("/manager");
+      } else if (profile.role === "staff") {
+        router.replace("/staff");
+      } else {
+        router.replace("/");
+      }
+      return;
+    }
+
+    setFullName(profile.full_name || "Customer");
+    setReferralCode(profile.referral_code || "");
+    setReferralUnlocked(profile.referral_unlocked ?? false);
 
     const { data: bookingData, error: bookingErr } = await supabase
       .from("appointments")
@@ -125,6 +143,8 @@ export default function DashboardPage() {
     } else {
       setMsg(badgeErr.message);
     }
+
+    setPageReady(true);
   }
 
   function toggleTab(tab: "bookings" | "badges" | "referral") {
@@ -175,6 +195,16 @@ export default function DashboardPage() {
     } catch {
       setMsg("Failed to copy referral code.");
     }
+  }
+
+  if (!pageReady) {
+    return (
+      <SiteShell>
+        <div style={{ maxWidth: 1100, margin: "20px auto" }}>
+          <div className="card cardPad">Loading...</div>
+        </div>
+      </SiteShell>
+    );
   }
 
   return (
@@ -312,7 +342,9 @@ export default function DashboardPage() {
 
                             <div style={{ color: "var(--muted)", marginTop: 4 }}>
                               Duration:{" "}
-                              {b.duration_minutes ? `${b.duration_minutes} min` : "N/A"}
+                              {b.duration_minutes
+                                ? `${b.duration_minutes} min`
+                                : "N/A"}
                             </div>
                           </div>
                         );
