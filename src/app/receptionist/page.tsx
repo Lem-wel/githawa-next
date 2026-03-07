@@ -182,7 +182,6 @@ export default function ReceptionistPage() {
           </div>
         )}
 
-        <button className="btn" onClick={logout}>Logout</button>
 
         {msg && <div className="notice" style={{ marginTop: 12 }}>{msg}</div>}
       </div>
