@@ -575,25 +575,22 @@ function BookPageInner() {
         return;
       }
 
-      const { data: inserted, error: insErr } = await supabase
-        .from("appointments")
-        .insert([
-          {
-            user_id: uid,
-            service_id: Number(serviceId),
-            staff_id: Number(staffId),
-            room_id: Number(roomId),
-            appt_date: date,
-            appt_time: time,
-            duration_minutes: blockedDuration,
-            total_price: finalTotal,
-            coupon_code: couponCode || null,
-            coupon_reward: couponReward || null,
-            discount_amount: discountAmount || 0,
-          },
-        ])
-        .select("id")
-        .single();
+const { data: inserted, error: insErr } = await supabase
+  .from("appointments")
+  .insert([
+    {
+      user_id: uid,
+      service_id: Number(serviceId),
+      staff_id: Number(staffId),
+      room_id: Number(roomId),
+      appt_date: date,
+      appt_time: time,
+      duration_minutes: blockedDuration,
+      total_price: finalTotal,
+    },
+  ])
+  .select("id")
+  .single();
 
       if (insErr || !inserted) {
         setMsg(insErr?.message || "Failed to book appointment.");
