@@ -853,3 +853,73 @@ select{
     opacity: 1;
   }
 }
+/* =========================
+   ANDROID BOOKING PAGE FIX
+   ========================= */
+@media (max-width: 520px){
+
+  /* booking card fits screen */
+  .card{
+    max-width: 100%;
+  }
+
+  .cardPad{
+    padding: 16px;
+  }
+
+  /* inputs/selects stay inside */
+  .input,
+  select,
+  textarea{
+    width: 100%;
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  /* calendar container */
+  .react-calendar,
+  .rdrCalendarWrapper,
+  .calendar,
+  [class*="calendar"]{
+    width: 100% !important;
+    max-width: 100% !important;
+    font-size: 14px !important;
+    border-radius: 18px;
+    box-sizing: border-box;
+  }
+
+  /* calendar tiles/days */
+  .react-calendar__tile,
+  [class*="day"],
+  [class*="tile"]{
+    max-width: 100% !important;
+    padding: 10px 4px !important;
+    font-size: 14px !important;
+  }
+
+  /* month header / arrows */
+  .react-calendar__navigation button,
+  [class*="navigation"] button,
+  [class*="month"] button{
+    min-width: 36px !important;
+    font-size: 16px !important;
+  }
+
+  /* prevent horizontal overflow */
+  .react-calendar *,
+  .rdrCalendarWrapper *,
+  .calendar *{
+    box-sizing: border-box;
+  }
+
+  /* feedback widget lower and smaller on mobile */
+  .feedback-widget,
+  .feedbackBubble,
+  .feedbackButton,
+  [class*="feedback"]{
+    transform: scale(0.88);
+    transform-origin: bottom left;
+    bottom: 72px !important;
+    left: 12px !important;
+  }
+}
