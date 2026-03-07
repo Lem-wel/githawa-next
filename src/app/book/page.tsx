@@ -138,29 +138,73 @@ function BookPageInner() {
     return startA < endB && startB < endA;
   }
 
-  function applyCoupon(codeRaw: string, rewardFromUrl?: string) {
-    const code = normalizeCoupon(codeRaw);
+  async function applyCoupon(codeRaw: string, rewardFromUrl?: string) {
+  const code = normalizeCoupon(codeRaw);
 
-    if (!code) {
-      setCouponCode("");
-      setCouponReward("");
-      return;
-    }
-
-    const matchedReward = rewardFromUrl || COUPON_REWARDS[code];
-
-    if (!matchedReward) {
-      setMsg("Invalid coupon code.");
-      setCouponCode("");
-      setCouponReward("");
-      return;
-    }
-
-    setCouponCode(code);
-    setCouponReward(matchedReward);
-    setMsg("Coupon applied ✅");
-    setTimeout(() => setMsg(""), 1200);
+  if (!code) {
+    setCouponCode("");
+    setCouponReward("");
+    return;
   }
+
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+
+  if (!uid) {
+    setMsg("Please login first.");
+    setCouponCode("");
+    setCouponReward("");
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("user_badges")
+    .select(`
+      badges (
+        code,
+        reward,
+        name
+      )
+    `)
+    .eq("user_id", uid);
+
+  if (error) {
+    setMsg(error.message);
+    setCouponCode("");
+    setCouponReward("");
+    return;
+  }
+
+  const ownedBadge = (data ?? []).find((row: any) => {
+    const badge = Array.isArray(row.badges) ? row.badges[0] : row.badges;
+    return normalizeCoupon(badge?.code || "") === code;
+  });
+
+  if (!ownedBadge) {
+    setMsg("You have not unlocked this coupon code.");
+    setCouponCode("");
+    setCouponReward("");
+    return;
+  }
+
+  const badge = Array.isArray(ownedBadge.badges)
+    ? ownedBadge.badges[0]
+    : ownedBadge.badges;
+
+  const matchedReward = badge?.reward || rewardFromUrl || COUPON_REWARDS[code];
+
+  if (!matchedReward) {
+    setMsg("Invalid coupon code.");
+    setCouponCode("");
+    setCouponReward("");
+    return;
+  }
+
+  setCouponCode(code);
+  setCouponReward(matchedReward);
+  setMsg("Coupon applied ✅");
+  setTimeout(() => setMsg(""), 1200);
+}
 
   const mainService = useMemo(
     () => services.find((s) => s.id === serviceId) || null,
@@ -575,23 +619,23 @@ function BookPageInner() {
         return;
       }
 
+      const payload = {
+        user_id: uid,
+        service_id: Number(serviceId),
+        staff_id: Number(staffId),
+        room_id: Number(roomId),
+        appt_date: date,
+        appt_time: time,
+        duration_minutes: blockedDuration,
+        total_price: finalTotal,
+        coupon_code: couponCode ? couponCode : null,
+        coupon_reward: couponCode ? couponReward || null : null,
+        discount_amount: couponCode ? discountAmount || 0 : 0,
+      };
+
       const { data: inserted, error: insErr } = await supabase
         .from("appointments")
-        .insert([
-          {
-            user_id: uid,
-            service_id: Number(serviceId),
-            staff_id: Number(staffId),
-            room_id: Number(roomId),
-            appt_date: date,
-            appt_time: time,
-            duration_minutes: blockedDuration,
-            total_price: finalTotal,
-            coupon_code: couponCode || null,
-            coupon_reward: couponReward || null,
-            discount_amount: discountAmount || 0,
-          },
-        ])
+        .insert([payload])
         .select("id")
         .single();
 
@@ -737,6 +781,7 @@ function BookPageInner() {
                       setCouponInput("");
                       setCouponCode("");
                       setCouponReward("");
+                      setMsg("");
                     }}
                   >
                     Clear
