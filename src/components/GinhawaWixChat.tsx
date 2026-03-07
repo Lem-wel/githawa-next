@@ -346,29 +346,30 @@ export default function GinhawaWixChat() {
   }
 
   return (
+  <div
+    style={{
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      alignItems: "stretch",
+      justifyContent: "stretch",
+      background: "transparent",
+      overflow: "hidden",
+    }}
+  >
     <div
       style={{
         width: "100%",
         height: "100%",
         display: "flex",
-        alignItems: "stretch",
-        justifyContent: "stretch",
-        background: "transparent",
+        flexDirection: "column",
+        background: "#f7f3ee",
+        borderRadius: 0,
+        overflow: "hidden",
+        border: "none",
+        boxShadow: "none",
       }}
     >
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          background: "#f7f3ee",
-          borderRadius: 0,
-          overflow: "hidden",
-          border: "none",
-          boxShadow: "none",
-        }}
-      >
         <div
           style={{
             background: "linear-gradient(180deg,#9ab59d 0%,#88a98e 100%)",
@@ -383,13 +384,15 @@ export default function GinhawaWixChat() {
         </div>
 
         <div
-          style={{
-            flex: 1,
-            padding: 12,
-            overflowY: "auto",
-            background: "#f7f3ee",
-          }}
-        >
+  style={{
+    flex: 1,
+    padding: 12,
+    overflowY: "auto",
+    overflowX: "hidden",
+    background: "#f7f3ee",
+    minHeight: 0,
+  }}
+>
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -456,13 +459,13 @@ export default function GinhawaWixChat() {
           }}
         >
           <div
-            style={{
-              display: "flex",
-              gap: 6,
-              marginBottom: 8,
-              overflowX: "auto",
-            }}
-          >
+  style={{
+    padding: 10,
+    borderTop: "1px solid rgba(90,104,84,0.08)",
+    background: "#f7f3ee",
+    flexShrink: 0,
+  }}
+>
             {QUICK_REPLIES.map((q) => (
               <button
                 key={q}
