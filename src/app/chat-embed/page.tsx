@@ -1,11 +1,11 @@
 "use client";
 
-import GinhawaBuddy from "@/components/GinhawaBuddy";
+import GinhawaWixChat from "@/components/GinhawaWixChat";
 
 export default function ChatEmbedPage() {
   return (
-    <main style={{ width: "100%", height: "100vh", margin: 0 }}>
-      <GinhawaBuddy forceOpen />
-    </main>
+    <div style={{ width: "100%", height: "700px", margin: 0 }}>
+      <GinhawaWixChat forceOpen />
+    </div>
   );
 }
