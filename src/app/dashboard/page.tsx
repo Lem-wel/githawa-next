@@ -42,6 +42,7 @@ export default function DashboardPage() {
   const [email, setEmail] = useState("");
   const [referralCode, setReferralCode] = useState("");
   const [referralUnlocked, setReferralUnlocked] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [bookingCount, setBookingCount] = useState(0);
   const [badgeCount, setBadgeCount] = useState(0);
@@ -81,6 +82,7 @@ export default function DashboardPage() {
 
     if (profileErr) {
       setMsg(profileErr.message);
+      setPageReady(true);
       return;
     }
 
@@ -89,10 +91,16 @@ export default function DashboardPage() {
       return;
     }
 
-    if (profile.role !== "customer") {
+    if (profile.role !== "customer" && profile.role !== "admin") {
       if (profile.role === "manager") {
         router.replace("/manager");
-      } else if (profile.role === "staff") {
+      } else if (profile.role === "receptionist") {
+        router.replace("/receptionist");
+      } else if (
+        profile.role === "staff" ||
+        profile.role === "spa_attendant" ||
+        profile.role === "massage_therapist"
+      ) {
         router.replace("/staff");
       } else {
         router.replace("/");
@@ -100,7 +108,10 @@ export default function DashboardPage() {
       return;
     }
 
-    setFullName(profile.full_name || "Customer");
+    const adminMode = profile.role === "admin";
+    setIsAdmin(adminMode);
+
+    setFullName(profile.full_name || (adminMode ? "Admin" : "Customer"));
     setReferralCode(profile.referral_code || "");
     setReferralUnlocked(profile.referral_unlocked ?? false);
 
@@ -216,13 +227,43 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {isAdmin && (
+          <div className="notice" style={{ marginBottom: 12 }}>
+            Admin mode: you can access the customer dashboard here.
+          </div>
+        )}
+
         <div className="card cardPad">
           <div style={{ marginBottom: 18 }}>
             <div style={{ fontSize: 18, fontWeight: 700 }}>{fullName}</div>
             <div style={{ marginTop: 4, color: "#87a98e", fontWeight: 600 }}>
               Status: Active
             </div>
+            {email && (
+              <div style={{ marginTop: 6, color: "var(--muted)" }}>{email}</div>
+            )}
           </div>
+
+          {isAdmin && (
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                flexWrap: "wrap",
+                marginBottom: 18,
+              }}
+            >
+              <Link href="/manager" className="btn">
+                Open Manager
+              </Link>
+              <Link href="/receptionist" className="btn">
+                Open Receptionist
+              </Link>
+              <Link href="/staff" className="btn">
+                Open Staff
+              </Link>
+            </div>
+          )}
 
           <div
             style={{
@@ -504,6 +545,12 @@ export default function DashboardPage() {
                       Copy Code
                     </button>
                   </div>
+
+                  {referralUnlocked && (
+                    <div style={{ marginTop: 12, color: "#4c7c59", fontWeight: 700 }}>
+                      Referral rewards unlocked
+                    </div>
+                  )}
                 </>
               )}
             </div>
