@@ -41,6 +41,19 @@ const CLOSE_MINUTES = 17 * 60;
 const SLOT_INTERVAL = 15;
 const BUFFER_MINUTES = 15;
 
+const COUPON_REWARDS: Record<string, string> = {
+  LEVEL_BRONZE_FIRST_VISIT: "Complimentary herbal tea or wellness drink",
+  LEVEL_SILVER_3_VISITS: "10% discount on next spa treatment; Early booking access",
+  LEVEL_GOLD_5_VISITS: "Free aromatherapy add-on for any massage",
+  LEVEL_PLATINUM_10_VISITS: "Complimentary 30-minute massage upgrade",
+  LEVEL_ELITE_15_VISITS:
+    "Exclusive spa gift set; Special discount on premium packages",
+  SPECIAL_FEEDBACK_REVIEW: "5% discount coupon",
+  SPECIAL_REFERRAL_FRIEND: "Free aromatherapy add-on",
+  SPECIAL_BIRTHMONTH: "Free spa enhancement",
+  SPECIAL_WELLNESS_STREAK_3MONTH: "Special loyalty discount",
+};
+
 function BookPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -64,6 +77,7 @@ function BookPageInner() {
   const [availableRooms, setAvailableRooms] = useState<RoomRow[]>([]);
   const [fullyBookedDates, setFullyBookedDates] = useState<Date[]>([]);
 
+  const [couponInput, setCouponInput] = useState("");
   const [couponCode, setCouponCode] = useState("");
   const [couponReward, setCouponReward] = useState("");
 
@@ -85,6 +99,10 @@ function BookPageInner() {
 
   function isAddon(cat: string | null | undefined) {
     return norm(cat).includes("addon");
+  }
+
+  function normalizeCoupon(v: string) {
+    return v.trim().toUpperCase();
   }
 
   function toggleAddon(addonId: number) {
@@ -120,6 +138,30 @@ function BookPageInner() {
     return startA < endB && startB < endA;
   }
 
+  function applyCoupon(codeRaw: string, rewardFromUrl?: string) {
+    const code = normalizeCoupon(codeRaw);
+
+    if (!code) {
+      setCouponCode("");
+      setCouponReward("");
+      return;
+    }
+
+    const matchedReward = rewardFromUrl || COUPON_REWARDS[code];
+
+    if (!matchedReward) {
+      setMsg("Invalid coupon code.");
+      setCouponCode("");
+      setCouponReward("");
+      return;
+    }
+
+    setCouponCode(code);
+    setCouponReward(matchedReward);
+    setMsg("Coupon applied ✅");
+    setTimeout(() => setMsg(""), 1200);
+  }
+
   const mainService = useMemo(
     () => services.find((s) => s.id === serviceId) || null,
     [services, serviceId]
@@ -151,26 +193,18 @@ function BookPageInner() {
   }, [mainService, selectedAddonRows]);
 
   const discountAmount = useMemo(() => {
-    if (!couponCode && !couponReward) return 0;
+    if (!couponCode) return 0;
 
-    const rewardText = couponReward.toLowerCase();
-
-    if (
-      couponCode === "SPECIAL_FEEDBACK_REVIEW" ||
-      rewardText.includes("5% discount")
-    ) {
+    if (couponCode === "SPECIAL_FEEDBACK_REVIEW") {
       return totalPrice * 0.05;
     }
 
-    if (
-      couponCode === "LEVEL_SILVER_3_VISITS" ||
-      rewardText.includes("10% discount")
-    ) {
+    if (couponCode === "LEVEL_SILVER_3_VISITS") {
       return totalPrice * 0.1;
     }
 
     return 0;
-  }, [couponCode, couponReward, totalPrice]);
+  }, [couponCode, totalPrice]);
 
   const finalTotal = useMemo(() => {
     return Math.max(0, totalPrice - discountAmount);
@@ -260,21 +294,15 @@ function BookPageInner() {
 
   useEffect(() => {
     const fromUrl = searchParams.get("coupon");
-    const savedCoupon = localStorage.getItem("selected_coupon_code");
-    const savedReward = localStorage.getItem("selected_coupon_reward");
+    const rewardFromUrl = searchParams.get("reward") || "";
 
     if (fromUrl) {
-      setCouponCode(fromUrl);
-    } else if (savedCoupon) {
-      setCouponCode(savedCoupon);
-    }
-
-    if (savedReward) {
-      setCouponReward(savedReward);
+      const normalized = normalizeCoupon(fromUrl);
+      setCouponInput(normalized);
+      applyCoupon(normalized, rewardFromUrl);
     }
   }, [searchParams]);
 
-  // Prefill service + add-ons from onboarding package
   useEffect(() => {
     if (hasPrefilledFromQuery.current) return;
     if (services.length === 0) return;
@@ -282,15 +310,12 @@ function BookPageInner() {
     const serviceName = searchParams.get("service");
     const addonNames = searchParams.get("addons");
 
-    let matchedServiceId: number | "" = "";
-
     if (serviceName) {
       const matchedService = services.find(
         (s) => s.name.trim().toLowerCase() === serviceName.trim().toLowerCase()
       );
 
       if (matchedService) {
-        matchedServiceId = matchedService.id;
         setServiceId(matchedService.id);
       }
     }
@@ -593,8 +618,9 @@ function BookPageInner() {
         }
       }
 
-      localStorage.removeItem("selected_coupon_code");
-      localStorage.removeItem("selected_coupon_reward");
+      setCouponInput("");
+      setCouponCode("");
+      setCouponReward("");
 
       setMsg("Appointment booked successfully ✅");
       setTimeout(() => {
@@ -680,6 +706,44 @@ function BookPageInner() {
                 )}
               </div>
 
+              <div style={{ marginTop: 14 }}>
+                <label>Coupon Code</label>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    marginTop: 8,
+                  }}
+                >
+                  <input
+                    className="input"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder="Type or paste coupon code"
+                    style={{ flex: 1, minWidth: 240 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => applyCoupon(couponInput)}
+                  >
+                    Apply Coupon
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setCouponInput("");
+                      setCouponCode("");
+                      setCouponReward("");
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
               {(couponCode || couponReward) && (
                 <div
                   style={{
@@ -691,9 +755,7 @@ function BookPageInner() {
                   }}
                 >
                   <div style={{ fontWeight: 700 }}>Applied Coupon</div>
-                  <div style={{ marginTop: 6 }}>
-                    {couponCode || "No coupon selected"}
-                  </div>
+                  <div style={{ marginTop: 6 }}>{couponCode}</div>
                   {couponReward && (
                     <div style={{ marginTop: 6, color: "#4c7c59" }}>
                       {couponReward}
@@ -767,6 +829,9 @@ function BookPageInner() {
                 </option>
               ))}
             </select>
+            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
+              Available booking hours: 8:00 AM to 5:00 PM, every 15 minutes.
+            </div>
           </div>
 
           <div style={{ marginTop: 12 }}>
@@ -789,6 +854,9 @@ function BookPageInner() {
                 </option>
               ))}
             </select>
+            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
+              Staff can only be booked up to 8 appointments per day.
+            </div>
           </div>
 
           <div style={{ marginTop: 12 }}>
@@ -811,6 +879,9 @@ function BookPageInner() {
                 </option>
               ))}
             </select>
+            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
+              Rooms already occupied at the selected time are hidden automatically.
+            </div>
           </div>
 
           <div style={{ marginTop: 16 }}>

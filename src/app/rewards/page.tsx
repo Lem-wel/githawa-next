@@ -64,17 +64,23 @@ export default function RewardsPage() {
   }
 
   async function useCoupon(badge: Required<BadgeInfo>) {
-    try {
-      await navigator.clipboard.writeText(badge.code || "");
-    } catch {}
-
-    localStorage.setItem("selected_coupon_code", badge.code || "");
-    localStorage.setItem("selected_coupon_reward", badge.reward || "");
-
-    setMsg(`Coupon copied: ${badge.code}`);
-
-    router.push(`/book?coupon=${encodeURIComponent(badge.code || "")}`);
+  if (!badge.code) {
+    setMsg("This reward has no coupon code.");
+    return;
   }
+
+  try {
+    await navigator.clipboard.writeText(badge.code);
+  } catch {}
+
+  setMsg(`Coupon selected: ${badge.code}`);
+
+  router.push(
+    `/book?coupon=${encodeURIComponent(badge.code)}&reward=${encodeURIComponent(
+      badge.reward || ""
+    )}`
+  );
+}
 
   return (
     <SiteShell>
