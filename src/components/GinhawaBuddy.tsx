@@ -31,7 +31,6 @@ type BotReply = {
 const QUICK_REPLIES = [
   "What services do you offer?",
   "Book appointment",
-  "Who are your staff?",
   "How can I contact you?",
 ];
 
@@ -58,21 +57,6 @@ function formatStaff(staff: StaffItem[]) {
     return "I can’t retrieve the staff list right now because the data may still be unavailable or restricted in the system.";
   }
 
-  if (staff.length <= 3) {
-    return staff.map((s) => `${s.name} (${s.role})`).join(", ");
-  }
-
-  const firstFew = staff.slice(0, 4).map((s) => `${s.name} (${s.role})`).join(", ");
-  const remaining = staff.length - 4;
-
-  return `${firstFew}${remaining > 0 ? `, and ${remaining} more team member${remaining > 1 ? "s" : ""}` : ""}`;
-}
-
-function formatAllStaff(staff: StaffItem[]) {
-  if (staff.length === 0) {
-    return "I can’t retrieve the staff list right now because the data may still be unavailable or restricted in the system.";
-  }
-
   if (staff.length === 1) {
     return `${staff[0].name} (${staff[0].role})`;
   }
@@ -84,6 +68,7 @@ function formatAllStaff(staff: StaffItem[]) {
   const mapped = staff.map((s) => `${s.name} (${s.role})`);
   return `${mapped.slice(0, -1).join(", ")}, and ${mapped[mapped.length - 1]}`;
 }
+
 
 function formatServices(services: ServiceItem[]) {
   if (services.length === 0) {
@@ -111,77 +96,225 @@ function getBotReply(
   staff: StaffItem[],
   services: ServiceItem[]
 ): BotReply {
-
-  const msg = input.toLowerCase();
+  const msg = input.toLowerCase().trim();
 
   // GREETING
-  if (msg.includes("hello") || msg.includes("hi") || msg.includes("hey")) {
+  if (
+    includesAny(msg, ["hello", "hi", "hey", "good morning", "good afternoon"])
+  ) {
     return {
       text: randomAnswer([
         "Hello! I'm Ginhawa Buddy. How may I assist you today?",
         "Hi there. I'm here to help you explore Ginhawa services or bookings.",
         "Welcome! Feel free to ask about services, booking, or our staff.",
         "Hello and welcome to Ginhawa. What would you like to know today?",
-        "Hi! I'm the Ginhawa website assistant. How can I help?"
-      ])
+        "Hi! I'm the Ginhawa website assistant. How can I help?",
+      ]),
     };
   }
 
-  // STAFF
-  if (msg.includes("staff") || msg.includes("employee") || msg.includes("therapist")) {
+  // SPECIFIC ROLES FIRST
 
-    if (staff.length === 0) {
-      return {
-        text: randomAnswer([
-          "It seems the staff information is still being updated in the system.",
-          "I can't retrieve the staff list right now. The system may still be loading the data.",
-          "Our staff list is currently unavailable, but it should appear soon once the system finishes updating.",
-          "The staff information may still be syncing in the database."
-        ])
-      };
-    }
+  if (
+    includesAny(msg, [
+      "who is the manager",
+      "who are the managers",
+      "manager",
+      "management",
+    ])
+  ) {
+    const managers = findStaffByRole(staff, ["manager", "management"]);
 
     return {
-      text: randomAnswer([
-        `Our team currently includes ${formatStaff(staff)}.`,
-        `Here are the staff members currently listed: ${formatStaff(staff)}.`,
-        `The Ginhawa team includes ${formatStaff(staff)}.`,
-        `Our available staff members are ${formatStaff(staff)}.`,
-        `These are the staff members currently registered in the system: ${formatStaff(staff)}.`,
-      ])
+      text:
+        managers.length > 0
+          ? randomAnswer([
+              `Our manager is ${formatStaff(managers)}.`,
+              `The manager listed in the system is ${formatStaff(managers)}.`,
+              `Currently, the manager in our staff list is ${formatStaff(managers)}.`,
+              `The manager recorded in the system is ${formatStaff(managers)}.`,
+              `The staff member assigned to management is ${formatStaff(managers)}.`,
+            ])
+          : randomAnswer([
+              "I’m not seeing a manager record right now in the available data.",
+              "The manager details are not currently available in the system.",
+              "I can’t find a manager record at the moment.",
+              "The management information may still be updating right now.",
+            ]),
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "who is the receptionist",
+      "who are the receptionists",
+      "receptionist",
+      "receptionists",
+      "front desk",
+    ])
+  ) {
+    const receptionists = findStaffByRole(staff, ["receptionist", "front desk"]);
+
+    return {
+      text:
+        receptionists.length > 0
+          ? randomAnswer([
+              `Our receptionist team includes ${formatStaff(receptionists)}.`,
+              `The front desk staff currently listed are ${formatStaff(receptionists)}.`,
+              `Our receptionist staff are ${formatStaff(receptionists)}.`,
+              `The reception team in the system includes ${formatStaff(receptionists)}.`,
+              `The staff assigned to front desk duties are ${formatStaff(receptionists)}.`,
+            ])
+          : randomAnswer([
+              "I’m not seeing receptionist details right now in the available data.",
+              "The front desk staff details are not currently available.",
+              "I can’t find receptionist information at the moment.",
+              "The receptionist records may still be updating in the system.",
+            ]),
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "who are the massage therapists",
+      "who is the massage therapist",
+      "massage therapist",
+      "massage therapists",
+      "therapist",
+      "therapists",
+    ])
+  ) {
+    const therapists = findStaffByRole(staff, [
+      "massage therapist",
+      "therapist",
+      "massage",
+    ]);
+
+    return {
+      text:
+        therapists.length > 0
+          ? randomAnswer([
+              `Our massage therapists are ${formatStaff(therapists)}.`,
+              `The therapists currently listed in the system are ${formatStaff(therapists)}.`,
+              `Our massage therapy team includes ${formatStaff(therapists)}.`,
+              `The staff assigned under massage therapy are ${formatStaff(therapists)}.`,
+              `These are the massage therapists currently available in our staff list: ${formatStaff(therapists)}.`,
+            ])
+          : randomAnswer([
+              "I’m not seeing therapist details right now. That information may still be under update in the system.",
+              "The massage therapist information is not currently available.",
+              "I can’t find therapist records at the moment.",
+              "The therapist data may still be syncing in the system.",
+            ]),
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "who are the attendants",
+      "who is the attendant",
+      "spa attendant",
+      "spa attendants",
+      "attendant",
+      "attendants",
+    ])
+  ) {
+    const attendants = findStaffByRole(staff, ["spa attendant", "attendant"]);
+
+    return {
+      text:
+        attendants.length > 0
+          ? randomAnswer([
+              `Our spa attendants are ${formatStaff(attendants)}.`,
+              `The attendants currently listed in the system are ${formatStaff(attendants)}.`,
+              `Our spa attendant team includes ${formatStaff(attendants)}.`,
+              `The staff assigned as attendants are ${formatStaff(attendants)}.`,
+              `These are the attendants recorded in our system: ${formatStaff(attendants)}.`,
+            ])
+          : randomAnswer([
+              "I’m not seeing attendant details right now in the available data.",
+              "The attendant information is not currently available.",
+              "I can’t find attendant records at the moment.",
+              "The spa attendant details may still be updating in the system.",
+            ]),
+    };
+  }
+
+  // ALL STAFF
+  if (
+    includesAny(msg, [
+      "staff",
+      "staffs",
+      "employee",
+      "employees",
+      "who works",
+      "team",
+      "staff member",
+      "staff members",
+      "who are your staff",
+      "who are the staff",
+    ])
+  ) {
+    return {
+      text:
+        staff.length > 0
+          ? randomAnswer([
+              `Our current team includes ${formatStaff(staff)}.`,
+              `Here are all the staff members currently listed: ${formatStaff(staff)}.`,
+              `The Ginhawa team includes ${formatStaff(staff)}.`,
+              `Our full staff list currently includes ${formatStaff(staff)}.`,
+              `These are the staff members registered in the system: ${formatStaff(staff)}.`,
+            ])
+          : randomAnswer([
+              "It seems the staff information is still being updated in the system.",
+              "I can't retrieve the staff list right now. The system may still be loading the data.",
+              "Our staff list is currently unavailable, but it should appear soon once the system finishes updating.",
+              "The staff information may still be syncing in the database.",
+            ]),
     };
   }
 
   // SERVICES
-  if (msg.includes("service") || msg.includes("massage") || msg.includes("treatment")) {
-
-    if (services.length === 0) {
-      return {
-        text: randomAnswer([
-          "Our services are still being updated in the system.",
-          "I can't retrieve the services right now, but they should appear soon.",
-          "The service list may still be syncing in the database.",
-          "Our available treatments will appear once the system finishes loading."
-        ])
-      };
-    }
-
+  if (
+    includesAny(msg, [
+      "service",
+      "services",
+      "massage",
+      "treatment",
+      "treatments",
+      "offer",
+      "offers",
+    ])
+  ) {
     return {
-      text: randomAnswer([
-        `Currently, we offer services such as ${formatServices(services)}.`,
-        `Our available spa services include ${formatServices(services)}.`,
-        `You can explore services like ${formatServices(services)}.`,
-        `Some of our treatments include ${formatServices(services)}.`,
-        `Here are some services currently available: ${formatServices(services)}.`,
-      ])
+      text:
+        services.length > 0
+          ? randomAnswer([
+              `Currently, we offer services such as ${formatServices(services)}.`,
+              `Our available spa services include ${formatServices(services)}.`,
+              `You can explore services like ${formatServices(services)}.`,
+              `Some of our treatments include ${formatServices(services)}.`,
+              `Here are some services currently available: ${formatServices(services)}.`,
+            ])
+          : randomAnswer([
+              "Our services are still being updated in the system.",
+              "I can't retrieve the services right now, but they should appear soon.",
+              "The service list may still be syncing in the database.",
+              "Our available treatments will appear once the system finishes loading.",
+            ]),
     };
   }
 
   // BOOKING
   if (
-    msg.includes("book") ||
-    msg.includes("appointment") ||
-    msg.includes("schedule")
+    includesAny(msg, [
+      "book",
+      "appointment",
+      "schedule",
+      "booking",
+      "reserve",
+      "reservation",
+    ])
   ) {
     return {
       text: randomAnswer([
@@ -189,34 +322,34 @@ function getBotReply(
         "I'd be happy to help with that. Please continue to the booking page.",
         "You can book an appointment through the booking section of the website.",
         "To schedule a visit, please proceed to the booking page below.",
-        "Appointments can be arranged through the booking page."
+        "Appointments can be arranged through the booking page.",
       ]),
-      action: "booking"
+      action: "booking",
     };
   }
 
   // CONTACT
-  if (msg.includes("contact") || msg.includes("phone") || msg.includes("email")) {
+  if (includesAny(msg, ["contact", "phone", "email"])) {
     return {
       text: randomAnswer([
         "You may check the Contact page on the website for our official communication channels.",
         "Our contact details are listed in the Contact section of the website.",
         "For inquiries, please visit the Contact page.",
         "You can find our official contact information in the Contact section.",
-        "The best way to reach us is through the Contact page on the website."
-      ])
+        "The best way to reach us is through the Contact page on the website.",
+      ]),
     };
   }
 
   // LOCATION
-  if (msg.includes("location") || msg.includes("where")) {
+  if (includesAny(msg, ["location", "where", "address"])) {
     return {
       text: randomAnswer([
         "Our location details are available on the Contact page.",
         "You can find our address in the Contact section of the website.",
         "Please check the Contact page to see our location details.",
-        "The website should display our location information on the Contact page."
-      ])
+        "The website should display our location information on the Contact page.",
+      ]),
     };
   }
 
@@ -227,8 +360,8 @@ function getBotReply(
       "That information might still be unavailable in the current system.",
       "I may not have the exact details for that yet.",
       "The website may still be updating that information.",
-      "I'm still learning about that part of the system."
-    ])
+      "I'm still learning about that part of the system.",
+    ]),
   };
 }
 
