@@ -21,7 +21,14 @@ type StaffItem = {
   position: string;
 };
 
-const QUICK_REPLIES = ["Services", "Prices", "Staff", "Location"];
+const QUICK_REPLIES = [
+  "Services",
+  "Prices",
+  "Staff",
+  "Location",
+  "Swedish Massage",
+  "Classic Facial",
+];
 
 function includesAny(text: string, keywords: string[]) {
   return keywords.some((word) => text.includes(word));
@@ -29,6 +36,10 @@ function includesAny(text: string, keywords: string[]) {
 
 function randomAnswer(answers: string[]) {
   return answers[Math.floor(Math.random() * answers.length)];
+}
+
+function normalizeText(text: string) {
+  return text.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 function prettifyPosition(position: string) {
@@ -59,12 +70,297 @@ function formatStaff(staff: StaffItem[]) {
   return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
 }
 
+function serviceMatches(msg: string, serviceName: string) {
+  const a = normalizeText(msg);
+  const b = normalizeText(serviceName);
+  return a.includes(b);
+}
+
+function getServiceSpecificReply(input: string): { text: string } | null {
+  const msg = normalizeText(input);
+
+  const serviceReplies: Record<string, string[]> = {
+    "swedish massage": [
+      "Swedish Massage is a relaxing full-body massage that uses gentle and flowing strokes to help reduce stress and promote relaxation.",
+      "Our Swedish Massage is ideal for guests who want a soothing and calming treatment for overall body relaxation.",
+      "Swedish Massage focuses on comfort and relaxation, making it a great choice for easing everyday stress.",
+      "If you want a classic relaxing massage experience, Swedish Massage is one of our most soothing treatment options.",
+    ],
+    "swedish massage extra": [
+      "Swedish Massage Extra is an extended version of our Swedish Massage, giving you more time to relax and unwind.",
+      "This treatment provides the same gentle and soothing Swedish Massage experience but with a longer session.",
+      "Swedish Massage Extra is ideal for guests who want a more extended calming and relaxing massage.",
+      "If you prefer a longer full-body relaxation session, Swedish Massage Extra is a great option.",
+    ],
+    "deep tissue massage": [
+      "Deep Tissue Massage uses firmer pressure to target body tension and tight muscles.",
+      "Our Deep Tissue Massage is ideal for guests who prefer stronger pressure for muscle relief and body comfort.",
+      "This treatment focuses on deeper muscle layers to help reduce built-up tension and stiffness.",
+      "Deep Tissue Massage is a good choice if you want a stronger massage for body stress and muscle tightness.",
+    ],
+    "deep tissue massage extra": [
+      "Deep Tissue Massage Extra is a longer deep-pressure massage session designed for more focused muscle relief.",
+      "This service gives you an extended Deep Tissue Massage experience for deeper body tension care.",
+      "Deep Tissue Massage Extra is ideal for those who want strong pressure with more time spent on tight areas.",
+      "If you want a longer massage session focused on body tension and stiffness, Deep Tissue Massage Extra is a strong option.",
+    ],
+    "hot stone massage": [
+      "Hot Stone Massage combines massage techniques with warm stones to create a deeply relaxing experience.",
+      "This treatment uses soothing heat and massage to help the body feel calm, comforted, and refreshed.",
+      "Hot Stone Massage is a popular choice for guests who enjoy warmth together with relaxation.",
+      "If you want a calming treatment with gentle warmth, Hot Stone Massage is one of our relaxing options.",
+    ],
+    "aromatherapy massage": [
+      "Aromatherapy Massage combines relaxing massage techniques with aromatic oils for a calming spa experience.",
+      "This treatment is designed to promote relaxation through gentle massage and soothing scents.",
+      "Aromatherapy Massage is ideal for guests who enjoy a peaceful massage with fragrant oils.",
+      "If you want a relaxing massage with aromatic wellness elements, Aromatherapy Massage is a great option.",
+    ],
+    "classic facial": [
+      "Classic Facial is a basic facial treatment designed to cleanse and refresh the skin.",
+      "Our Classic Facial is a gentle skincare service that helps the face feel clean and revitalized.",
+      "This treatment is ideal for guests who want simple and refreshing facial care.",
+      "Classic Facial is a good choice if you want a relaxing facial that supports basic skincare.",
+    ],
+    "brightening facial": [
+      "Brightening Facial is designed to help the skin look fresher, clearer, and more radiant.",
+      "This treatment focuses on improving the appearance of dull-looking skin for a refreshed glow.",
+      "Brightening Facial is ideal for guests who want a more luminous and revitalized facial look.",
+      "If you want a facial that helps promote a brighter-looking complexion, Brightening Facial is a good choice.",
+    ],
+    "acne control facial": [
+      "Acne Control Facial is a skincare treatment focused on helping care for acne-prone skin.",
+      "This facial is ideal for guests who want targeted care for oily or blemish-prone skin.",
+      "Acne Control Facial supports cleaner and healthier-looking skin through focused facial treatment.",
+      "If you are looking for a facial for acne-prone skin, Acne Control Facial is one of our available services.",
+    ],
+    "anti-aging facial": [
+      "Anti-Aging Facial is designed to help the skin feel refreshed and support a more youthful-looking appearance.",
+      "This treatment focuses on facial care that promotes a smoother and revitalized look.",
+      "Anti-Aging Facial is a great option for guests who want refreshing skincare with a rejuvenating feel.",
+      "If you want a facial focused on skin renewal and a refreshed appearance, Anti-Aging Facial is a good choice.",
+    ],
+    "body scrub": [
+      "Body Scrub is a skin treatment that helps exfoliate the body and leave the skin feeling smoother.",
+      "This service removes surface dullness and helps refresh the skin for a softer feel.",
+      "Body Scrub is ideal for guests who want a rejuvenating treatment that improves skin texture.",
+      "If you want a refreshing exfoliation treatment, Body Scrub is one of our body care options.",
+    ],
+    "detox body wrap": [
+      "Detox Body Wrap is a relaxing body treatment designed to leave you feeling refreshed and pampered.",
+      "This service provides a soothing body wrap experience focused on comfort and body care.",
+      "Detox Body Wrap is chosen by guests who want a calm and refreshing body wellness treatment.",
+      "If you want a body treatment that feels soothing and restorative, Detox Body Wrap is a good option.",
+    ],
+    "slimming therapy": [
+      "Slimming Therapy is one of our body wellness treatments designed for clients exploring body care options.",
+      "This service is intended for guests who are interested in body-focused wellness treatments.",
+      "Slimming Therapy is offered as part of our body care and spa service lineup.",
+      "If you are looking into body wellness treatments, Slimming Therapy is one of the available services.",
+    ],
+    "manicure": [
+      "Manicure is a hand and nail care treatment that helps keep the nails neat and well-groomed.",
+      "Our Manicure service focuses on hand care and improving the appearance of the nails.",
+      "This treatment is ideal for guests who want tidy, clean, and polished-looking nails.",
+      "If you want a simple grooming service for your hands and nails, Manicure is a great choice.",
+    ],
+    "pedicure": [
+      "Pedicure is a foot and nail care treatment that helps keep the feet clean, neat, and refreshed.",
+      "Our Pedicure service focuses on toenail grooming and overall foot care.",
+      "This treatment is ideal for guests who want well-maintained feet and toenails.",
+      "If you want a relaxing grooming treatment for your feet, Pedicure is a good option.",
+    ],
+    "gel polish": [
+      "Gel Polish is a nail treatment that gives the nails a smooth and polished finish.",
+      "This service is ideal for guests who want a neat and refined nail appearance.",
+      "Gel Polish helps enhance the look of the nails with a clean and attractive finish.",
+      "If you want your nails to look polished and stylish, Gel Polish is a great option.",
+    ],
+    "foot spa": [
+      "Foot Spa is a relaxing treatment designed to soothe and refresh tired feet.",
+      "This service provides focused foot care to help your feet feel calm and comfortable.",
+      "Foot Spa is a great choice for guests who want to unwind and enjoy a soothing foot treatment.",
+      "If your feet feel tired and you want a calming service, Foot Spa is one of our relaxing options.",
+    ],
+    "foot reflexology": [
+      "Foot Reflexology is a relaxing foot treatment that applies focused pressure to different areas of the feet.",
+      "This service is ideal for guests who enjoy pressure-based foot relaxation treatments.",
+      "Foot Reflexology provides a soothing experience designed to help the feet feel relaxed and cared for.",
+      "If you want a focused foot treatment with pressure techniques, Foot Reflexology is a good option.",
+    ],
+    "head massage": [
+      "Head Massage is a soothing treatment designed to help ease stress and promote relaxation.",
+      "This service focuses on the head area to provide a calming and refreshing experience.",
+      "Head Massage is ideal for guests who want a quick but relaxing treatment.",
+      "If you want a gentle and calming stress-relief service, Head Massage is a great option.",
+    ],
+    "back scrub": [
+      "Back Scrub is a skin treatment that helps exfoliate and refresh the back area.",
+      "This service removes surface dullness and helps the back feel smoother and cleaner.",
+      "Back Scrub is ideal for guests who want targeted back skin care and refreshment.",
+      "If you want a body care treatment focused on the back, Back Scrub is a good option.",
+    ],
+  };
+
+  for (const serviceName of Object.keys(serviceReplies)) {
+    if (serviceMatches(msg, serviceName)) {
+      return {
+        text: randomAnswer(serviceReplies[serviceName]),
+      };
+    }
+  }
+
+  return null;
+}
+
+function matchesStaffName(msg: string, staffName: string) {
+  return normalizeText(msg).includes(normalizeText(staffName));
+}
+
+function getStaffSpecificReply(input: string, staff: StaffItem[]): { text: string } | null {
+  const msg = normalizeText(input);
+
+  for (const member of staff) {
+    const name = String(member.name ?? "").trim();
+    const specialization = String(member.specialization ?? "").trim();
+    const position = String(member.position ?? "").trim();
+
+    if (!name) continue;
+
+    if (matchesStaffName(msg, name)) {
+      const readablePosition = prettifyPosition(position || "staff");
+      const specText = specialization || "general wellness services";
+
+      return {
+        text: randomAnswer([
+          `${name} is part of our team and works as a ${readablePosition.toLowerCase()}.`,
+          `${name} is one of our staff members at Ginhawa Spa & Wellness and serves as a ${readablePosition.toLowerCase()}.`,
+          `${name} is a ${readablePosition.toLowerCase()} at Ginhawa and is associated with ${specText}.`,
+          `${name} is one of our spa staff members, serving as a ${readablePosition.toLowerCase()} and helping with ${specText}.`,
+        ]),
+      };
+    }
+  }
+
+  if (includesAny(msg, ["manager"])) {
+    const managers = staff.filter((s) =>
+      String(s.position ?? "").toLowerCase().includes("manager")
+    );
+
+    if (managers.length > 0) {
+      return {
+        text: randomAnswer([
+          `Our manager is ${formatStaff(managers)}.`,
+          `Management at Ginhawa is handled by ${formatStaff(managers)}.`,
+          `The manager listed in our system is ${formatStaff(managers)}.`,
+          `Our current management staff member is ${formatStaff(managers)}.`,
+        ]),
+      };
+    }
+
+    return {
+      text: randomAnswer([
+        "Our manager information is currently unavailable.",
+        "I cannot find a manager listed right now.",
+        "The manager details are not available at the moment.",
+        "Our management record is currently unavailable.",
+      ]),
+    };
+  }
+
+  if (includesAny(msg, ["receptionist", "front desk"])) {
+    const receptionists = staff.filter((s) =>
+      String(s.position ?? "").toLowerCase().includes("receptionist")
+    );
+
+    if (receptionists.length > 0) {
+      return {
+        text: randomAnswer([
+          `Our receptionist is ${formatStaff(receptionists)}.`,
+          `Front desk assistance is handled by ${formatStaff(receptionists)}.`,
+          `The receptionist currently assisting guests is ${formatStaff(receptionists)}.`,
+          `Our front desk staff member is ${formatStaff(receptionists)}.`,
+        ]),
+      };
+    }
+
+    return {
+      text: randomAnswer([
+        "Our receptionist information is currently unavailable.",
+        "I cannot find a receptionist listed right now.",
+        "The front desk details are not available at the moment.",
+        "Our receptionist record is currently unavailable.",
+      ]),
+    };
+  }
+
+  if (includesAny(msg, ["therapist", "massage therapist", "massage therapists"])) {
+    const therapists = staff.filter((s) =>
+      String(s.position ?? "").toLowerCase().includes("therapist")
+    );
+
+    if (therapists.length > 0) {
+      return {
+        text: randomAnswer([
+          `Our massage therapists are ${formatStaff(therapists)}.`,
+          `Massage therapy services are handled by ${formatStaff(therapists)}.`,
+          `The therapists currently available are ${formatStaff(therapists)}.`,
+          `Our therapy team includes ${formatStaff(therapists)}.`,
+        ]),
+      };
+    }
+
+    return {
+      text: randomAnswer([
+        "Our therapist information is currently unavailable.",
+        "I cannot find a therapist listed right now.",
+        "The therapist details are not available at the moment.",
+        "Our therapy team record is currently unavailable.",
+      ]),
+    };
+  }
+
+  if (includesAny(msg, ["attendant", "attendants", "spa attendant"])) {
+    const attendants = staff.filter((s) =>
+      String(s.position ?? "").toLowerCase().includes("attendant")
+    );
+
+    if (attendants.length > 0) {
+      return {
+        text: randomAnswer([
+          `Our spa attendants are ${formatStaff(attendants)}.`,
+          `Attendant services are handled by ${formatStaff(attendants)}.`,
+          `The attendants currently available are ${formatStaff(attendants)}.`,
+          `Our spa support team includes ${formatStaff(attendants)}.`,
+        ]),
+      };
+    }
+
+    return {
+      text: randomAnswer([
+        "Our attendant information is currently unavailable.",
+        "I cannot find an attendant listed right now.",
+        "The attendant details are not available at the moment.",
+        "Our support team record is currently unavailable.",
+      ]),
+    };
+  }
+
+  return null;
+}
+
 function getBotReply(
   input: string,
   services: ServiceItem[],
   staff: StaffItem[]
 ): { text: string } {
   const msg = input.toLowerCase().trim();
+
+  const specificStaffReply = getStaffSpecificReply(input, staff);
+  if (specificStaffReply) return specificStaffReply;
+
+  const specificServiceReply = getServiceSpecificReply(input);
+  if (specificServiceReply) return specificServiceReply;
 
   if (includesAny(msg, ["hello", "hi", "hey"])) {
     return {
@@ -73,7 +369,7 @@ function getBotReply(
         "Hi there. I'm here to help with information about our spa services.",
         "Welcome to Ginhawa. Feel free to ask about our services.",
         "Hello and welcome. What would you like to know today?",
-        "Hi. I'm the Ginhawa assistant. How can I help you?",
+        "Hi. I'm the Ginhawa assistant. How can I help you today?",
         "Greetings. I'm here to answer your questions about our spa.",
       ]),
     };
@@ -118,74 +414,6 @@ function getBotReply(
     };
   }
 
-  if (includesAny(msg, ["manager"])) {
-    const managers = staff.filter((s) =>
-      s.position.toLowerCase().includes("manager")
-    );
-
-    return {
-      text: randomAnswer([
-        `Our manager is ${formatStaff(managers)}.`,
-        `Management is handled by ${formatStaff(managers)}.`,
-        `The spa manager is ${formatStaff(managers)}.`,
-        `Our current manager listed in the system is ${formatStaff(managers)}.`,
-        `The manager responsible for the spa is ${formatStaff(managers)}.`,
-        `Our management staff member is ${formatStaff(managers)}.`,
-      ]),
-    };
-  }
-
-  if (includesAny(msg, ["receptionist", "front desk"])) {
-    const receptionists = staff.filter((s) =>
-      s.position.toLowerCase().includes("receptionist")
-    );
-
-    return {
-      text: randomAnswer([
-        `Our receptionist is ${formatStaff(receptionists)}.`,
-        `Front desk services are handled by ${formatStaff(receptionists)}.`,
-        `The receptionist assisting visitors is ${formatStaff(receptionists)}.`,
-        `Our front desk staff member is ${formatStaff(receptionists)}.`,
-        `Reception duties are managed by ${formatStaff(receptionists)}.`,
-        `Visitors are assisted by ${formatStaff(receptionists)} at the front desk.`,
-      ]),
-    };
-  }
-
-  if (includesAny(msg, ["therapist", "massage therapist", "massage therapists"])) {
-    const therapists = staff.filter((s) =>
-      s.position.toLowerCase().includes("therapist")
-    );
-
-    return {
-      text: randomAnswer([
-        `Our massage therapists are ${formatStaff(therapists)}.`,
-        `Massage therapy is provided by ${formatStaff(therapists)}.`,
-        `Our therapy professionals include ${formatStaff(therapists)}.`,
-        `Massage services are handled by ${formatStaff(therapists)}.`,
-        `Our massage therapy team consists of ${formatStaff(therapists)}.`,
-        `The therapists currently available are ${formatStaff(therapists)}.`,
-      ]),
-    };
-  }
-
-  if (includesAny(msg, ["attendant", "attendants", "spa attendant"])) {
-    const attendants = staff.filter((s) =>
-      s.position.toLowerCase().includes("attendant")
-    );
-
-    return {
-      text: randomAnswer([
-        `Our spa attendants are ${formatStaff(attendants)}.`,
-        `Attendant services are handled by ${formatStaff(attendants)}.`,
-        `The attendants currently available are ${formatStaff(attendants)}.`,
-        `Our spa support team includes ${formatStaff(attendants)}.`,
-        `The spa attendants listed in our system are ${formatStaff(attendants)}.`,
-        `Our attendant team consists of ${formatStaff(attendants)}.`,
-      ]),
-    };
-  }
-
   if (includesAny(msg, ["massage", "stress", "relax", "body pain"])) {
     return {
       text: randomAnswer([
@@ -193,8 +421,6 @@ function getBotReply(
         "Our massage treatments are designed to help with relaxation and muscle tension.",
         "You may explore our massage services for stress relief and wellness.",
         "Massage therapy is available to help with relaxation and body recovery.",
-        "Many visitors choose our massage services for relaxation and tension relief.",
-        "Our spa offers massage treatments that promote relaxation and wellness.",
       ]),
     };
   }
@@ -206,8 +432,6 @@ function getBotReply(
         "Facial services are available to support healthy and refreshed skin.",
         "Our facial treatments focus on skincare and facial relaxation.",
         "You can explore our facial services for skin care and rejuvenation.",
-        "Facial treatments are part of our wellness and skincare services.",
-        "We provide facial services that support skin care and relaxation.",
       ]),
     };
   }
@@ -275,7 +499,8 @@ export default function GinhawaWixChat() {
     async function loadData() {
       const { data: serviceData } = await supabase
         .from("services")
-        .select("name");
+        .select("name")
+        .order("name", { ascending: true });
 
       if (Array.isArray(serviceData)) {
         setServices(
