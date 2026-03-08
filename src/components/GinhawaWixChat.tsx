@@ -436,31 +436,27 @@ function getBotReply(
     };
   }
 
-  if (includesAny(msg, ["location", "address", "where"])) {
-    return {
-      text: randomAnswer([
-        "Our location details are available on the Contact page of the website.",
-        "You can find our address on the website's contact section.",
-        "The spa location is listed on the Contact page.",
-        "Please check the Contact page for our address.",
-        "Our address is available in the website’s contact section.",
-        "You can view the spa location through the contact page.",
-      ]),
-    };
-  }
+ if (includesAny(msg, ["location", "address", "where", "located"])) {
+  return {
+    text: randomAnswer([
+      "Our spa is located at Sampaloc, Manila, Philippines.",
+      "You can find Ginhawa Spa & Wellness at Sampaloc, Manila, Philippines.",
+      "Our spa location is Sampaloc, Manila, Philippines.",
+      "Ginhawa Spa & Wellness is located in Sampaloc, Manila, Philippines.",
+    ]),
+  };
+}
 
-  if (includesAny(msg, ["contact", "phone", "email"])) {
-    return {
-      text: randomAnswer([
-        "You can find our contact details on the website's contact page.",
-        "Our phone and email details are listed in the Contact section.",
-        "Please refer to the Contact page for communication details.",
-        "The website contains our official contact information.",
-        "You may reach us using the details listed on the contact page.",
-        "All contact information is available on the website.",
-      ]),
-    };
-  }
+if (includesAny(msg, ["contact", "phone", "email", "number", "call"])) {
+  return {
+    text: randomAnswer([
+      "You can contact Ginhawa Spa & Wellness through the following details:\n\nAddress: Sampaloc, Manila, Philippines\nContact Number: 09682748775\nEmail Address: ginhawa@gmail.com",
+      "Here are our contact details:\n\nAddress: Sampaloc, Manila, Philippines\nContact Number: 09682748775\nEmail Address: ginhawa@gmail.com",
+      "You may reach us using these details:\n\nAddress: Sampaloc, Manila, Philippines\nContact Number: 09682748775\nEmail Address: ginhawa@gmail.com",
+      "For inquiries, please use the following contact information:\n\nAddress: Sampaloc, Manila, Philippines\nContact Number: 09682748775\nEmail Address: ginhawa@gmail.com",
+    ]),
+  };
+}
 
   return {
     text: randomAnswer([
