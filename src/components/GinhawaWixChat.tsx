@@ -456,6 +456,28 @@ if (includesAny(msg, ["stress", "tired", "fatigue", "burnout"])) {
     ]),
   };
 }
+if (
+  includesAny(msg, [
+    "discount",
+    "discounts",
+    "promo",
+    "promotion",
+    "sale",
+    "voucher",
+    "coupon",
+    "cheaper",
+    "deal",
+  ])
+) {
+  return {
+    text: randomAnswer([
+      "Ginhawa Spa & Wellness offers discounts through our badge rewards system. As you continue using our services, you may earn badges that can provide special discounts.",
+      "We have a badge system where clients can earn rewards. Some badges provide discount benefits for certain spa services.",
+      "Instead of regular promotions, Ginhawa uses a badge rewards system where customers may receive discounts after earning certain badges.",
+      "Discounts are often given through our badge rewards feature. When clients earn badges, they may unlock special spa discounts.",
+    ]),
+  };
+}
 
   if (includesAny(msg, ["service", "services", "offer", "treatment", "treatments"])) {
     return {
