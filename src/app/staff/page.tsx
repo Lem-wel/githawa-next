@@ -14,6 +14,7 @@ type Row = {
   service_name: string | null;
   room_name: string | null;
   staff_name: string | null;
+  status: string | null;
 };
 
 export default function StaffPage() {
@@ -63,6 +64,7 @@ export default function StaffPage() {
             appt_date,
             appt_time,
             duration_minutes,
+            status,
             rooms(name),
             services(name, category),
             staff(name, position),
@@ -87,6 +89,7 @@ export default function StaffPage() {
             service_name: r.services?.name ?? null,
             room_name: r.rooms?.name ?? null,
             staff_name: r.staff?.name ?? null,
+            status: r.status ?? "confirmed",
           }))
         );
         return;
@@ -127,6 +130,7 @@ export default function StaffPage() {
           appt_date,
           appt_time,
           duration_minutes,
+          status,
           rooms(name),
           services(name, category),
           staff(name),
@@ -134,6 +138,7 @@ export default function StaffPage() {
         `)
         .eq("staff_id", profile.staff_id)
         .eq("services.category", "Massage Therapies")
+        .neq("status", "cancelled")
         .order("appt_date", { ascending: true })
         .order("appt_time", { ascending: true });
 
@@ -152,6 +157,7 @@ export default function StaffPage() {
           service_name: r.services?.name ?? null,
           room_name: r.rooms?.name ?? null,
           staff_name: r.staff?.name ?? null,
+          status: r.status ?? "confirmed",
         }))
       );
     })();
@@ -190,17 +196,25 @@ export default function StaffPage() {
               <th>Service</th>
               <th>Room</th>
               <th>Duration</th>
+              {isAdmin && <th>Status</th>}
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={isAdmin ? 7 : 6}>
+                <td colSpan={isAdmin ? 8 : 6}>
                   No massage appointments assigned.
                 </td>
               </tr>
             ) : rows.map((r) => (
-              <tr key={r.id}>
+              <tr
+                key={r.id}
+                style={
+                  isAdmin && r.status === "cancelled"
+                    ? { opacity: 0.6, background: "#fff4f4" }
+                    : undefined
+                }
+              >
                 <td>{r.appt_date}</td>
                 <td>{r.appt_time}</td>
                 {isAdmin && <td>{r.staff_name ?? "—"}</td>}
@@ -208,6 +222,25 @@ export default function StaffPage() {
                 <td>{r.service_name ?? "—"}</td>
                 <td>{r.room_name ?? "—"}</td>
                 <td>{r.duration_minutes} min</td>
+                {isAdmin && (
+                  <td>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        background:
+                          r.status === "cancelled" ? "#fde2e2" : "#e8f7ec",
+                        color:
+                          r.status === "cancelled" ? "#b42318" : "#18794e",
+                      }}
+                    >
+                      {r.status === "cancelled" ? "Cancelled" : "Confirmed"}
+                    </span>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
