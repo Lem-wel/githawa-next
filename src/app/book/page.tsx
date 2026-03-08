@@ -34,6 +34,7 @@ type ExistingAppointment = {
   appt_date: string;
   appt_time: string;
   duration_minutes: number | null;
+  status?: string | null;
 };
 
 type BadgeLookupRow = {
@@ -496,16 +497,17 @@ function BookPageInner() {
 
       const { data, error } = await supabase
         .from("appointments")
-        .select("appt_date, appt_time, duration_minutes, room_id")
+        .select("appt_date, appt_time, duration_minutes, room_id, status")
         .gte("appt_date", startStr)
-        .lte("appt_date", endStr);
+        .lte("appt_date", endStr)
+        .neq("status", "cancelled");
 
       if (error) {
         console.error(error.message);
         return;
       }
 
-      const rows = data ?? [];
+      const rows = (data ?? []) as ExistingAppointment[];
       const booked: Date[] = [];
 
       for (let i = 0; i <= 30; i++) {
@@ -601,8 +603,9 @@ function BookPageInner() {
 
       const { data: existing, error } = await supabase
         .from("appointments")
-        .select("id,staff_id,room_id,appt_date,appt_time,duration_minutes")
-        .eq("appt_date", date);
+        .select("id,staff_id,room_id,appt_date,appt_time,duration_minutes,status")
+        .eq("appt_date", date)
+        .neq("status", "cancelled");
 
       if (error) {
         setMsg(error.message);
@@ -707,8 +710,9 @@ function BookPageInner() {
 
       const { data: existing, error: existingErr } = await supabase
         .from("appointments")
-        .select("id,staff_id,room_id,appt_date,appt_time,duration_minutes")
-        .eq("appt_date", date);
+        .select("id,staff_id,room_id,appt_date,appt_time,duration_minutes,status")
+        .eq("appt_date", date)
+        .neq("status", "cancelled");
 
       if (existingErr) {
         setMsg(existingErr.message);
@@ -760,6 +764,7 @@ function BookPageInner() {
         appt_date: date,
         appt_time: time,
         duration_minutes: blockedDuration,
+        status: "confirmed",
         total_price: finalTotal,
         coupon_code: validCouponCode || null,
         coupon_reward: validCouponCode ? validCouponReward || null : null,
