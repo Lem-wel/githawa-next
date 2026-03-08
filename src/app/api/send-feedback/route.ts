@@ -23,7 +23,6 @@ export async function POST(req: Request) {
       subject: "New Customer Feedback - Ginhawa Spa",
       html: `
         <h2>New Customer Feedback</h2>
-        <p><strong>User ID:</strong> ${userId || "N/A"}</p>
         <p><strong>User Email:</strong> ${userEmail || "N/A"}</p>
         <p><strong>Feedback:</strong></p>
         <div style="padding:12px;border:1px solid #ddd;border-radius:8px;background:#f9f9f9;">
