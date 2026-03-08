@@ -11,6 +11,7 @@ type BookingRow = {
   appt_date: string;
   appt_time: string;
   duration_minutes: number | null;
+  status?: string | null;
   services?: { name?: string } | null;
   rooms?: { name?: string } | null;
   staff?: { name?: string } | null;
@@ -56,6 +57,7 @@ export default function DashboardPage() {
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [badges, setBadges] = useState<BadgeRow[]>([]);
   const [pageReady, setPageReady] = useState(false);
+  const [cancelingId, setCancelingId] = useState<number | null>(null);
 
   useEffect(() => {
     loadDashboard();
@@ -125,6 +127,7 @@ export default function DashboardPage() {
         appt_date,
         appt_time,
         duration_minutes,
+        status,
         services(name),
         rooms(name),
         staff(name),
@@ -133,6 +136,7 @@ export default function DashboardPage() {
         )
       `)
       .eq("user_id", user.id)
+      .neq("status", "cancelled")
       .order("appt_date", { ascending: false })
       .order("appt_time", { ascending: false });
 
@@ -221,6 +225,46 @@ export default function DashboardPage() {
     } catch {
       setMsg("Failed to copy referral code.");
     }
+  }
+
+  async function handleCancelBooking(bookingId: number) {
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this booking?"
+    );
+
+    if (!confirmed) return;
+
+    setCancelingId(bookingId);
+    setMsg("");
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setMsg("Please login again.");
+      setCancelingId(null);
+      router.replace("/login");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("appointments")
+      .update({ status: "cancelled" })
+      .eq("id", bookingId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      setMsg(error.message);
+      setCancelingId(null);
+      return;
+    }
+
+    const updated = bookings.filter((b) => b.id !== bookingId);
+    setBookings(updated);
+    setBookingCount(updated.length);
+    setMsg("Booking cancelled successfully.");
+    setCancelingId(null);
   }
 
   if (!pageReady) {
@@ -401,6 +445,32 @@ export default function DashboardPage() {
                               {b.duration_minutes
                                 ? `${b.duration_minutes} min`
                                 : "N/A"}
+                            </div>
+
+                            <div
+                              style={{
+                                marginTop: 12,
+                                display: "flex",
+                                justifyContent: "flex-end",
+                              }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => handleCancelBooking(b.id)}
+                                disabled={cancelingId === b.id}
+                                className="btn"
+                                style={{
+                                  background:
+                                    cancelingId === b.id ? "#f3f4f6" : "#fff0f0",
+                                  border: "1px solid #efb3b3",
+                                  color: "#b42318",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {cancelingId === b.id
+                                  ? "Cancelling..."
+                                  : "Cancel Booking"}
+                              </button>
                             </div>
                           </div>
                         );
