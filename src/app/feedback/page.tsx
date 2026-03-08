@@ -5,67 +5,93 @@ import { supabase } from "@/lib/supabaseClient";
 import SiteShell from "@/components/SiteShell";
 
 export default function FeedbackPage() {
+  const [text, setText] = useState("");
+  const [msg, setMsg] = useState("");
+  const [loading, setLoading] = useState(false);
 
-const [text,setText] = useState("");
-const [msg,setMsg] = useState("");
+  async function submit() {
+    try {
+      setLoading(true);
+      setMsg("");
 
-async function submit(){
+      const { data: auth } = await supabase.auth.getUser();
 
-const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) {
+        setMsg("Login first.");
+        return;
+      }
 
-if(!auth.user){
-setMsg("Login first.");
-return;
-}
+      if (!text.trim()) {
+        setMsg("Please enter your feedback first.");
+        return;
+      }
 
-const { error } = await supabase
-.from("feedback")
-.insert({
-user_id: auth.user.id,
-message: text
-});
+      const { error } = await supabase.from("feedback").insert({
+        user_id: auth.user.id,
+        message: text.trim(),
+      });
 
-if(error){
-setMsg(error.message);
-}else{
-setMsg("Thank you for your feedback 💚");
-setText("");
-}
+      if (error) {
+        setMsg(error.message);
+        return;
+      }
 
-}
+      const emailRes = await fetch("/api/send-feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: text.trim(),
+          userEmail: auth.user.email,
+          userId: auth.user.id,
+        }),
+      });
 
-return(
-<SiteShell>
+      const emailData = await emailRes.json();
 
-<div className="card cardPad">
+      if (!emailRes.ok) {
+        setMsg("Feedback saved, but email failed: " + (emailData.error || "Unknown error"));
+        return;
+      }
 
-<h2>Customer Feedback</h2>
+      setMsg("Thank you for your feedback 💚");
+      setText("");
+    } catch (err: any) {
+      setMsg(err.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-<textarea
-value={text}
-onChange={(e)=>setText(e.target.value)}
-placeholder="Share your spa experience..."
-style={{
-width:"100%",
-minHeight:120,
-padding:10,
-borderRadius:10
-}}
-/>
+  return (
+    <SiteShell>
+      <div className="card cardPad">
+        <h2>Customer Feedback</h2>
 
-<button
-className="btn btnPrimary"
-style={{marginTop:10}}
-onClick={submit}
->
-Submit Feedback
-</button>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Share your spa experience..."
+          style={{
+            width: "100%",
+            minHeight: 120,
+            padding: 10,
+            borderRadius: 10,
+          }}
+        />
 
-{msg && <p style={{marginTop:10}}>{msg}</p>}
+        <button
+          className="btn btnPrimary"
+          style={{ marginTop: 10 }}
+          onClick={submit}
+          disabled={loading}
+        >
+          {loading ? "Submitting..." : "Submit Feedback"}
+        </button>
 
-</div>
-
-</SiteShell>
-);
-
+        {msg && <p style={{ marginTop: 10 }}>{msg}</p>}
+      </div>
+    </SiteShell>
+  );
 }
