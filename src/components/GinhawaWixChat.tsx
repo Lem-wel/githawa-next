@@ -374,6 +374,88 @@ function getBotReply(
       ]),
     };
   }
+  if (includesAny(msg, ["back pain", "lower back pain", "upper back pain"])) {
+  return {
+    text: randomAnswer([
+      "For back pain, many guests choose Deep Tissue Massage or Hot Stone Massage because they focus on relieving deeper muscle tension in the back.",
+      "If you're experiencing back discomfort, Deep Tissue Massage or Swedish Massage may help relax tight back muscles.",
+      "Back pain is often addressed with treatments like Deep Tissue Massage or Hot Stone Massage which help ease muscle stress.",
+      "For back muscle tension, services like Deep Tissue Massage or Swedish Massage are commonly recommended for relaxation.",
+    ]),
+  };
+}
+
+// NECK PAIN
+if (includesAny(msg, ["neck pain", "stiff neck"])) {
+  return {
+    text: randomAnswer([
+      "For neck tension, many guests explore Swedish Massage or Aromatherapy Massage to help relax the neck and shoulder area.",
+      "Neck stiffness can sometimes be relieved through relaxing treatments like Swedish Massage or Head Massage.",
+      "If you're feeling neck discomfort, services like Swedish Massage or Aromatherapy Massage may help promote relaxation.",
+      "For neck muscle tension, a relaxing massage such as Swedish Massage is often chosen by guests.",
+    ]),
+  };
+}
+
+// SHOULDER PAIN
+if (includesAny(msg, ["shoulder pain", "shoulder tension"])) {
+  return {
+    text: randomAnswer([
+      "Shoulder tension is often addressed through treatments like Deep Tissue Massage or Swedish Massage.",
+      "If you are experiencing shoulder discomfort, Deep Tissue Massage may help focus on tight shoulder muscles.",
+      "For shoulder muscle stress, Swedish Massage or Deep Tissue Massage are common relaxation options.",
+      "Many guests with shoulder tension choose Deep Tissue Massage for deeper muscle relaxation.",
+    ]),
+  };
+}
+
+// HEADACHE
+if (includesAny(msg, ["headache", "head pain", "migraine"])) {
+  return {
+    text: randomAnswer([
+      "For headaches or head tension, Head Massage or Aromatherapy Massage may help create a calming experience.",
+      "Some guests choose Head Massage when experiencing tension around the head and scalp.",
+      "Head Massage or Aromatherapy Massage are relaxing treatments often explored for head stress.",
+      "If you have head tension, Head Massage is a soothing option available at the spa.",
+    ]),
+  };
+}
+
+// FOOT PAIN
+if (includesAny(msg, ["foot pain", "feet pain", "tired feet", "aching feet"])) {
+  return {
+    text: randomAnswer([
+      "For tired or aching feet, Foot Spa or Foot Reflexology are relaxing treatments designed for foot comfort.",
+      "If your feet feel sore, many guests explore Foot Reflexology or Foot Spa for relaxation.",
+      "Foot Reflexology focuses on pressure points in the feet and is often chosen for foot fatigue.",
+      "For tired feet, Foot Spa or Foot Reflexology are commonly recommended treatments.",
+    ]),
+  };
+}
+
+// BODY SORENESS
+if (includesAny(msg, ["body pain", "muscle pain", "sore body", "body soreness"])) {
+  return {
+    text: randomAnswer([
+      "For general body soreness, services like Swedish Massage, Deep Tissue Massage, or Hot Stone Massage may help promote relaxation.",
+      "If your body feels sore or tense, Swedish Massage or Deep Tissue Massage are common relaxation treatments.",
+      "General muscle discomfort is often addressed through Swedish Massage or Aromatherapy Massage.",
+      "For overall body tension, treatments like Deep Tissue Massage or Hot Stone Massage may help ease muscle stress.",
+    ]),
+  };
+}
+
+// STRESS / FATIGUE
+if (includesAny(msg, ["stress", "tired", "fatigue", "burnout"])) {
+  return {
+    text: randomAnswer([
+      "For stress and fatigue, relaxing treatments like Aromatherapy Massage or Swedish Massage are commonly explored.",
+      "Many guests experiencing stress choose Aromatherapy Massage for its calming and relaxing spa experience.",
+      "If you're feeling tired or mentally stressed, Swedish Massage or Hot Stone Massage may help promote relaxation.",
+      "For relaxation and stress relief, Aromatherapy Massage or Swedish Massage are popular choices.",
+    ]),
+  };
+}
 
   if (includesAny(msg, ["service", "services", "offer", "treatment", "treatments"])) {
     return {
