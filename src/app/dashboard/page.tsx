@@ -30,7 +30,10 @@ type BadgeInfo = {
 };
 
 type BadgeRow = {
+  id: number;
   earned_at: string;
+  is_used: boolean;
+  used_at?: string | null;
   badges?: BadgeInfo | BadgeInfo[] | null;
 };
 
@@ -143,7 +146,13 @@ export default function DashboardPage() {
 
     const { data: badgeData, error: badgeErr } = await supabase
       .from("user_badges")
-      .select("earned_at, badges(name, description, icon, code, reward)")
+      .select(`
+        id,
+        earned_at,
+        is_used,
+        used_at,
+        badges(name, description, icon, code, reward)
+      `)
       .eq("user_id", user.id)
       .order("earned_at", { ascending: false });
 
@@ -176,9 +185,15 @@ export default function DashboardPage() {
     };
   }
 
-  async function handleBadgeClick(badge: Required<BadgeInfo>) {
+  async function handleBadgeClick(row: BadgeRow, badge: Required<BadgeInfo>) {
     if (!badge.code) {
       setMsg("This badge has no coupon code.");
+      setTimeout(() => setMsg(""), 1500);
+      return;
+    }
+
+    if (row.is_used) {
+      setMsg("This coupon was already used.");
       setTimeout(() => setMsg(""), 1500);
       return;
     }
@@ -413,21 +428,24 @@ export default function DashboardPage() {
                     </p>
                   ) : (
                     <div style={{ display: "grid", gap: 14 }}>
-                      {badges.map((b, i) => {
+                      {badges.map((b) => {
                         const badge = normalizeBadge(b.badges);
 
                         return (
                           <button
-                            key={i}
+                            key={b.id}
                             type="button"
-                            onClick={() => handleBadgeClick(badge)}
+                            onClick={() => handleBadgeClick(b, badge)}
+                            disabled={b.is_used}
                             style={{
                               border: "1px solid #dfe5df",
                               borderRadius: 22,
                               padding: "18px 20px",
-                              background: "#fff",
+                              background: b.is_used ? "#f5f5f5" : "#fff",
                               textAlign: "left",
-                              cursor: badge.code ? "pointer" : "default",
+                              cursor:
+                                badge.code && !b.is_used ? "pointer" : "not-allowed",
+                              opacity: b.is_used ? 0.75 : 1,
                             }}
                           >
                             <div
@@ -481,7 +499,21 @@ export default function DashboardPage() {
                                   Earned: {new Date(b.earned_at).toLocaleString()}
                                 </div>
 
-                                {badge.code && (
+                                {b.is_used ? (
+                                  <div
+                                    style={{
+                                      marginTop: 8,
+                                      fontSize: 13,
+                                      color: "#b42318",
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    Already used
+                                    {b.used_at
+                                      ? ` on ${new Date(b.used_at).toLocaleString()}`
+                                      : ""}
+                                  </div>
+                                ) : badge.code ? (
                                   <div
                                     style={{
                                       marginTop: 8,
@@ -492,7 +524,7 @@ export default function DashboardPage() {
                                   >
                                     Click to use reward
                                   </div>
-                                )}
+                                ) : null}
                               </div>
                             </div>
                           </button>

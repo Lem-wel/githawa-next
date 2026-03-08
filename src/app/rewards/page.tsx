@@ -14,7 +14,10 @@ type BadgeInfo = {
 };
 
 type Row = {
+  id: number;
   earned_at: string;
+  is_used: boolean;
+  used_at?: string | null;
   badges?: BadgeInfo | BadgeInfo[] | null;
 };
 
@@ -29,7 +32,6 @@ export default function RewardsPage() {
 
   async function loadBadges() {
     const { data: auth } = await supabase.auth.getUser();
-
     const uid = auth.user?.id;
 
     if (!uid) {
@@ -37,14 +39,22 @@ export default function RewardsPage() {
       return;
     }
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("user_badges")
       .select(`
+        id,
         earned_at,
+        is_used,
+        used_at,
         badges(name, description, icon, code, reward)
       `)
       .eq("user_id", uid)
       .order("earned_at", { ascending: false });
+
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
 
     setRows((data ?? []) as Row[]);
   }
@@ -63,24 +73,29 @@ export default function RewardsPage() {
     };
   }
 
-  async function useCoupon(badge: Required<BadgeInfo>) {
-  if (!badge.code) {
-    setMsg("This reward has no coupon code.");
-    return;
+  async function useCoupon(row: Row, badge: Required<BadgeInfo>) {
+    if (!badge.code) {
+      setMsg("This reward has no coupon code.");
+      return;
+    }
+
+    if (row.is_used) {
+      setMsg("This coupon was already used.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(badge.code);
+    } catch {}
+
+    setMsg(`Coupon selected: ${badge.code}`);
+
+    router.push(
+      `/book?coupon=${encodeURIComponent(badge.code)}&reward=${encodeURIComponent(
+        badge.reward || ""
+      )}`
+    );
   }
-
-  try {
-    await navigator.clipboard.writeText(badge.code);
-  } catch {}
-
-  setMsg(`Coupon selected: ${badge.code}`);
-
-  router.push(
-    `/book?coupon=${encodeURIComponent(badge.code)}&reward=${encodeURIComponent(
-      badge.reward || ""
-    )}`
-  );
-}
 
   return (
     <SiteShell>
@@ -90,33 +105,32 @@ export default function RewardsPage() {
         {msg && <div className="notice">{msg}</div>}
 
         <div style={{ display: "grid", gap: 16 }}>
-          {rows.map((r, i) => {
+          {rows.map((r) => {
             const badge = normalizeBadge(r.badges);
 
             return (
               <button
-                key={i}
-                onClick={() => useCoupon(badge)}
+                key={r.id}
+                onClick={() => useCoupon(r, badge)}
+                disabled={r.is_used}
                 style={{
                   border: "1px solid #dfe5df",
                   borderRadius: 22,
                   padding: 18,
-                  background: "#fff",
+                  background: r.is_used ? "#f5f5f5" : "#fff",
                   textAlign: "left",
-                  cursor: "pointer",
+                  cursor: r.is_used ? "not-allowed" : "pointer",
+                  opacity: r.is_used ? 0.75 : 1,
                 }}
+                type="button"
               >
                 <div style={{ display: "flex", gap: 14 }}>
                   <div style={{ fontSize: 28 }}>{badge.icon}</div>
 
                   <div>
-                    <div style={{ fontWeight: 700 }}>
-                      {badge.name}
-                    </div>
+                    <div style={{ fontWeight: 700 }}>{badge.name}</div>
 
-                    <div style={{ marginTop: 6 }}>
-                      {badge.description}
-                    </div>
+                    <div style={{ marginTop: 6 }}>{badge.description}</div>
 
                     <div
                       style={{
@@ -125,7 +139,7 @@ export default function RewardsPage() {
                         fontWeight: 700,
                       }}
                     >
-                      Coupon: {badge.code}
+                      Coupon: {badge.code || "No code"}
                     </div>
 
                     <div style={{ marginTop: 4 }}>
@@ -136,15 +150,31 @@ export default function RewardsPage() {
                       Earned: {new Date(r.earned_at).toLocaleString()}
                     </div>
 
-                    <div
-                      style={{
-                        marginTop: 8,
-                        fontSize: 13,
-                        color: "#6b8f74",
-                      }}
-                    >
-                      Click to use reward
-                    </div>
+                    {r.is_used ? (
+                      <div
+                        style={{
+                          marginTop: 8,
+                          fontSize: 13,
+                          color: "#b42318",
+                          fontWeight: 700,
+                        }}
+                      >
+                        Already used
+                        {r.used_at
+                          ? ` on ${new Date(r.used_at).toLocaleString()}`
+                          : ""}
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          marginTop: 8,
+                          fontSize: 13,
+                          color: "#6b8f74",
+                        }}
+                      >
+                        Click to use reward
+                      </div>
+                    )}
                   </div>
                 </div>
               </button>

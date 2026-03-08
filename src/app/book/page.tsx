@@ -36,6 +36,23 @@ type ExistingAppointment = {
   duration_minutes: number | null;
 };
 
+type BadgeLookupRow = {
+  id: number;
+  is_used?: boolean;
+  badges?:
+    | {
+        code?: string | null;
+        reward?: string | null;
+        name?: string | null;
+      }
+    | {
+        code?: string | null;
+        reward?: string | null;
+        name?: string | null;
+      }[]
+    | null;
+};
+
 const OPEN_MINUTES = 8 * 60;
 const CLOSE_MINUTES = 17 * 60;
 const SLOT_INTERVAL = 15;
@@ -105,6 +122,17 @@ function BookPageInner() {
     return v.trim().toUpperCase();
   }
 
+  function clearCouponState(clearMessage = false) {
+    setCouponInput("");
+    setCouponCode("");
+    setCouponReward("");
+    localStorage.removeItem("selected_coupon_code");
+    localStorage.removeItem("selected_coupon_reward");
+    if (clearMessage) {
+      setMsg("");
+    }
+  }
+
   function toggleAddon(addonId: number) {
     setSelectedAddons((prev) =>
       prev.includes(addonId)
@@ -138,73 +166,117 @@ function BookPageInner() {
     return startA < endB && startB < endA;
   }
 
-  async function applyCoupon(codeRaw: string, rewardFromUrl?: string) {
-  const code = normalizeCoupon(codeRaw);
+  async function findValidCouponForUser(
+    rawCode: string,
+    rewardFromUrl?: string
+  ): Promise<{
+    ok: boolean;
+    badgeRowId: number | null;
+    code: string;
+    reward: string;
+    message?: string;
+  }> {
+    const code = normalizeCoupon(rawCode);
 
-  if (!code) {
-    setCouponCode("");
-    setCouponReward("");
-    return;
-  }
+    if (!code) {
+      return {
+        ok: false,
+        badgeRowId: null,
+        code: "",
+        reward: "",
+        message: "Invalid coupon code.",
+      };
+    }
 
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
+    const { data: auth, error: authErr } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
 
-  if (!uid) {
-    setMsg("Please login first.");
-    setCouponCode("");
-    setCouponReward("");
-    return;
-  }
+    if (authErr || !uid) {
+      return {
+        ok: false,
+        badgeRowId: null,
+        code: "",
+        reward: "",
+        message: "Please login first.",
+      };
+    }
 
-  const { data, error } = await supabase
-    .from("user_badges")
-    .select(`
-      badges (
-        code,
-        reward,
-        name
-      )
-    `)
-    .eq("user_id", uid);
+    const { data, error } = await supabase
+      .from("user_badges")
+      .select(`
+        id,
+        is_used,
+        badges!inner(
+          code,
+          reward,
+          name
+        )
+      `)
+      .eq("user_id", uid)
+      .eq("is_used", false)
+      .eq("badges.code", code)
+      .maybeSingle();
 
-  if (error) {
-    setMsg(error.message);
-    setCouponCode("");
-    setCouponReward("");
-    return;
-  }
+    if (error) {
+      return {
+        ok: false,
+        badgeRowId: null,
+        code: "",
+        reward: "",
+        message: error.message,
+      };
+    }
 
-  const ownedBadge = (data ?? []).find((row: any) => {
+    if (!data) {
+      return {
+        ok: false,
+        badgeRowId: null,
+        code: "",
+        reward: "",
+        message: "This coupon is invalid, already used, or does not belong to your account.",
+      };
+    }
+
+    const row = data as BadgeLookupRow;
     const badge = Array.isArray(row.badges) ? row.badges[0] : row.badges;
-    return normalizeCoupon(badge?.code || "") === code;
-  });
 
-  if (!ownedBadge) {
-    setMsg("You have not unlocked this coupon code.");
-    setCouponCode("");
-    setCouponReward("");
-    return;
+    const matchedCode = normalizeCoupon(badge?.code || code);
+    const matchedReward = badge?.reward || rewardFromUrl || COUPON_REWARDS[matchedCode] || "";
+
+    return {
+      ok: true,
+      badgeRowId: row.id,
+      code: matchedCode,
+      reward: matchedReward,
+    };
   }
 
-  const badge = Array.isArray(ownedBadge.badges)
-    ? ownedBadge.badges[0]
-    : ownedBadge.badges;
+  async function applyCoupon(codeRaw: string, rewardFromUrl?: string) {
+    const code = normalizeCoupon(codeRaw);
 
-  const matchedReward = badge?.reward || rewardFromUrl || COUPON_REWARDS[code];
+    if (!code) {
+      clearCouponState();
+      return;
+    }
 
-  if (!matchedReward) {
-    setMsg("Invalid coupon code.");
-    setCouponCode("");
-    setCouponReward("");
-    return;
+    const result = await findValidCouponForUser(code, rewardFromUrl);
+
+    if (!result.ok) {
+      clearCouponState();
+      setMsg(result.message || "Invalid coupon code.");
+      return;
+    }
+
+    setCouponInput(result.code);
+    setCouponCode(result.code);
+    setCouponReward(result.reward);
+
+    localStorage.setItem("selected_coupon_code", result.code);
+    localStorage.setItem("selected_coupon_reward", result.reward || "");
+
+    setMsg("Coupon applied ✅");
+    setTimeout(() => setMsg(""), 1200);
   }
-
-  setCouponCode(code);
-  setCouponReward(matchedReward);
-  setMsg("Coupon applied ✅");
-  setTimeout(() => setMsg(""), 1200);
-}
 
   const mainService = useMemo(
     () => services.find((s) => s.id === serviceId) || null,
@@ -340,54 +412,76 @@ function BookPageInner() {
     const fromUrl = searchParams.get("coupon");
     const rewardFromUrl = searchParams.get("reward") || "";
 
-    if (fromUrl) {
-      const normalized = normalizeCoupon(fromUrl);
-      setCouponInput(normalized);
-      applyCoupon(normalized, rewardFromUrl);
-    }
+    if (!fromUrl) return;
+
+    const normalized = normalizeCoupon(fromUrl);
+    setCouponInput(normalized);
+    applyCoupon(normalized, rewardFromUrl);
   }, [searchParams]);
 
-useEffect(() => {
-  if (didInitialPrefill.current) return;
-  if (services.length === 0) return;
+  useEffect(() => {
+    async function validateStoredCoupon() {
+      const storedCoupon = localStorage.getItem("selected_coupon_code") || "";
+      const storedReward = localStorage.getItem("selected_coupon_reward") || "";
 
-  const serviceName = searchParams.get("service");
-  const addonNames = searchParams.get("addons");
+      if (!storedCoupon || searchParams.get("coupon")) return;
 
-  let matchedServiceId: number | "" = "";
-  let matchedAddonIds: number[] = [];
+      const result = await findValidCouponForUser(storedCoupon, storedReward);
 
-  if (serviceName) {
-    const matchedService = services.find(
-      (s) => s.name.trim().toLowerCase() === serviceName.trim().toLowerCase()
-    );
+      if (!result.ok) {
+        clearCouponState();
+        return;
+      }
 
-    if (matchedService) {
-      matchedServiceId = matchedService.id;
+      setCouponInput(result.code);
+      setCouponCode(result.code);
+      setCouponReward(result.reward);
     }
-  }
 
-  if (addonNames && addons.length > 0) {
-    const names = addonNames
-      .split(",")
-      .map((x) => x.trim().toLowerCase())
-      .filter(Boolean);
+    validateStoredCoupon();
+  }, [searchParams]);
 
-    matchedAddonIds = addons
-      .filter((a) => names.includes(a.name.trim().toLowerCase()))
-      .map((a) => a.id);
-  }
+  useEffect(() => {
+    if (didInitialPrefill.current) return;
+    if (services.length === 0) return;
 
-  if (matchedServiceId !== "") {
-    setServiceId(matchedServiceId);
-  }
+    const serviceName = searchParams.get("service");
+    const addonNames = searchParams.get("addons");
 
-  if (matchedAddonIds.length > 0) {
-    setSelectedAddons(matchedAddonIds);
-  }
+    let matchedServiceId: number | "" = "";
+    let matchedAddonIds: number[] = [];
 
-  didInitialPrefill.current = true;
-}, [searchParams, services, addons]);
+    if (serviceName) {
+      const matchedService = services.find(
+        (s) => s.name.trim().toLowerCase() === serviceName.trim().toLowerCase()
+      );
+
+      if (matchedService) {
+        matchedServiceId = matchedService.id;
+      }
+    }
+
+    if (addonNames && addons.length > 0) {
+      const names = addonNames
+        .split(",")
+        .map((x) => x.trim().toLowerCase())
+        .filter(Boolean);
+
+      matchedAddonIds = addons
+        .filter((a) => names.includes(a.name.trim().toLowerCase()))
+        .map((a) => a.id);
+    }
+
+    if (matchedServiceId !== "") {
+      setServiceId(matchedServiceId);
+    }
+
+    if (matchedAddonIds.length > 0) {
+      setSelectedAddons(matchedAddonIds);
+    }
+
+    didInitialPrefill.current = true;
+  }, [searchParams, services, addons]);
 
   useEffect(() => {
     async function loadFullyBookedDates() {
@@ -456,22 +550,22 @@ useEffect(() => {
 
   const previousServiceId = useRef<number | "">("");
 
-useEffect(() => {
-  if (serviceId === "") return;
+  useEffect(() => {
+    if (serviceId === "") return;
 
-  const isInitialAutofill =
-    previousServiceId.current === "" && didInitialPrefill.current;
+    const isInitialAutofill =
+      previousServiceId.current === "" && didInitialPrefill.current;
 
-  setStaffId("");
-  setRoomId("");
-  setTime("");
+    setStaffId("");
+    setRoomId("");
+    setTime("");
 
-  if (!isInitialAutofill) {
-    setSelectedAddons([]);
-  }
+    if (!isInitialAutofill) {
+      setSelectedAddons([]);
+    }
 
-  previousServiceId.current = serviceId;
-}, [serviceId]);
+    previousServiceId.current = serviceId;
+  }, [serviceId]);
 
   useEffect(() => {
     setStaffId("");
@@ -587,6 +681,30 @@ useEffect(() => {
         return;
       }
 
+      let validUserBadgeId: number | null = null;
+      let validCouponCode = "";
+      let validCouponReward = "";
+
+      if (couponCode) {
+        const couponCheck = await findValidCouponForUser(couponCode, couponReward);
+
+        if (!couponCheck.ok) {
+          clearCouponState();
+          setMsg(
+            couponCheck.message ||
+              "This coupon is invalid, already used, or does not belong to your account."
+          );
+          return;
+        }
+
+        validUserBadgeId = couponCheck.badgeRowId;
+        validCouponCode = couponCheck.code;
+        validCouponReward = couponCheck.reward;
+
+        setCouponCode(validCouponCode);
+        setCouponReward(validCouponReward);
+      }
+
       const { data: existing, error: existingErr } = await supabase
         .from("appointments")
         .select("id,staff_id,room_id,appt_date,appt_time,duration_minutes")
@@ -643,9 +761,9 @@ useEffect(() => {
         appt_time: time,
         duration_minutes: blockedDuration,
         total_price: finalTotal,
-        coupon_code: couponCode ? couponCode : null,
-        coupon_reward: couponCode ? couponReward || null : null,
-        discount_amount: couponCode ? discountAmount || 0 : 0,
+        coupon_code: validCouponCode || null,
+        coupon_reward: validCouponCode ? validCouponReward || null : null,
+        discount_amount: validCouponCode ? discountAmount || 0 : 0,
       };
 
       const { data: inserted, error: insErr } = await supabase
@@ -676,42 +794,58 @@ useEffect(() => {
           return;
         }
       }
+
+      if (validUserBadgeId) {
+        const { error: couponUseErr } = await supabase
+          .from("user_badges")
+          .update({
+            is_used: true,
+            used_at: new Date().toISOString(),
+          })
+          .eq("id", validUserBadgeId)
+          .eq("user_id", uid)
+          .eq("is_used", false);
+
+        if (couponUseErr) {
+          setMsg("Appointment booked, but coupon update failed. Please contact admin.");
+          return;
+        }
+      }
+
       const selectedStaff = allStaff.find((s) => s.id === Number(staffId));
-const selectedRoom = allRooms.find((r) => r.id === Number(roomId));
+      const selectedRoom = allRooms.find((r) => r.id === Number(roomId));
 
-try {
-  await fetch("/api/send-booking-email", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      to: auth.user?.email,
-      customerName:
-        auth.user?.user_metadata?.full_name ||
-        auth.user?.email?.split("@")[0] ||
-        "Customer",
-      serviceName: mainService.name,
-      addonNames: selectedAddonRows.map((a) => a.name),
-      apptDate: date,
-      apptTime: time,
-      durationMinutes: totalDuration,
-      staffName: selectedStaff?.name || "Not assigned",
-      roomName: selectedRoom?.name || "Not assigned",
-      totalPrice: finalTotal,
-      couponCode: couponCode || "",
-      couponReward: couponReward || "",
-    }),
-  });
-} catch (emailErr) {
-  console.error("Failed to send booking email:", emailErr);
-}
+      try {
+        await fetch("/api/send-booking-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            to: auth.user?.email,
+            customerName:
+              auth.user?.user_metadata?.full_name ||
+              auth.user?.email?.split("@")[0] ||
+              "Customer",
+            serviceName: mainService.name,
+            addonNames: selectedAddonRows.map((a) => a.name),
+            apptDate: date,
+            apptTime: time,
+            durationMinutes: totalDuration,
+            staffName: selectedStaff?.name || "Not assigned",
+            roomName: selectedRoom?.name || "Not assigned",
+            totalPrice: finalTotal,
+            couponCode: validCouponCode || "",
+            couponReward: validCouponReward || "",
+          }),
+        });
+      } catch (emailErr) {
+        console.error("Failed to send booking email:", emailErr);
+      }
 
-      setCouponInput("");
-      setCouponCode("");
-      setCouponReward("");
-
+      clearCouponState();
       setMsg("Appointment booked successfully ✅");
+
       setTimeout(() => {
         router.push("/dashboard");
       }, 800);
@@ -822,12 +956,7 @@ try {
                   <button
                     type="button"
                     className="btn"
-                    onClick={() => {
-                      setCouponInput("");
-                      setCouponCode("");
-                      setCouponReward("");
-                      setMsg("");
-                    }}
+                    onClick={() => clearCouponState(true)}
                   >
                     Clear
                   </button>
