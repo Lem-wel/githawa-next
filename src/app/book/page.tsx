@@ -98,6 +98,7 @@ function BookPageInner() {
   const [couponInput, setCouponInput] = useState("");
   const [couponCode, setCouponCode] = useState("");
   const [couponReward, setCouponReward] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
 
   const didInitialPrefill = useRef(false);
 
@@ -769,6 +770,7 @@ function BookPageInner() {
         coupon_code: validCouponCode || null,
         coupon_reward: validCouponCode ? validCouponReward || null : null,
         discount_amount: validCouponCode ? discountAmount || 0 : 0,
+        payment_method: paymentMethod,
       };
 
       const { data: inserted, error: insErr } = await supabase
@@ -842,6 +844,7 @@ function BookPageInner() {
             totalPrice: finalTotal,
             couponCode: validCouponCode || "",
             couponReward: validCouponReward || "",
+            paymentMethod,
           }),
         });
       } catch (emailErr) {
@@ -1105,6 +1108,51 @@ function BookPageInner() {
             </select>
             <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
               Rooms already occupied at the selected time are hidden automatically.
+            </div>
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <label>Payment Method</label>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+                gap: 10,
+                marginTop: 10,
+              }}
+            >
+              {[
+                { label: "Cash", icon: "💵" },
+                { label: "GCash", icon: "📱" },
+                { label: "Maya", icon: "🟣" },
+                { label: "Credit Card", icon: "💳" },
+                { label: "Debit Card", icon: "🏧" },
+              ].map(({ label, icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setPaymentMethod(label)}
+                  style={{
+                    padding: "12px 10px",
+                    borderRadius: 14,
+                    border:
+                      paymentMethod === label
+                        ? "2px solid #3a6e47"
+                        : "1px solid var(--border)",
+                    background: paymentMethod === label ? "#eaf1ec" : "#fff",
+                    fontWeight: paymentMethod === label ? 700 : 400,
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 13,
+                  }}
+                >
+                  <span style={{ fontSize: 22 }}>{icon}</span>
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 

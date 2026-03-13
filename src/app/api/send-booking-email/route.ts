@@ -16,6 +16,7 @@ export async function POST(req: Request) {
       totalPrice,
       couponCode,
       couponReward,
+      paymentMethod,
     } = await req.json();
 
     if (!to) {
@@ -67,6 +68,7 @@ Duration: ${durationMinutes} minutes
 Staff: ${staffName || "Not assigned"}
 Room: ${roomName || "Not assigned"}
 Total: ₱${Number(totalPrice || 0).toFixed(2)}
+Payment Method: ${paymentMethod || "Cash"}
 
 ${couponText}
 
@@ -88,6 +90,7 @@ Thank you for booking with Ginhawa.
           <tr><td style="padding: 8px; border: 1px solid #ddd;"><b>Staff</b></td><td style="padding: 8px; border: 1px solid #ddd;">${staffName || "Not assigned"}</td></tr>
           <tr><td style="padding: 8px; border: 1px solid #ddd;"><b>Room</b></td><td style="padding: 8px; border: 1px solid #ddd;">${roomName || "Not assigned"}</td></tr>
           <tr><td style="padding: 8px; border: 1px solid #ddd;"><b>Total</b></td><td style="padding: 8px; border: 1px solid #ddd;">₱${Number(totalPrice || 0).toFixed(2)}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;"><b>Payment Method</b></td><td style="padding: 8px; border: 1px solid #ddd;">${paymentMethod || "Cash"}</td></tr>
           <tr><td style="padding: 8px; border: 1px solid #ddd;"><b>Coupon</b></td><td style="padding: 8px; border: 1px solid #ddd;">${couponCode || "None"}</td></tr>
           ${
             couponCode
