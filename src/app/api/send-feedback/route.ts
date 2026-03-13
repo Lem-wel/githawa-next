@@ -5,11 +5,17 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
-    const { message, userEmail, userId } = await req.json();
+    const { message, rating, userEmail, userId } = await req.json();
 
     if (!message || !message.trim()) {
       return NextResponse.json({ error: "Message is required." }, { status: 400 });
     }
+
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return NextResponse.json({ error: "Rating must be an integer from 1 to 5." }, { status: 400 });
+    }
+
+    const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
 
     const managerEmail = process.env.MANAGER_EMAIL;
 
@@ -24,6 +30,7 @@ export async function POST(req: Request) {
       html: `
         <h2>New Customer Feedback</h2>
         <p><strong>User Email:</strong> ${userEmail || "N/A"}</p>
+        <p><strong>Star Rating:</strong> ${stars} (${rating}/5)</p>
         <p><strong>Feedback:</strong></p>
         <div style="padding:12px;border:1px solid #ddd;border-radius:8px;background:#f9f9f9;">
           ${String(message).replace(/\n/g, "<br/>")}
