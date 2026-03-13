@@ -938,21 +938,20 @@ select{
 
 .feedbackFab {
   position: fixed;
-  right: 16px;
-  left: auto;
-  transform: none;
+  left: 50%;
+  transform: translateX(-50%);
   bottom: calc(16px + env(safe-area-inset-bottom));
-  width: auto;
-  max-width: calc(100vw - 110px);
+  width: min(92vw, 340px);
   white-space: nowrap;
   z-index: 999;
 }
 
 @media (max-width: 520px) {
   .feedbackFab {
-    right: 12px;
+    left: 50%;
+    transform: translateX(-50%);
     bottom: calc(16px + env(safe-area-inset-bottom));
-    max-width: calc(100vw - 100px);
+    width: min(92vw, 340px);
     font-size: 13px;
     padding: 11px 14px !important;
   }

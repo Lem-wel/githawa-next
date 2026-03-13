@@ -27,7 +27,7 @@ export default function ContactPage() {
 
       <ul>
         <li>Email: ginhawa@gmail.com</li>
-        <li>Phone: +63 9xx xxx xxxx</li>
+        <li>Phone: +63 9682748775</li>
         <li>Location: Sampaloc, Manila, Philippines</li>
       </ul>
     </div>

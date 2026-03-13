@@ -84,8 +84,86 @@ function findStaffByRole(staff: StaffItem[], roleKeywords: string[]) {
   );
 }
 
+let lastRandomReply = "";
+
+const RESPONSE_PREFIXES = [
+  "",
+  "Sure. ",
+  "Of course. ",
+  "Absolutely. ",
+  "Thanks for asking. ",
+  "Happy to help. ",
+  "Great question. ",
+  "Here you go. ",
+  "No problem. ",
+];
+
+const RESPONSE_SUFFIXES = [
+  "",
+  " Let me know if you want more details.",
+  " If you want, I can guide you step by step.",
+  " Feel free to ask a follow-up question.",
+  " I can also help you with booking from here.",
+  " Tell me if you want a quick recommendation.",
+];
+
+function buildResponseVariants(base: string) {
+  const clean = base.trim();
+  if (!clean) return [];
+
+  const variants = new Set<string>();
+  variants.add(clean);
+
+  // Build additional natural variants for every base response.
+  for (const prefix of RESPONSE_PREFIXES) {
+    if (prefix) variants.add(`${prefix}${clean}`);
+  }
+
+  // Avoid adding suffix variants for multiline blocks to keep formatting neat.
+  if (!clean.includes("\n")) {
+    for (const suffix of RESPONSE_SUFFIXES) {
+      if (suffix) variants.add(`${clean}${suffix}`);
+    }
+
+    // Extra contextual variants for service-style replies (covers msg.includes branches).
+    if (
+      /(massage|facial|spa|therapy|scrub|reflexology|manicure|pedicure|polish|wrap|treatment)/i.test(
+        clean
+      )
+    ) {
+      variants.add(`${clean} If you want, I can suggest similar services too.`);
+      variants.add(`${clean} You can book this directly from the booking page.`);
+      variants.add(`${clean} Tell me your goal and I can help you choose the best option.`);
+      variants.add(`${clean} I can also help compare this with other available treatments.`);
+    }
+
+    // Extra contextual variants for schedule/payment/reward guidance.
+    if (/(book|appointment|schedule|payment|gcash|maya|reward|badge|coupon|hours)/i.test(clean)) {
+      variants.add(`${clean} I can walk you through the next step if you want.`);
+      variants.add(`${clean} Let me know if you want a quick step-by-step guide.`);
+    }
+  }
+
+  return Array.from(variants);
+}
+
 function randomAnswer(answers: string[]) {
-  return answers[Math.floor(Math.random() * answers.length)];
+  if (answers.length === 0) return "";
+
+  const expanded = answers.flatMap((a) => buildResponseVariants(a));
+  const candidatesBase = expanded.length > 0 ? expanded : answers;
+
+  if (candidatesBase.length === 1) {
+    lastRandomReply = candidatesBase[0];
+    return candidatesBase[0];
+  }
+
+  // Avoid returning the exact same reply twice in a row when alternatives exist.
+  const pool = candidatesBase.filter((a) => a !== lastRandomReply);
+  const candidates = pool.length > 0 ? pool : candidatesBase;
+  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+  lastRandomReply = pick;
+  return pick;
 }
 
 function getBotReply(
@@ -105,6 +183,9 @@ function getBotReply(
         "Welcome! Feel free to ask about services, booking, or our staff.",
         "Hello and welcome to Ginhawa. What would you like to know today?",
         "Hi! I'm the Ginhawa website assistant. How can I help?",
+        "Warm welcome to Ginhawa. Ask me anything about appointments, services, and rewards.",
+        "Hello! I can help you with schedules, payment options, and spa service questions.",
+        "Hi there. If you're planning a visit, I can guide you from service selection to booking.",
       ]),
     };
   }
@@ -321,6 +402,10 @@ function getBotReply(
         "Our booking schedule runs from 8:00 AM to 5:00 PM. You can choose available time slots directly on the booking page.",
         "Ginhawa appointment slots are available from 8:00 AM to 5:00 PM. The calendar will show open times when you book.",
         "You may schedule appointments between 8:00 AM and 5:00 PM through the online booking page.",
+        "Our available appointment hours are from 8:00 AM to 5:00 PM.",
+        "Bookings can be scheduled starting 8:00 AM until 5:00 PM.",
+        "You can select appointment times within our 8:00 AM to 5:00 PM schedule.",
+        "Business booking hours are 8:00 AM to 5:00 PM, shown in the booking calendar.",
       ]),
     };
   }
@@ -340,6 +425,9 @@ function getBotReply(
         "To book: 1) Open the booking page, 2) select a service and date, 3) choose time, staff, and room, 4) add coupon if available, 5) choose payment method, then confirm.",
         "Booking is simple: choose service, pick your schedule, select staff and room, apply any reward coupon, and confirm your appointment.",
         "You can book in a few steps from the booking page: service selection, schedule details, payment method, and final confirmation.",
+        "Start from the booking page, then pick service, schedule, staff, room, and payment method before confirming.",
+        "Booking flow: choose service, date/time, available staff and room, then complete confirmation.",
+        "Open Book Appointment, fill in your details, and tap Book Now to finalize your schedule.",
       ]),
       action: "booking",
     };
@@ -399,6 +487,9 @@ function getBotReply(
         "Ginhawa currently supports Cash, GCash, and Maya. For GCash and Maya, the booking flow shows a QR payment prompt before final confirmation.",
         "Available payment methods are Cash, GCash, and Maya. Digital payments use a QR step during booking.",
         "You may pay via Cash, GCash, or Maya. If you choose GCash or Maya, the system displays a QR code before booking confirmation.",
+        "Payment options include Cash, GCash, and Maya.",
+        "We accept Cash plus QR-based GCash and Maya payments during booking.",
+        "You can choose Cash, GCash, or Maya at checkout when confirming your appointment.",
       ]),
     };
   }
@@ -861,12 +952,17 @@ function getBotReply(
               `You can explore services like ${formatServices(services)}.`,
               `Some of our treatments include ${formatServices(services)}.`,
               `Here are some services currently available: ${formatServices(services)}.`,
+              `At the moment, these are the services you can check out: ${formatServices(services)}.`,
+              `You may choose from services including ${formatServices(services)}.`,
+              `Our current service lineup includes ${formatServices(services)}.`,
             ])
           : randomAnswer([
               "Our services are still being updated in the system.",
               "I can't retrieve the services right now, but they should appear soon.",
               "The service list may still be syncing in the database.",
               "Our available treatments will appear once the system finishes loading.",
+              "Service details are temporarily unavailable, but they should load shortly.",
+              "I can't fetch the current services yet, please try again in a moment.",
             ]),
     };
   }
@@ -900,6 +996,9 @@ function getBotReply(
       "I may not have the exact details for that yet.",
       "The website may still be updating that information.",
       "I'm still learning about that part of the system.",
+      "I don't have a precise answer for that yet, but I can still help with booking, services, and contact info.",
+      "I might not have that detail right now. Try asking about appointments, services, payment, or rewards.",
+      "That topic is not fully available in my current data yet. I can help with your booking-related questions.",
     ]),
   };
 }
