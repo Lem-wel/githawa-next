@@ -107,6 +107,12 @@ const RESPONSE_SUFFIXES = [
   " Tell me if you want a quick recommendation.",
 ];
 
+const RESPONSE_CONTINUATIONS = [
+  "If you'd like, I can provide more specific guidance.",
+  "I can also suggest the next best step for you.",
+  "Ask me another question and I can narrow this down further.",
+];
+
 function buildResponseVariants(base: string) {
   const clean = base.trim();
   if (!clean) return [];
@@ -141,6 +147,11 @@ function buildResponseVariants(base: string) {
     if (/(book|appointment|schedule|payment|gcash|maya|reward|badge|coupon|hours)/i.test(clean)) {
       variants.add(`${clean} I can walk you through the next step if you want.`);
       variants.add(`${clean} Let me know if you want a quick step-by-step guide.`);
+    }
+  } else {
+    // For multiline responses, add clean follow-up lines so they also get more variety.
+    for (const continuation of RESPONSE_CONTINUATIONS) {
+      variants.add(`${clean}\n\n${continuation}`);
     }
   }
 
