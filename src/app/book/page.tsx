@@ -102,6 +102,7 @@ function BookPageInner() {
   const [showQrModal, setShowQrModal] = useState(false);
 
   const didInitialPrefill = useRef(false);
+  const lastPrefillKeyRef = useRef("");
 
   function formatDateLocal(d: Date) {
     const year = d.getFullYear();
@@ -445,11 +446,14 @@ function BookPageInner() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (didInitialPrefill.current) return;
     if (services.length === 0) return;
 
     const serviceName = searchParams.get("service");
     const addonNames = searchParams.get("addons");
+
+    // Re-apply prefill whenever query params change (e.g. clicking a package CTA on /book).
+    const prefillKey = `${serviceName || ""}__${addonNames || ""}`;
+    if (prefillKey === lastPrefillKeyRef.current) return;
 
     let matchedServiceId: number | "" = "";
     let matchedAddonIds: number[] = [];
@@ -481,9 +485,12 @@ function BookPageInner() {
 
     if (matchedAddonIds.length > 0) {
       setSelectedAddons(matchedAddonIds);
+    } else if (addonNames) {
+      setSelectedAddons([]);
     }
 
     didInitialPrefill.current = true;
+    lastPrefillKeyRef.current = prefillKey;
   }, [searchParams, services, addons]);
 
   useEffect(() => {
