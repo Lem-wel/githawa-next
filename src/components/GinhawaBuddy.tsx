@@ -1039,8 +1039,8 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
         >
           <div
             style={{
-              background: "linear-gradient(135deg, #0f3d3e 0%, #195b61 48%, #21727a 100%)",
-              color: "#f6fbfc",
+              background: "linear-gradient(180deg, #9ab59d 0%, #88a98e 100%)",
+              color: "#fdfbf7",
               padding: "16px 18px",
               display: "flex",
               justifyContent: "space-between",
@@ -1140,9 +1140,9 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                         width: 26,
                         height: 26,
                         borderRadius: 8,
-                        background: "#d7eef2",
-                        border: "1px solid #b8dce2",
-                        color: "#11484c",
+                        background: "#d8e8d9",
+                        border: "1px solid #bdd2be",
+                        color: "#3f5c43",
                         fontSize: 11,
                         fontWeight: 700,
                         display: "grid",
@@ -1163,12 +1163,12 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                         msg.sender === "user"
                           ? "16px 16px 5px 16px"
                           : "16px 16px 16px 5px",
-                      background: msg.sender === "user" ? "#195b61" : "#ffffff",
-                      color: msg.sender === "user" ? "#f5fdff" : "#1d3641",
+                      background: msg.sender === "user" ? "#879f87" : "#ebe4d8",
+                      color: msg.sender === "user" ? "#fffdf9" : "#3f4d40",
                       border:
                         msg.sender === "user"
-                          ? "1px solid rgba(25,91,97,0.92)"
-                          : "1px solid rgba(20,47,67,0.12)",
+                          ? "1px solid rgba(135,159,135,0.8)"
+                          : "1px solid rgba(118,132,112,0.12)",
                       fontFamily: "Inter, sans-serif",
                       fontSize: 13.5,
                       lineHeight: 1.52,
@@ -1176,8 +1176,8 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                       wordBreak: "break-word",
                       boxShadow:
                         msg.sender === "user"
-                          ? "0 8px 22px rgba(22,87,94,0.20)"
-                          : "0 6px 18px rgba(13,36,51,0.06)",
+                          ? "0 8px 18px rgba(135,159,135,0.14)"
+                          : "0 8px 18px rgba(80,90,70,0.05)",
                     }}
                   >
                     {msg.text}
@@ -1189,14 +1189,14 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                           style={{
                             display: "inline-block",
                             padding: "9px 13px",
-                            background: "#1f6b73",
-                            color: "#f7feff",
+                            background: "#6f8f72",
+                            color: "#fffdf9",
                             borderRadius: 999,
                             textDecoration: "none",
                             fontSize: 12.5,
                             fontWeight: 700,
-                            border: "1px solid rgba(31,107,115,0.95)",
-                            boxShadow: "0 8px 20px rgba(31,107,115,0.20)",
+                            border: "1px solid rgba(111,143,114,0.95)",
+                            boxShadow: "0 8px 20px rgba(111,143,114,0.18)",
                           }}
                         >
                           Proceed to Booking
@@ -1235,8 +1235,8 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                     border: "1px solid rgba(20,47,67,0.12)",
                     borderRadius: "16px 16px 16px 5px",
                     padding: "11px 13px",
-                    color: "#3f5662",
-                    boxShadow: "0 6px 18px rgba(13,36,51,0.06)",
+                    color: "#667360",
+                    boxShadow: "0 8px 18px rgba(80,90,70,0.05)",
                   }}
                 >
                   <span style={{ fontSize: 11, marginRight: 4 }}>Thinking</span>
@@ -1274,9 +1274,9 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                     whiteSpace: "nowrap",
                     padding: "7px 12px",
                     borderRadius: 999,
-                    border: "1px solid rgba(25,91,97,0.20)",
-                    background: "#ffffff",
-                    color: "#195b61",
+                    border: "1px solid rgba(111,143,114,0.18)",
+                    background: "#f0eadf",
+                    color: "#53624f",
                     fontSize: 12,
                     fontWeight: 600,
                     fontFamily: "Inter, sans-serif",
@@ -1305,9 +1305,9 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                 flex: 1,
                 padding: "11px 13px",
                 borderRadius: 999,
-                border: "1px solid rgba(20,47,67,0.18)",
-                background: "#ffffff",
-                color: "#204051",
+                border: "1px solid rgba(90,104,84,0.16)",
+                background: "#fcfaf6",
+                color: "#445344",
                 fontSize: 13.5,
                 fontFamily: "Inter, sans-serif",
                 outline: "none",
@@ -1324,12 +1324,12 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                 border: "none",
                 borderRadius: 999,
                 padding: "0 18px",
-                background: !input.trim() || typing ? "#9fb7bf" : "#1f6b73",
-                color: "#f7feff",
+                background: !input.trim() || typing ? "#aab7ab" : "#6f8f72",
+                color: "#fffdf9",
                 fontWeight: 700,
                 fontSize: 13,
                 cursor: !input.trim() || typing ? "not-allowed" : "pointer",
-                boxShadow: "0 8px 18px rgba(31,107,115,0.2)",
+                boxShadow: "0 8px 18px rgba(111,143,114,0.18)",
               }}
             >
               Send
@@ -1349,19 +1349,19 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
             width: 68,
             height: 68,
             borderRadius: "50%",
-            border: "1px solid rgba(20,47,67,0.2)",
-            background: "linear-gradient(180deg, #1f6b73 0%, #15575d 100%)",
-            color: "#f8feff",
-            fontSize: 24,
+            border: "1px solid rgba(111,143,114,0.16)",
+            background: "linear-gradient(180deg, #98b39a 0%, #7d9d81 100%)",
+            color: "#fffdf9",
+            fontSize: 28,
             cursor: "pointer",
-            boxShadow: "0 16px 34px rgba(21,87,93,0.35)",
+            boxShadow: "0 14px 30px rgba(111,143,114,0.22)",
             zIndex: 1000,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          AI
+          💬
         </button>
       )}
 
@@ -1389,7 +1389,7 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
           width: 8px;
           height: 8px;
           border-radius: 999px;
-          background: #1e6470;
+          background: #7f8d78;
           display: inline-block;
           animation: ginhawa-bounce 1.05s infinite ease-in-out;
         }

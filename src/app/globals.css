@@ -785,13 +785,14 @@ select{
 }
 
 .calendarWrap {
-   margin: 8px auto 0;
+  margin: 8px auto 0;
   padding: 16px 18px;
   border: 1px solid #e5e7eb;
   border-radius: 20px;
   background: #fff;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
+  overflow: hidden;
 }
 
 .calendarLegend {
@@ -838,7 +839,17 @@ select{
 }
 
 .rdp-month {
-  width: auto;
+  width: 100%;
+}
+
+.rdp-months,
+.rdp-table {
+  width: 100%;
+}
+
+.rdp-head_cell,
+.rdp-cell {
+  text-align: center;
 }
 .ginhawa-dot {
   width: 8px;
@@ -885,59 +896,64 @@ select{
     font-size: 16px;
   }
 
-  /* calendar container */
-  .react-calendar,
-  .rdrCalendarWrapper,
-  .calendar,
-  [class*="calendar"]{
+  .bookingContainer {
+    margin: 18px auto;
+    padding: 0 10px;
+  }
+
+  .calendarWrap {
+    padding: 12px 10px;
+    border-radius: 16px;
+  }
+
+  .rdp {
+    font-size: 13px;
+  }
+
+  .rdp-month,
+  .rdp-table,
+  .rdp-month_grid {
     width: 100% !important;
     max-width: 100% !important;
-    font-size: 14px !important;
-    border-radius: 18px;
-    box-sizing: border-box;
   }
 
-  /* calendar tiles/days */
-  .react-calendar__tile,
-  [class*="day"],
-  [class*="tile"]{
-    max-width: 100% !important;
-    padding: 10px 4px !important;
-    font-size: 14px !important;
+  .rdp-day,
+  .rdp-head_cell {
+    width: 40px;
+    height: 40px;
+    max-width: 40px;
+    font-size: 13px;
   }
 
-  /* month header / arrows */
-  .react-calendar__navigation button,
-  [class*="navigation"] button,
-  [class*="month"] button{
-    min-width: 36px !important;
-    font-size: 16px !important;
+  .rdp-nav_button {
+    width: 34px;
+    height: 34px;
   }
 
-  /* prevent horizontal overflow */
-  .react-calendar *,
-  .rdrCalendarWrapper *,
-  .calendar *{
-    box-sizing: border-box;
-  }
-
-  /* feedback widget lower and smaller on mobile */
-  .feedback-widget,
-  .feedbackBubble,
-  .feedbackButton,
-  [class*="feedback"]{
-    transform: scale(0.88);
-    transform-origin: bottom left;
-    bottom: 72px !important;
-    left: 12px !important;
+  .calendarLegend {
+    gap: 10px;
+    font-size: 12px;
   }
 }
 
 .feedbackFab {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 16px;
+  left: auto;
+  transform: none;
   bottom: calc(16px + env(safe-area-inset-bottom));
-  width: min(92vw, 340px);
+  width: auto;
+  max-width: calc(100vw - 110px);
+  white-space: nowrap;
   z-index: 999;
+}
+
+@media (max-width: 520px) {
+  .feedbackFab {
+    right: 12px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    max-width: calc(100vw - 100px);
+    font-size: 13px;
+    padding: 11px 14px !important;
+  }
 }
