@@ -117,6 +117,15 @@ function getBotReply(
       "chatbot",
       "ginhawa buddy",
       "assistant",
+    ]) &&
+    !includesAny(msg, [
+      "business hours",
+      "opening hours",
+      "operating hours",
+      "store hours",
+      "what are your business hours",
+      "what time do you open",
+      "what time do you close",
     ])
   ) {
     return {
