@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type Props = {
@@ -24,6 +25,7 @@ type Message = {
   text: string;
   action?: ActionType;
   package?: PackagePreview;
+  packages?: PackagePreview[];
 };
 
 type StaffItem = {
@@ -39,6 +41,7 @@ type BotReply = {
   text: string;
   action?: ActionType;
   package?: PackagePreview;
+  packages?: PackagePreview[];
 };
 
 const QUICK_REPLIES = [
@@ -213,42 +216,141 @@ function detectServiceFromText(text: string): string | null {
   return null;
 }
 
-function buildPackageForService(serviceName: string): PackagePreview {
+function buildPackagesForService(serviceName: string): PackagePreview[] {
   const s = serviceName.toLowerCase();
 
+  // Some services like Back Scrub are better treated as add-ons;
+  // map them to a suitable main service so booking prefill works.
+  const normalizedServiceName =
+    s === "back scrub"
+      ? "Body Scrub"
+      : s === "head massage"
+      ? "Aromatherapy Massage"
+      : serviceName;
+
   if (s.includes("deep tissue") || s.includes("hot stone")) {
-    return {
-      title: "Tension Relief Package",
-      serviceName,
-      addonNames: ["Back Scrub"],
-      blurb: "Focused muscle-relief package for tension and body aches.",
-    };
+    return [
+      {
+        title: "Tension Relief Package",
+        serviceName: normalizedServiceName,
+        addonNames: ["Back Scrub"],
+        blurb: "Focused muscle-relief package for tension and body aches.",
+      },
+      {
+        title: "Recovery Plus Package",
+        serviceName: normalizedServiceName,
+        addonNames: ["Foot Reflexology"],
+        blurb: "Strong pressure session with recovery-focused add-on support.",
+      },
+      {
+        title: "Deep Reset Package",
+        serviceName: normalizedServiceName,
+        addonNames: ["Back Scrub", "Head Massage"],
+        blurb: "Extended reset package for full body tension management.",
+      },
+    ];
   }
 
   if (s.includes("facial") || s.includes("skin")) {
-    return {
-      title: "Skin Glow Package",
-      serviceName,
-      addonNames: ["Head Massage"],
-      blurb: "Skin-focused package with a relaxing add-on.",
-    };
+    return [
+      {
+        title: "Skin Glow Package",
+        serviceName: normalizedServiceName,
+        addonNames: ["Head Massage"],
+        blurb: "Skin-focused package with a relaxing add-on.",
+      },
+      {
+        title: "Radiance Care Package",
+        serviceName: normalizedServiceName,
+        addonNames: ["Back Scrub"],
+        blurb: "Facial-centered package paired with gentle body refresh.",
+      },
+      {
+        title: "Premium Facial Ritual",
+        serviceName: normalizedServiceName,
+        addonNames: ["Head Massage", "Foot Reflexology"],
+        blurb: "Complete facial ritual package for glow and relaxation.",
+      },
+    ];
   }
 
   if (s.includes("body scrub") || s.includes("detox") || s.includes("slimming")) {
-    return {
-      title: "Body Renewal Package",
-      serviceName,
-      addonNames: ["Back Scrub", "Foot Reflexology"],
-      blurb: "Body-refresh package for renewal and recovery.",
-    };
+    return [
+      {
+        title: "Body Renewal Package",
+        serviceName: normalizedServiceName,
+        addonNames: ["Back Scrub", "Foot Reflexology"],
+        blurb: "Body-refresh package for renewal and recovery.",
+      },
+      {
+        title: "Detox Restore Package",
+        serviceName: normalizedServiceName,
+        addonNames: ["Head Massage"],
+        blurb: "A recovery blend for body refresh and calm decompression.",
+      },
+      {
+        title: "Rejuvenation Combo",
+        serviceName: normalizedServiceName,
+        addonNames: ["Back Scrub", "Head Massage"],
+        blurb: "Balanced body-care combo with exfoliation and relaxation.",
+      },
+    ];
   }
 
-  return {
-    title: "Relax & Reset Package",
-    serviceName,
-    addonNames: ["Head Massage"],
-    blurb: "Balanced wellness package for overall relaxation.",
-  };
+  if (s.includes("foot") || s.includes("reflexology")) {
+    return [
+      {
+        title: "Foot Comfort Package",
+        serviceName: normalizedServiceName,
+        addonNames: ["Head Massage"],
+        blurb: "Great for tired feet with added upper-body relaxation.",
+      },
+      {
+        title: "Lower Body Relief Package",
+        serviceName: normalizedServiceName,
+        addonNames: ["Back Scrub"],
+        blurb: "Comfort-focused package for foot stress and body fatigue.",
+      },
+      {
+        title: "Reflex Reset Package",
+        serviceName: normalizedServiceName,
+        addonNames: ["Head Massage", "Back Scrub"],
+        blurb: "A fuller package for circulation support and tension reset.",
+      },
+    ];
+  }
+
+  return [
+    {
+      title: "Relax & Reset Package",
+      serviceName: normalizedServiceName,
+      addonNames: ["Head Massage"],
+      blurb: "Balanced wellness package for overall relaxation.",
+    },
+    {
+      title: "Signature Wellness Package",
+      serviceName: normalizedServiceName,
+      addonNames: ["Foot Reflexology"],
+      blurb: "Signature combo for comfort, focus, and body recovery.",
+    },
+    {
+      title: "Complete Care Package",
+      serviceName: normalizedServiceName,
+      addonNames: ["Head Massage", "Back Scrub"],
+      blurb: "Full experience package with premium add-on support.",
+    },
+  ];
+}
+
+function createPackageHref(pack: PackagePreview) {
+  const params = new URLSearchParams();
+  params.set("service", pack.serviceName);
+
+  if (pack.addonNames.length > 0) {
+    params.set("addons", pack.addonNames.join(","));
+  }
+
+  return `/book?${params.toString()}`;
 }
 
 function getBotReply(
@@ -273,15 +375,17 @@ function getBotReply(
     ])
   ) {
     if (detectedService) {
-      const pack = buildPackageForService(detectedService);
+      const packs = buildPackagesForService(detectedService);
+      const primary = packs[0];
       return {
         text: randomAnswer([
-          `Great choice. I prepared a ${pack.title} for ${pack.serviceName}.`,
-          `Sure. Here's a recommended package for ${pack.serviceName}.`,
-          `I found a suitable package for ${pack.serviceName}.`,
+          `Great choice. I prepared package options for ${primary.serviceName}.`,
+          `Sure. Here are recommended package choices for ${primary.serviceName}.`,
+          `I found suitable packages for ${primary.serviceName}.`,
         ]),
         action: "package",
-        package: pack,
+        package: primary,
+        packages: packs,
       };
     }
 
@@ -1125,6 +1229,7 @@ function getBotReply(
 }
 
 export default function GinhawaChatBubble({ forceOpen = false }: Props) {
+  const router = useRouter();
   const [open, setOpen] = useState(forceOpen);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
@@ -1244,11 +1349,17 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
         text: reply.text,
         action: reply.action,
         package: reply.package,
+        packages: reply.packages,
       };
 
       setMessages((prev) => [...prev, botMsg]);
       setTyping(false);
     }, delay);
+  }
+
+  function navigateToPackage(pack: PackagePreview) {
+    setOpen(false);
+    router.push(createPackageHref(pack));
   }
 
   return (
@@ -1440,31 +1551,34 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                       </div>
                     )}
 
-                    {msg.action === "package" && msg.package && (
+                    {msg.action === "package" && (msg.packages?.length || msg.package) && (
                       <div style={{ marginTop: 11 }}>
-                        <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
-                          {msg.package.blurb}
-                        </div>
-                        <Link
-                          href={`/book?${new URLSearchParams({
-                            service: msg.package.serviceName,
-                            addons: msg.package.addonNames.join(","),
-                          }).toString()}`}
-                          style={{
-                            display: "inline-block",
-                            padding: "9px 13px",
-                            background: "#6f8f72",
-                            color: "#fffdf9",
-                            borderRadius: 999,
-                            textDecoration: "none",
-                            fontSize: 12.5,
-                            fontWeight: 700,
-                            border: "1px solid rgba(111,143,114,0.95)",
-                            boxShadow: "0 8px 20px rgba(111,143,114,0.18)",
-                          }}
-                        >
-                          Use {msg.package.title}
-                        </Link>
+                        {(msg.packages ?? (msg.package ? [msg.package] : [])).map((pack) => (
+                          <div key={`${msg.id}-${pack.title}`} style={{ marginBottom: 10 }}>
+                            <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
+                              {pack.blurb}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => navigateToPackage(pack)}
+                              style={{
+                                display: "inline-block",
+                                padding: "9px 13px",
+                                background: "#6f8f72",
+                                color: "#fffdf9",
+                                borderRadius: 999,
+                                textDecoration: "none",
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                                border: "1px solid rgba(111,143,114,0.95)",
+                                boxShadow: "0 8px 20px rgba(111,143,114,0.18)",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Use {pack.title}
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     )}
 
