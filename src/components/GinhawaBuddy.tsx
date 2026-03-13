@@ -9,13 +9,21 @@ type Props = {
 };
 
 type Sender = "user" | "bot";
-type ActionType = "booking";
+type ActionType = "booking" | "package";
+
+type PackagePreview = {
+  title: string;
+  serviceName: string;
+  addonNames: string[];
+  blurb: string;
+};
 
 type Message = {
   id: number;
   sender: Sender;
   text: string;
   action?: ActionType;
+  package?: PackagePreview;
 };
 
 type StaffItem = {
@@ -30,6 +38,7 @@ type ServiceItem = {
 type BotReply = {
   text: string;
   action?: ActionType;
+  package?: PackagePreview;
 };
 
 const QUICK_REPLIES = [
@@ -177,12 +186,113 @@ function randomAnswer(answers: string[]) {
   return pick;
 }
 
+function detectServiceFromText(text: string): string | null {
+  const msg = text.toLowerCase();
+
+  if (msg.includes("deep tissue massage extra")) return "Deep Tissue Massage Extra";
+  if (msg.includes("swedish massage extra")) return "Swedish Massage Extra";
+  if (msg.includes("deep tissue massage")) return "Deep Tissue Massage";
+  if (msg.includes("swedish massage")) return "Swedish Massage";
+  if (msg.includes("hot stone massage")) return "Hot Stone Massage";
+  if (msg.includes("aromatherapy massage")) return "Aromatherapy Massage";
+  if (msg.includes("brightening facial")) return "Brightening Facial";
+  if (msg.includes("acne control facial")) return "Acne Control Facial";
+  if (msg.includes("classic facial")) return "Classic Facial";
+  if (msg.includes("anti-aging facial") || msg.includes("anti aging facial")) return "Anti-Aging Facial";
+  if (msg.includes("body scrub")) return "Body Scrub";
+  if (msg.includes("detox body wrap")) return "Detox Body Wrap";
+  if (msg.includes("slimming therapy")) return "Slimming Therapy";
+  if (msg.includes("foot reflexology")) return "Foot Reflexology";
+  if (msg.includes("foot spa")) return "Foot Spa";
+  if (msg.includes("head massage")) return "Head Massage";
+  if (msg.includes("manicure")) return "Manicure";
+  if (msg.includes("pedicure")) return "Pedicure";
+  if (msg.includes("gel polish")) return "Gel Polish";
+  if (msg.includes("back scrub")) return "Back Scrub";
+
+  return null;
+}
+
+function buildPackageForService(serviceName: string): PackagePreview {
+  const s = serviceName.toLowerCase();
+
+  if (s.includes("deep tissue") || s.includes("hot stone")) {
+    return {
+      title: "Tension Relief Package",
+      serviceName,
+      addonNames: ["Back Scrub"],
+      blurb: "Focused muscle-relief package for tension and body aches.",
+    };
+  }
+
+  if (s.includes("facial") || s.includes("skin")) {
+    return {
+      title: "Skin Glow Package",
+      serviceName,
+      addonNames: ["Head Massage"],
+      blurb: "Skin-focused package with a relaxing add-on.",
+    };
+  }
+
+  if (s.includes("body scrub") || s.includes("detox") || s.includes("slimming")) {
+    return {
+      title: "Body Renewal Package",
+      serviceName,
+      addonNames: ["Back Scrub", "Foot Reflexology"],
+      blurb: "Body-refresh package for renewal and recovery.",
+    };
+  }
+
+  return {
+    title: "Relax & Reset Package",
+    serviceName,
+    addonNames: ["Head Massage"],
+    blurb: "Balanced wellness package for overall relaxation.",
+  };
+}
+
 function getBotReply(
   input: string,
   staff: StaffItem[],
-  services: ServiceItem[]
+  services: ServiceItem[],
+  lastServiceHint: string | null
 ): BotReply {
   const msg = input.toLowerCase().trim();
+
+  const detectedService = detectServiceFromText(msg) || lastServiceHint;
+
+  if (
+    includesAny(msg, [
+      "package",
+      "packages",
+      "bundle",
+      "combo",
+      "recommend package",
+      "package for that",
+      "package for this",
+    ])
+  ) {
+    if (detectedService) {
+      const pack = buildPackageForService(detectedService);
+      return {
+        text: randomAnswer([
+          `Great choice. I prepared a ${pack.title} for ${pack.serviceName}.`,
+          `Sure. Here's a recommended package for ${pack.serviceName}.`,
+          `I found a suitable package for ${pack.serviceName}.`,
+        ]),
+        action: "package",
+        package: pack,
+      };
+    }
+
+    return {
+      text: randomAnswer([
+        "I can create a package for you. Please mention the service name first (for example: Deep Tissue Massage or Slimming Therapy).",
+        "Sure. Tell me which service you want, then I'll give you a package with add-on suggestions.",
+        "Please share the service you have in mind, and I'll generate a recommended package.",
+      ]),
+    };
+  }
 
   if (
     includesAny(msg, ["hello", "hi", "hey", "good morning", "good afternoon"])
@@ -1020,6 +1130,7 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
   const [typing, setTyping] = useState(false);
   const [staff, setStaff] = useState<StaffItem[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
+  const [lastServiceHint, setLastServiceHint] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -1107,6 +1218,11 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
     const cleanText = text.trim();
     if (!cleanText) return;
 
+    const mentionedService = detectServiceFromText(cleanText);
+    if (mentionedService) {
+      setLastServiceHint(mentionedService);
+    }
+
     const userMsg: Message = {
       id: nextIdRef.current++,
       sender: "user",
@@ -1120,13 +1236,14 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
     const delay = 1200 + Math.random() * 2000;
 
     typingTimeoutRef.current = setTimeout(() => {
-      const reply = getBotReply(cleanText, staff, services);
+      const reply = getBotReply(cleanText, staff, services, mentionedService || lastServiceHint);
 
       const botMsg: Message = {
         id: nextIdRef.current++,
         sender: "bot",
         text: reply.text,
         action: reply.action,
+        package: reply.package,
       };
 
       setMessages((prev) => [...prev, botMsg]);
@@ -1319,6 +1436,34 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                           }}
                         >
                           Proceed to Booking
+                        </Link>
+                      </div>
+                    )}
+
+                    {msg.action === "package" && msg.package && (
+                      <div style={{ marginTop: 11 }}>
+                        <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
+                          {msg.package.blurb}
+                        </div>
+                        <Link
+                          href={`/book?${new URLSearchParams({
+                            service: msg.package.serviceName,
+                            addons: msg.package.addonNames.join(","),
+                          }).toString()}`}
+                          style={{
+                            display: "inline-block",
+                            padding: "9px 13px",
+                            background: "#6f8f72",
+                            color: "#fffdf9",
+                            borderRadius: 999,
+                            textDecoration: "none",
+                            fontSize: 12.5,
+                            fontWeight: 700,
+                            border: "1px solid rgba(111,143,114,0.95)",
+                            boxShadow: "0 8px 20px rgba(111,143,114,0.18)",
+                          }}
+                        >
+                          Use {msg.package.title}
                         </Link>
                       </div>
                     )}
