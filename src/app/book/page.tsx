@@ -99,6 +99,7 @@ function BookPageInner() {
   const [couponCode, setCouponCode] = useState("");
   const [couponReward, setCouponReward] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [showQrModal, setShowQrModal] = useState(false);
 
   const didInitialPrefill = useRef(false);
 
@@ -653,7 +654,7 @@ function BookPageInner() {
     checkAvailability();
   }, [mainService, date, time, blockedDuration, candidateStaff, allRooms, staffId, roomId]);
 
-  async function book() {
+  async function validateAndBook() {
     setMsg("");
 
     if (!serviceId || !date || !time || !staffId || !roomId) {
@@ -673,6 +674,23 @@ function BookPageInner() {
       setMsg("This appointment exceeds business hours. Please choose an earlier time.");
       return;
     }
+
+    if (paymentMethod === "GCash" || paymentMethod === "Maya") {
+      setShowQrModal(true);
+      return;
+    }
+    await executeBooking();
+  }
+
+  async function executeBooking() {
+    setShowQrModal(false);
+
+    if (!mainService || !serviceId || !date || !time || !staffId || !roomId) {
+      setMsg("Please complete all required fields.");
+      return;
+    }
+
+    const start = timeToMinutes(time);
 
     setLoading(true);
 
@@ -1111,58 +1129,239 @@ function BookPageInner() {
             </div>
           </div>
 
-          <div style={{ marginTop: 16 }}>
-            <label>Payment Method</label>
+          {/* Payment Method */}
+          <div style={{ marginTop: 20 }}>
+            <label style={{ fontWeight: 700, fontSize: 15 }}>Payment Method</label>
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
-                gap: 10,
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: 12,
                 marginTop: 10,
               }}
             >
-              {[
-                { label: "Cash", icon: "💵" },
-                { label: "GCash", icon: "📱" },
-                { label: "Maya", icon: "🟣" },
-                { label: "Credit Card", icon: "💳" },
-                { label: "Debit Card", icon: "🏧" },
-              ].map(({ label, icon }) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => setPaymentMethod(label)}
-                  style={{
-                    padding: "12px 10px",
-                    borderRadius: 14,
-                    border:
-                      paymentMethod === label
-                        ? "2px solid #3a6e47"
-                        : "1px solid var(--border)",
-                    background: paymentMethod === label ? "#eaf1ec" : "#fff",
-                    fontWeight: paymentMethod === label ? 700 : 400,
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 13,
-                  }}
-                >
-                  <span style={{ fontSize: 22 }}>{icon}</span>
-                  {label}
-                </button>
-              ))}
+              {/* Cash */}
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("Cash")}
+                style={{
+                  padding: "16px 8px",
+                  borderRadius: 16,
+                  border: paymentMethod === "Cash" ? "2.5px solid #3a6e47" : "1.5px solid #e0e0e0",
+                  background: paymentMethod === "Cash" ? "#eaf1ec" : "#fafafa",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#d4edda", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
+                  💵
+                </div>
+                <span style={{ fontWeight: paymentMethod === "Cash" ? 700 : 500, fontSize: 13, color: "#222" }}>Cash</span>
+                {paymentMethod === "Cash" && <span style={{ fontSize: 10, color: "#3a6e47", fontWeight: 700 }}>✔ SELECTED</span>}
+              </button>
+
+              {/* GCash */}
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("GCash")}
+                style={{
+                  padding: "16px 8px",
+                  borderRadius: 16,
+                  border: paymentMethod === "GCash" ? "2.5px solid #007DFF" : "1.5px solid #e0e0e0",
+                  background: paymentMethod === "GCash" ? "#e8f2ff" : "#fafafa",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#007DFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", fontSize: 15, letterSpacing: "-0.5px" }}>
+                  G
+                </div>
+                <span style={{ fontWeight: paymentMethod === "GCash" ? 700 : 500, fontSize: 13, color: "#007DFF" }}>GCash</span>
+                {paymentMethod === "GCash" && <span style={{ fontSize: 10, color: "#007DFF", fontWeight: 700 }}>✔ SELECTED</span>}
+              </button>
+
+              {/* Maya */}
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("Maya")}
+                style={{
+                  padding: "16px 8px",
+                  borderRadius: 16,
+                  border: paymentMethod === "Maya" ? "2.5px solid #0A3D6B" : "1.5px solid #e0e0e0",
+                  background: paymentMethod === "Maya" ? "#e6f0f8" : "#fafafa",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#0A3D6B", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", fontSize: 15 }}>
+                  M
+                </div>
+                <span style={{ fontWeight: paymentMethod === "Maya" ? 700 : 500, fontSize: 13, color: "#0A3D6B" }}>Maya</span>
+                {paymentMethod === "Maya" && <span style={{ fontSize: 10, color: "#0A3D6B", fontWeight: 700 }}>✔ SELECTED</span>}
+              </button>
             </div>
+
+            {(paymentMethod === "GCash" || paymentMethod === "Maya") && (
+              <p style={{ marginTop: 10, fontSize: 13, color: "var(--muted)" }}>
+                A {paymentMethod} QR code will appear after you click &ldquo;Book Now&rdquo;. Scan and pay, then confirm.
+              </p>
+            )}
           </div>
 
-          <div style={{ marginTop: 16 }}>
-            <button className="btn btnPrimary" onClick={book} disabled={loading}>
+          <div style={{ marginTop: 20 }}>
+            <button
+              className="btn btnPrimary"
+              onClick={validateAndBook}
+              disabled={loading}
+              style={{ width: "100%", padding: "14px", fontSize: 16, borderRadius: 14 }}
+            >
               {loading ? "Booking..." : "Book Now"}
             </button>
           </div>
         </div>
       </div>
+
+      {/* QR Payment Modal */}
+      {showQrModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 24,
+              padding: "32px 28px",
+              width: "100%",
+              maxWidth: 400,
+              boxShadow: "0 24px 64px rgba(0,0,0,0.3)",
+              textAlign: "center",
+            }}
+          >
+            {/* Brand bar */}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: paymentMethod === "GCash" ? "#007DFF" : "#0A3D6B",
+                borderRadius: 14,
+                padding: "10px 28px",
+                marginBottom: 18,
+              }}
+            >
+              <span style={{ fontSize: 18, fontWeight: 900, color: "#fff", letterSpacing: 1 }}>
+                {paymentMethod}
+              </span>
+            </div>
+
+            <p style={{ color: "#666", fontSize: 14, marginBottom: 18, marginTop: 0 }}>
+              Scan the QR code to pay. Once done, tap&nbsp;<b>I&apos;ve Paid</b>.
+            </p>
+
+            {/* QR code */}
+            <div
+              style={{
+                width: 210,
+                height: 210,
+                margin: "0 auto 20px",
+                borderRadius: 18,
+                overflow: "hidden",
+                border: "2px solid #e8e8e8",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#f9f9f9",
+              }}
+            >
+              <img
+                src={paymentMethod === "GCash" ? "/gcash-qr.png" : "/maya-qr.png"}
+                alt={`${paymentMethod} QR Code`}
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                  const p = e.currentTarget.parentElement;
+                  if (p) p.innerHTML = `<div style="padding:20px;color:#999;font-size:12px;line-height:1.6">📷 Add your QR image at<br/><b>/public/${paymentMethod.toLowerCase()}-qr.png</b></div>`;
+                }}
+              />
+            </div>
+
+            {/* Amount */}
+            <div
+              style={{
+                background: "#f4f8f4",
+                borderRadius: 14,
+                padding: "14px 20px",
+                marginBottom: 20,
+              }}
+            >
+              <div style={{ fontSize: 12, color: "#999", letterSpacing: 1, textTransform: "uppercase" }}>Amount to Pay</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: "#1a3a20", marginTop: 4 }}>
+                ₱{finalTotal.toFixed(2)}
+              </div>
+              <div style={{ fontSize: 12, color: "#bbb", marginTop: 2 }}>Ginhawa Spa</div>
+            </div>
+
+            {/* Confirm */}
+            <button
+              type="button"
+              onClick={executeBooking}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "15px",
+                borderRadius: 14,
+                border: "none",
+                background: paymentMethod === "GCash" ? "#007DFF" : "#0A3D6B",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 15,
+                cursor: loading ? "not-allowed" : "pointer",
+                marginBottom: 10,
+              }}
+            >
+              {loading ? "Confirming…" : "✅ I've Paid — Confirm Booking"}
+            </button>
+
+            {/* Back */}
+            <button
+              type="button"
+              onClick={() => setShowQrModal(false)}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: 14,
+                border: "1.5px solid #e0e0e0",
+                background: "#fff",
+                color: "#666",
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: "pointer",
+              }}
+            >
+              ← Back
+            </button>
+          </div>
+        </div>
+      )}
     </SiteShell>
   );
 }
