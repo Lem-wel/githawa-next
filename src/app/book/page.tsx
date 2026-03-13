@@ -1074,9 +1074,6 @@ function BookPageInner() {
                 </option>
               ))}
             </select>
-            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-              Available booking hours: 8:00 AM to 5:00 PM, every 15 minutes.
-            </div>
           </div>
 
           <div style={{ marginTop: 12 }}>
@@ -1099,9 +1096,6 @@ function BookPageInner() {
                 </option>
               ))}
             </select>
-            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-              Staff can only be booked up to 8 appointments per day.
-            </div>
           </div>
 
           <div style={{ marginTop: 12 }}>
@@ -1124,9 +1118,6 @@ function BookPageInner() {
                 </option>
               ))}
             </select>
-            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-              Rooms already occupied at the selected time are hidden automatically.
-            </div>
           </div>
 
           {/* Payment Method */}
@@ -1241,7 +1232,8 @@ function BookPageInner() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: 20,
+            padding: "max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left))",
+            overflowY: "auto",
           }}
         >
           <div
@@ -1251,6 +1243,8 @@ function BookPageInner() {
               padding: "32px 28px",
               width: "100%",
               maxWidth: 400,
+              maxHeight: "min(92dvh, 680px)",
+              overflowY: "auto",
               boxShadow: "0 24px 64px rgba(0,0,0,0.3)",
               textAlign: "center",
             }}

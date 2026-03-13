@@ -35,6 +35,9 @@ type BotReply = {
 const QUICK_REPLIES = [
   "What services do you offer?",
   "Book appointment",
+  "What are your business hours?",
+  "What payment methods do you accept?",
+  "How do rewards and badges work?",
   "How can I contact you?",
 ];
 
@@ -102,6 +105,35 @@ function getBotReply(
         "Welcome! Feel free to ask about services, booking, or our staff.",
         "Hello and welcome to Ginhawa. What would you like to know today?",
         "Hi! I'm the Ginhawa website assistant. How can I help?",
+      ]),
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "who are you",
+      "what are you",
+      "are you ai",
+      "chatbot",
+      "ginhawa buddy",
+      "assistant",
+    ])
+  ) {
+    return {
+      text: randomAnswer([
+        "I'm Ginhawa Buddy, your website assistant for services, booking guidance, rewards, and contact details.",
+        "I am the Ginhawa AI assistant. I can help you with booking steps, spa services, payment options, and common questions.",
+        "I'm Ginhawa Buddy. You can ask me about available services, staff, badges and rewards, and how to book.",
+      ]),
+    };
+  }
+
+  if (includesAny(msg, ["thank you", "thanks", "salamat", "ty"])) {
+    return {
+      text: randomAnswer([
+        "You're welcome. I'm happy to help.",
+        "Glad I could help. Let me know if you want help choosing a service.",
+        "Anytime. If you want, I can also guide you to booking now.",
       ]),
     };
   }
@@ -261,6 +293,189 @@ function getBotReply(
               "Our staff list is currently unavailable, but it should appear soon once the system finishes updating.",
               "The staff information may still be syncing in the database.",
             ]),
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "open",
+      "opening hours",
+      "business hours",
+      "store hours",
+      "what time",
+      "close",
+      "operating hours",
+    ])
+  ) {
+    return {
+      text: randomAnswer([
+        "Our booking schedule runs from 8:00 AM to 5:00 PM. You can choose available time slots directly on the booking page.",
+        "Ginhawa appointment slots are available from 8:00 AM to 5:00 PM. The calendar will show open times when you book.",
+        "You may schedule appointments between 8:00 AM and 5:00 PM through the online booking page.",
+      ]),
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "how to book",
+      "book step",
+      "booking process",
+      "book online",
+      "how do i book",
+      "steps to book",
+    ])
+  ) {
+    return {
+      text: randomAnswer([
+        "To book: 1) Open the booking page, 2) select a service and date, 3) choose time, staff, and room, 4) add coupon if available, 5) choose payment method, then confirm.",
+        "Booking is simple: choose service, pick your schedule, select staff and room, apply any reward coupon, and confirm your appointment.",
+        "You can book in a few steps from the booking page: service selection, schedule details, payment method, and final confirmation.",
+      ]),
+      action: "booking",
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "walk in",
+      "walk-in",
+      "without appointment",
+      "no appointment",
+      "can i walk in",
+    ])
+  ) {
+    return {
+      text: randomAnswer([
+        "For a smoother visit, we recommend booking in advance so your preferred time, staff, and room are secured.",
+        "Advance booking is encouraged to avoid waiting and to reserve your preferred schedule.",
+        "You can use the online booking page to secure your slot before visiting.",
+      ]),
+      action: "booking",
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "reschedule",
+      "change appointment",
+      "move appointment",
+      "cancel appointment",
+      "cancellation",
+      "cancel booking",
+    ])
+  ) {
+    return {
+      text: randomAnswer([
+        "You can manage your booking through your Dashboard. Depending on your booking status, you may cancel or coordinate a reschedule.",
+        "For changes to your appointment, open your Dashboard and check your booking actions. If needed, contact the team for assistance.",
+        "Appointment updates are handled from your Dashboard booking list. Please update as early as possible.",
+      ]),
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "payment",
+      "mode of payment",
+      "how to pay",
+      "pay",
+      "gcash",
+      "maya",
+      "cash",
+    ])
+  ) {
+    return {
+      text: randomAnswer([
+        "Ginhawa currently supports Cash, GCash, and Maya. For GCash and Maya, the booking flow shows a QR payment prompt before final confirmation.",
+        "Available payment methods are Cash, GCash, and Maya. Digital payments use a QR step during booking.",
+        "You may pay via Cash, GCash, or Maya. If you choose GCash or Maya, the system displays a QR code before booking confirmation.",
+      ]),
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "reward",
+      "rewards",
+      "badge",
+      "badges",
+      "loyalty",
+      "coupon",
+      "discount code",
+    ])
+  ) {
+    return {
+      text: randomAnswer([
+        "Ginhawa has a badge and rewards system. As you complete bookings and milestones, you unlock badges that can give coupon rewards.",
+        "You can earn badges from activity milestones, then use unlocked rewards as coupons during booking.",
+        "Rewards are tied to your badges. Check your Badges and Rewards pages to view unlocked coupons and use them at checkout.",
+      ]),
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "referral",
+      "refer",
+      "invite friend",
+      "referral code",
+      "friend code",
+    ])
+  ) {
+    return {
+      text: randomAnswer([
+        "You can find your referral code in your Dashboard under the Referral section. Share it with friends during signup.",
+        "Referral features are available in your Dashboard. Copy your referral code and share it with friends.",
+        "To use referrals, open your Dashboard and check your referral code area. Rewards may unlock once referral conditions are met.",
+      ]),
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "first time",
+      "first visit",
+      "new customer",
+      "new client",
+      "what should i do",
+    ])
+  ) {
+    return {
+      text: randomAnswer([
+        "For your first visit, try arriving a little early, keep your booking details ready, and inform the team of any preferences before treatment starts.",
+        "If this is your first time, we suggest arriving a few minutes early and sharing any comfort preferences with the staff.",
+        "First-time guests are encouraged to arrive early, confirm service details, and mention any concerns before the session.",
+      ]),
+    };
+  }
+
+  if (includesAny(msg, ["what to wear", "attire", "dress code", "wear"])) {
+    return {
+      text: randomAnswer([
+        "Comfortable clothing is recommended when visiting the spa.",
+        "Please wear something comfortable and easy to change in and out of.",
+        "There is no strict dress code, but comfortable attire is best for a relaxing visit.",
+      ]),
+    };
+  }
+
+  if (
+    includesAny(msg, [
+      "pregnant",
+      "pregnancy",
+      "medical condition",
+      "injury",
+      "allergy",
+      "health concern",
+    ])
+  ) {
+    return {
+      text: randomAnswer([
+        "If you have health concerns, please inform the spa team before treatment so they can guide you on suitable service options.",
+        "For pregnancy, injuries, or allergies, it is best to mention this before the session so staff can adjust recommendations.",
+        "Please disclose any medical concerns before booking or during check-in so the team can provide safer service guidance.",
+      ]),
     };
   }
 
@@ -806,54 +1021,76 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
         <div
           style={{
             position: forceOpen ? "relative" : "fixed",
-            left: forceOpen ? undefined : 24,
-            bottom: forceOpen ? undefined : 96,
-            width: forceOpen ? "100%" : 360,
-            maxWidth: forceOpen ? "100%" : 360,
+            left: forceOpen ? undefined : 16,
+            bottom: forceOpen ? undefined : "calc(84px + env(safe-area-inset-bottom))",
+            width: forceOpen ? "100%" : 380,
+            maxWidth: forceOpen ? "100%" : "calc(100vw - 24px)",
             height: forceOpen ? "100vh" : 500,
-            background: "#f7f3ee",
+            background: "#f7f8fb",
             borderRadius: forceOpen ? 0 : 28,
-            boxShadow: forceOpen ? "none" : "0 18px 45px rgba(60, 70, 50, 0.14)",
+            boxShadow: forceOpen ? "none" : "0 28px 65px rgba(31, 45, 61, 0.18)",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             zIndex: 999,
-            border: forceOpen ? "none" : "1px solid rgba(90, 104, 84, 0.14)",
+            border: forceOpen ? "none" : "1px solid rgba(30, 50, 70, 0.12)",
             backdropFilter: "blur(10px)",
           }}
         >
           <div
             style={{
-              background: "linear-gradient(180deg, #9ab59d 0%, #88a98e 100%)",
-              color: "#fdfbf7",
-              padding: "18px 20px",
+              background: "linear-gradient(135deg, #0f3d3e 0%, #195b61 48%, #21727a 100%)",
+              color: "#f6fbfc",
+              padding: "16px 18px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              borderBottom: "1px solid rgba(255,255,255,0.18)",
+              borderBottom: "1px solid rgba(255,255,255,0.15)",
             }}
           >
-            <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
                 style={{
-                  fontFamily: '"Playfair Display", serif',
-                  fontSize: 22,
-                  fontWeight: 600,
-                  lineHeight: 1.1,
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  background: "rgba(255,255,255,0.18)",
+                  border: "1px solid rgba(255,255,255,0.24)",
+                  display: "grid",
+                  placeItems: "center",
+                  fontWeight: 700,
+                  fontSize: 13,
                 }}
               >
-                Ginhawa Buddy
+                AI
               </div>
-              <div
-                style={{
-                  fontFamily: "Inter, sans-serif",
-                  fontSize: 12,
-                  opacity: 0.92,
-                  marginTop: 4,
-                  letterSpacing: 0.2,
-                }}
-              >
-                Calm support for your wellness visit
+              <div>
+                <div
+                  style={{
+                    fontFamily: '"Playfair Display", serif',
+                    fontSize: 21,
+                    fontWeight: 600,
+                    lineHeight: 1.1,
+                    letterSpacing: 0.2,
+                  }}
+                >
+                  Ginhawa Buddy
+                </div>
+                <div
+                  style={{
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: 11,
+                    opacity: 0.95,
+                    marginTop: 5,
+                    letterSpacing: 0.3,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <span className="buddy-live-dot" />
+                  AI Concierge Online
+                </div>
               </div>
             </div>
 
@@ -862,13 +1099,13 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                 onClick={() => setOpen(false)}
                 aria-label="Close chat"
                 style={{
-                  background: "rgba(255,255,255,0.18)",
-                  border: "1px solid rgba(255,255,255,0.22)",
+                  background: "rgba(255,255,255,0.14)",
+                  border: "1px solid rgba(255,255,255,0.28)",
                   color: "#fff",
-                  width: 36,
-                  height: 36,
+                  width: 34,
+                  height: 34,
                   borderRadius: "50%",
-                  fontSize: 18,
+                  fontSize: 16,
                   cursor: "pointer",
                 }}
               >
@@ -880,10 +1117,12 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
           <div
             style={{
               flex: 1,
-              padding: 16,
+              padding: 14,
               overflowY: "auto",
-              background: "linear-gradient(180deg, #f7f3ee 0%, #f3efe8 100%)",
+              background:
+                "radial-gradient(1200px 280px at 10% 0%, rgba(32,114,122,0.10), transparent 45%), linear-gradient(180deg, #f7f9fb 0%, #eef3f7 100%)",
             }}
+            className="buddy-scroll"
           >
             {messages.map((msg) => (
               <div
@@ -891,57 +1130,90 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                 style={{
                   display: "flex",
                   justifyContent: msg.sender === "user" ? "flex-end" : "flex-start",
-                  marginBottom: 12,
+                  marginBottom: 10,
                 }}
               >
-                <div
-                  style={{
-                    maxWidth: "82%",
-                    padding: "12px 14px",
-                    borderRadius:
-                      msg.sender === "user"
-                        ? "20px 20px 8px 20px"
-                        : "20px 20px 20px 8px",
-                    background: msg.sender === "user" ? "#879f87" : "#ebe4d8",
-                    color: msg.sender === "user" ? "#fffdf9" : "#3f4d40",
-                    border:
-                      msg.sender === "user"
-                        ? "1px solid rgba(135,159,135,0.8)"
-                        : "1px solid rgba(118,132,112,0.12)",
-                    fontFamily: "Inter, sans-serif",
-                    fontSize: 14,
-                    lineHeight: 1.5,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    boxShadow:
-                      msg.sender === "user"
-                        ? "0 8px 18px rgba(135,159,135,0.14)"
-                        : "0 8px 18px rgba(80,90,70,0.05)",
-                  }}
-                >
-                  {msg.text}
-
-                  {msg.action === "booking" && (
-                    <div style={{ marginTop: 12 }}>
-                      <Link
-                        href="/book"
-                        style={{
-                          display: "inline-block",
-                          padding: "10px 14px",
-                          background: "#6f8f72",
-                          color: "#fffdf9",
-                          borderRadius: 999,
-                          textDecoration: "none",
-                          fontSize: 13,
-                          fontWeight: 600,
-                          border: "1px solid rgba(111,143,114,0.95)",
-                          boxShadow: "0 8px 20px rgba(111,143,114,0.18)",
-                        }}
-                      >
-                        Proceed to Booking
-                      </Link>
+                <div style={{ display: "flex", gap: 8, maxWidth: "90%" }}>
+                  {msg.sender === "bot" && (
+                    <div
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: 8,
+                        background: "#d7eef2",
+                        border: "1px solid #b8dce2",
+                        color: "#11484c",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        display: "grid",
+                        placeItems: "center",
+                        flexShrink: 0,
+                        marginTop: 2,
+                      }}
+                    >
+                      AI
                     </div>
                   )}
+
+                  <div
+                    style={{
+                      maxWidth: "100%",
+                      padding: "11px 13px",
+                      borderRadius:
+                        msg.sender === "user"
+                          ? "16px 16px 5px 16px"
+                          : "16px 16px 16px 5px",
+                      background: msg.sender === "user" ? "#195b61" : "#ffffff",
+                      color: msg.sender === "user" ? "#f5fdff" : "#1d3641",
+                      border:
+                        msg.sender === "user"
+                          ? "1px solid rgba(25,91,97,0.92)"
+                          : "1px solid rgba(20,47,67,0.12)",
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 13.5,
+                      lineHeight: 1.52,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      boxShadow:
+                        msg.sender === "user"
+                          ? "0 8px 22px rgba(22,87,94,0.20)"
+                          : "0 6px 18px rgba(13,36,51,0.06)",
+                    }}
+                  >
+                    {msg.text}
+
+                    {msg.action === "booking" && (
+                      <div style={{ marginTop: 11 }}>
+                        <Link
+                          href="/book"
+                          style={{
+                            display: "inline-block",
+                            padding: "9px 13px",
+                            background: "#1f6b73",
+                            color: "#f7feff",
+                            borderRadius: 999,
+                            textDecoration: "none",
+                            fontSize: 12.5,
+                            fontWeight: 700,
+                            border: "1px solid rgba(31,107,115,0.95)",
+                            boxShadow: "0 8px 20px rgba(31,107,115,0.20)",
+                          }}
+                        >
+                          Proceed to Booking
+                        </Link>
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        marginTop: 6,
+                        fontSize: 10.5,
+                        opacity: msg.sender === "user" ? 0.8 : 0.55,
+                      }}
+                    >
+                      {msg.sender === "user" ? "You" : "Ginhawa Buddy"}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -959,14 +1231,15 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
-                    background: "#ebe4d8",
-                    border: "1px solid rgba(118,132,112,0.12)",
-                    borderRadius: "20px 20px 20px 8px",
-                    padding: "12px 14px",
-                    color: "#667360",
-                    boxShadow: "0 8px 18px rgba(80,90,70,0.05)",
+                    background: "#ffffff",
+                    border: "1px solid rgba(20,47,67,0.12)",
+                    borderRadius: "16px 16px 16px 5px",
+                    padding: "11px 13px",
+                    color: "#3f5662",
+                    boxShadow: "0 6px 18px rgba(13,36,51,0.06)",
                   }}
                 >
+                  <span style={{ fontSize: 11, marginRight: 4 }}>Thinking</span>
                   <span className="ginhawa-dot" />
                   <span className="ginhawa-dot delay1" />
                   <span className="ginhawa-dot delay2" />
@@ -979,9 +1252,9 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
 
           <div
             style={{
-              padding: "10px 12px 0",
-              background: "#f7f3ee",
-              borderTop: "1px solid rgba(90,104,84,0.08)",
+              padding: "10px 12px 2px",
+              background: "#f6f9fb",
+              borderTop: "1px solid rgba(20,47,67,0.08)",
             }}
           >
             <div
@@ -989,8 +1262,9 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                 display: "flex",
                 gap: 8,
                 overflowX: "auto",
-                paddingBottom: 10,
+                paddingBottom: 8,
               }}
+              className="buddy-scroll"
             >
               {QUICK_REPLIES.map((q) => (
                 <button
@@ -998,12 +1272,13 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
                   onClick={() => sendMessage(q)}
                   style={{
                     whiteSpace: "nowrap",
-                    padding: "8px 14px",
+                    padding: "7px 12px",
                     borderRadius: 999,
-                    border: "1px solid rgba(111,143,114,0.18)",
-                    background: "#f0eadf",
-                    color: "#53624f",
-                    fontSize: 13,
+                    border: "1px solid rgba(25,91,97,0.20)",
+                    background: "#ffffff",
+                    color: "#195b61",
+                    fontSize: 12,
+                    fontWeight: 600,
                     fontFamily: "Inter, sans-serif",
                     cursor: "pointer",
                   }}
@@ -1019,7 +1294,7 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
               display: "flex",
               gap: 8,
               padding: 12,
-              background: "#f7f3ee",
+              background: "#f6f9fb",
             }}
           >
             <input
@@ -1028,12 +1303,12 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
               placeholder="Ask about services, booking, or staff..."
               style={{
                 flex: 1,
-                padding: "12px 14px",
+                padding: "11px 13px",
                 borderRadius: 999,
-                border: "1px solid rgba(90,104,84,0.16)",
-                background: "#fcfaf6",
-                color: "#445344",
-                fontSize: 14,
+                border: "1px solid rgba(20,47,67,0.18)",
+                background: "#ffffff",
+                color: "#204051",
+                fontSize: 13.5,
                 fontFamily: "Inter, sans-serif",
                 outline: "none",
               }}
@@ -1044,16 +1319,17 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
 
             <button
               onClick={() => sendMessage(input)}
+              disabled={!input.trim() || typing}
               style={{
                 border: "none",
                 borderRadius: 999,
                 padding: "0 18px",
-                background: "#6f8f72",
-                color: "#fffdf9",
-                fontWeight: 600,
-                fontSize: 14,
-                cursor: "pointer",
-                boxShadow: "0 8px 18px rgba(111,143,114,0.18)",
+                background: !input.trim() || typing ? "#9fb7bf" : "#1f6b73",
+                color: "#f7feff",
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: !input.trim() || typing ? "not-allowed" : "pointer",
+                boxShadow: "0 8px 18px rgba(31,107,115,0.2)",
               }}
             >
               Send
@@ -1068,33 +1344,52 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
           aria-label="Open chat"
           style={{
             position: "fixed",
-            left: 24,
-            bottom: 24,
+            left: 16,
+            bottom: "calc(16px + env(safe-area-inset-bottom))",
             width: 68,
             height: 68,
             borderRadius: "50%",
-            border: "1px solid rgba(111,143,114,0.16)",
-            background: "linear-gradient(180deg, #98b39a 0%, #7d9d81 100%)",
-            color: "#fffdf9",
-            fontSize: 28,
+            border: "1px solid rgba(20,47,67,0.2)",
+            background: "linear-gradient(180deg, #1f6b73 0%, #15575d 100%)",
+            color: "#f8feff",
+            fontSize: 24,
             cursor: "pointer",
-            boxShadow: "0 14px 30px rgba(111,143,114,0.22)",
+            boxShadow: "0 16px 34px rgba(21,87,93,0.35)",
             zIndex: 1000,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          💬
+          AI
         </button>
       )}
 
       <style jsx>{`
+        .buddy-live-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: #8ef7bf;
+          box-shadow: 0 0 0 0 rgba(142, 247, 191, 0.7);
+          animation: buddy-pulse 1.8s infinite;
+        }
+
+        .buddy-scroll::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+
+        .buddy-scroll::-webkit-scrollbar-thumb {
+          background: rgba(32, 80, 96, 0.24);
+          border-radius: 999px;
+        }
+
         .ginhawa-dot {
           width: 8px;
           height: 8px;
           border-radius: 999px;
-          background: #7f8d78;
+          background: #1e6470;
           display: inline-block;
           animation: ginhawa-bounce 1.05s infinite ease-in-out;
         }
@@ -1117,6 +1412,18 @@ export default function GinhawaChatBubble({ forceOpen = false }: Props) {
           40% {
             transform: translateY(-5px) scale(1);
             opacity: 1;
+          }
+        }
+
+        @keyframes buddy-pulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(142, 247, 191, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 8px rgba(142, 247, 191, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(142, 247, 191, 0);
           }
         }
       `}</style>

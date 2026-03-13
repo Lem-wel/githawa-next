@@ -1,9 +1,16 @@
 import "./globals.css";
 import LayoutWithOptionalBuddy from "@/components/LayoutWithOptionalBuddy";
+import type { Viewport } from "next";
 
 export const metadata = {
   title: "Ginhawa Spa & Wellness",
   description: "Modern tropical wellness spa booking and rewards",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

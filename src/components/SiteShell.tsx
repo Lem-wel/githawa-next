@@ -107,6 +107,7 @@ export default function SiteShell({
 
       {!loading && (
         <button
+          className="feedbackFab"
           onClick={() => {
             if (loggedIn) {
               router.push("/feedback");
@@ -115,10 +116,6 @@ export default function SiteShell({
             }
           }}
           style={{
-            position: "fixed",
-            bottom: "20px",
-            left: "50%",
-            transform: "translateX(-50%)",
             background: "var(--sage)",
             color: "white",
             padding: "12px 20px",
@@ -127,7 +124,6 @@ export default function SiteShell({
             fontWeight: 600,
             boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
             cursor: "pointer",
-            zIndex: 999,
           }}
         >
           💬 Leave Feedback

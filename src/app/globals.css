@@ -39,6 +39,14 @@ html, body{
   font-family: var(--font-body);
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
 *{ box-sizing: border-box; }
 
 /* =========================
@@ -47,7 +55,7 @@ html, body{
 .container{
   max-width: 1280px;
   margin: 0 auto;
-  padding: 26px 28px 64px;
+  padding: 26px 28px calc(64px + env(safe-area-inset-bottom));
 }
 
 /* =========================
@@ -596,7 +604,7 @@ select{
 @media (max-width: 520px){
 
   /* Container tighter */
-  .container{ padding: 14px 12px 44px; }
+  .container{ padding: 14px 12px calc(88px + env(safe-area-inset-bottom)); }
 
   /* ---------- Navbar: clean 2-row layout ---------- */
   .navbar{
@@ -615,7 +623,8 @@ select{
     grid-area: links;
     justify-content: center;
     margin-right: 0;
-    gap: 18px;
+    gap: 12px;
+    flex-wrap: wrap;
     padding-top: 4px;
   }
 
@@ -637,7 +646,7 @@ select{
   .cardPad{ padding: 14px; }
 
   /* Buttons full width when used in stacks */
-  .btn{ width: 100%; text-align: center; }
+  .heroActions .btn{ width: 100%; text-align: center; }
 
   /* Pills wrap nicely */
   .pill{ white-space: nowrap; }
@@ -922,4 +931,13 @@ select{
     bottom: 72px !important;
     left: 12px !important;
   }
+}
+
+.feedbackFab {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  width: min(92vw, 340px);
+  z-index: 999;
 }
