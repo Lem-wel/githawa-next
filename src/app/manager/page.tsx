@@ -40,15 +40,6 @@ function normalizeCategory(category: string | null | undefined) {
   return String(category ?? "").trim().toLowerCase();
 }
 
-function getWarmCategoryTextColor(category: string | null | undefined) {
-  const cat = normalizeCategory(category);
-  if (cat.includes("massage")) return "#9b5a2e";
-  if (cat.includes("facial")) return "#b86b4f";
-  if (cat.includes("body") || cat.includes("scrub") || cat.includes("wrap")) return "#a15a43";
-  if (cat.includes("addon")) return "#8b6a3d";
-  return "#7e5a36";
-}
-
 function getWarmCategoryBadgeStyle(category: string | null | undefined) {
   const cat = normalizeCategory(category);
 
@@ -446,7 +437,6 @@ function ManagerRow({
         {appt.services?.name ?? "—"}
         <div
           style={{
-            color: getWarmCategoryTextColor(appt.services?.category),
             fontSize: 12,
             fontWeight: 600,
             display: "inline-flex",
