@@ -551,6 +551,17 @@ if (
   };
 }
 
+if (includesAny(msg, ["hours", "open", "opening", "closing", "business hours", "time", "what time"])) {
+  return {
+    text: randomAnswer([
+      "Ginhawa Spa & Wellness is open from 8:00 AM to 5:00 PM.",
+      "Our spa business hours are from 8:00 AM until 5:00 PM.",
+      "We are open daily from 8:00 AM to 5:00 PM.",
+      "Our operating hours are 8:00 AM to 5:00 PM.",
+    ]),
+  };
+}
+
 if (includesAny(msg, ["contact", "phone", "email", "number", "call"])) {
   return {
     text: randomAnswer([
