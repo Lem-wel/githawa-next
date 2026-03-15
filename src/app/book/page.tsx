@@ -76,6 +76,19 @@ function BookPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  function normalizeCategory(category: string | null | undefined) {
+    return String(category ?? "").trim().toLowerCase();
+  }
+
+  function getWarmCategoryTextColor(category: string | null | undefined) {
+    const cat = normalizeCategory(category);
+    if (cat.includes("massage")) return "#9b5a2e";
+    if (cat.includes("facial")) return "#b86b4f";
+    if (cat.includes("body") || cat.includes("scrub") || cat.includes("wrap")) return "#a15a43";
+    if (cat.includes("addon")) return "#8b6a3d";
+    return "#7e5a36";
+  }
+
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -906,6 +919,14 @@ function BookPageInner() {
             <label>Service</label>
             <select
               value={serviceId}
+              style={
+                mainService
+                  ? {
+                      color: getWarmCategoryTextColor(mainService.category),
+                      fontWeight: 600,
+                    }
+                  : undefined
+              }
               onChange={(e) => setServiceId(e.target.value ? Number(e.target.value) : "")}
             >
               <option value="">Select service</option>
@@ -915,6 +936,19 @@ function BookPageInner() {
                 </option>
               ))}
             </select>
+
+            {mainService?.category && (
+              <p
+                style={{
+                  marginTop: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: getWarmCategoryTextColor(mainService.category),
+                }}
+              >
+                Category: {mainService.category}
+              </p>
+            )}
           </div>
 
           {mainService && (
@@ -954,6 +988,18 @@ function BookPageInner() {
                             <span style={{ color: "var(--muted)" }}>
                               — ₱{a.price} • {a.duration_minutes} mins
                             </span>
+                            {a.category && (
+                              <span
+                                style={{
+                                  marginLeft: 8,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  color: getWarmCategoryTextColor(a.category),
+                                }}
+                              >
+                                {a.category}
+                              </span>
+                            )}
                           </div>
                         </label>
                       );

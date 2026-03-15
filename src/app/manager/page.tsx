@@ -36,6 +36,19 @@ function isMassageCategory(category: string | null | undefined) {
   return String(category ?? "").toLowerCase().includes("massage");
 }
 
+function normalizeCategory(category: string | null | undefined) {
+  return String(category ?? "").trim().toLowerCase();
+}
+
+function getWarmCategoryTextColor(category: string | null | undefined) {
+  const cat = normalizeCategory(category);
+  if (cat.includes("massage")) return "#9b5a2e";
+  if (cat.includes("facial")) return "#b86b4f";
+  if (cat.includes("body") || cat.includes("scrub") || cat.includes("wrap")) return "#a15a43";
+  if (cat.includes("addon")) return "#8b6a3d";
+  return "#7e5a36";
+}
+
 function toLocalDateTime(date: string, time: string) {
   if (!date || !time) return null;
   const safeTime = String(time).slice(0, 5);
@@ -409,7 +422,13 @@ function ManagerRow({
 
       <td>
         {appt.services?.name ?? "—"}
-        <div style={{ color: "var(--muted)", fontSize: 12 }}>
+        <div
+          style={{
+            color: getWarmCategoryTextColor(appt.services?.category),
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
           {appt.services?.category ?? ""}
         </div>
       </td>
