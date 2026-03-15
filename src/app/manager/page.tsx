@@ -28,6 +28,10 @@ type RoomRow = {
   name: string;
 };
 
+const OPEN_MINUTES = 8 * 60;
+const CLOSE_MINUTES = 17 * 60;
+const SLOT_INTERVAL = 15;
+
 function isMassageCategory(category: string | null | undefined) {
   return String(category ?? "").toLowerCase().includes("massage");
 }
@@ -37,6 +41,25 @@ function toLocalDateTime(date: string, time: string) {
   const safeTime = String(time).slice(0, 5);
   const dt = new Date(`${date}T${safeTime}:00`);
   return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+function timeToMinutes(t: string) {
+  const [h, m] = t.slice(0, 5).split(":").map(Number);
+  return h * 60 + m;
+}
+
+function minutesToTimeValue(total: number) {
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function formatTimeLabel(total: number) {
+  const hour24 = Math.floor(total / 60);
+  const minute = total % 60;
+  const displayHour = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  const ampm = hour24 < 12 ? "AM" : "PM";
+  return `${displayHour}:${String(minute).padStart(2, "0")} ${ampm}`;
 }
 
 export default function ManagerPage() {
@@ -323,6 +346,35 @@ function ManagerRow({
     });
   }, [staff, appt.services?.category]);
 
+  const serviceDuration = useMemo(() => {
+    const val = appt.duration_minutes ?? 0;
+    return val > 0 ? val : 60;
+  }, [appt.duration_minutes]);
+
+  const timeSlots = useMemo(() => {
+    const slots: { value: string; label: string }[] = [];
+
+    for (let t = OPEN_MINUTES; t <= CLOSE_MINUTES; t += SLOT_INTERVAL) {
+      const end = t + serviceDuration;
+      if (end <= CLOSE_MINUTES) {
+        slots.push({
+          value: minutesToTimeValue(t),
+          label: `${formatTimeLabel(t)} - ${formatTimeLabel(end)}`,
+        });
+      }
+    }
+
+    if (time && !slots.some((slot) => slot.value === time)) {
+      const startMins = timeToMinutes(time);
+      slots.unshift({
+        value: time,
+        label: `${formatTimeLabel(startMins)} - ${formatTimeLabel(startMins + serviceDuration)}`,
+      });
+    }
+
+    return slots;
+  }, [time, serviceDuration]);
+
   const canSave = Boolean(date && time && staffId && roomId && !isPast);
 
   return (
@@ -338,13 +390,19 @@ function ManagerRow({
       </td>
 
       <td>
-        <input
+        <select
           className="input"
-          type="time"
           value={time}
           disabled={isPast}
           onChange={(e) => setTime(e.target.value)}
-        />
+        >
+          <option value="">Select time</option>
+          {timeSlots.map((slot) => (
+            <option key={slot.value} value={slot.value}>
+              {slot.label}
+            </option>
+          ))}
+        </select>
       </td>
 
       <td>{appt.customer?.full_name ?? "—"}</td>
