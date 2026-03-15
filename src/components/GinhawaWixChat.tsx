@@ -551,13 +551,24 @@ if (
   };
 }
 
-if (includesAny(msg, ["hours", "open", "opening", "closing", "business hours", "time", "what time"])) {
+if (
+  includesAny(msg, [
+    "hours",
+    "open",
+    "opening",
+    "closing",
+    "business hours",
+    "time",
+    "what time",
+    "schedule",
+  ])
+) {
   return {
     text: randomAnswer([
-      "Ginhawa Spa & Wellness is open from 8:00 AM to 5:00 PM.",
-      "Our spa business hours are from 8:00 AM until 5:00 PM.",
-      "We are open daily from 8:00 AM to 5:00 PM.",
-      "Our operating hours are 8:00 AM to 5:00 PM.",
+      "Our business hours are Monday to Sunday, 8:00 AM to 5:00 PM.",
+      "Ginhawa Spa & Wellness is open daily from 8:00 AM to 5:00 PM.",
+      "We operate every day, 8:00 AM to 5:00 PM.",
+      "Our spa is open from 8:00 AM until 5:00 PM, Monday to Sunday.",
     ]),
   };
 }
