@@ -32,6 +32,13 @@ function isMassageCategory(category: string | null | undefined) {
   return String(category ?? "").toLowerCase().includes("massage");
 }
 
+function toLocalDateTime(date: string, time: string) {
+  if (!date || !time) return null;
+  const safeTime = String(time).slice(0, 5);
+  const dt = new Date(`${date}T${safeTime}:00`);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
 export default function ManagerPage() {
   const router = useRouter();
   const [msg, setMsg] = useState("");
@@ -299,6 +306,12 @@ function ManagerRow({
   const [staffId, setStaffId] = useState<string>(appt.staff_id ? String(appt.staff_id) : "");
   const [roomId, setRoomId] = useState<string>(appt.room_id ? String(appt.room_id) : "");
 
+  const isPast = useMemo(() => {
+    const apptDateTime = toLocalDateTime(appt.appt_date, String(appt.appt_time ?? ""));
+    if (!apptDateTime) return false;
+    return apptDateTime.getTime() < Date.now();
+  }, [appt.appt_date, appt.appt_time]);
+
   const allowedStaff = useMemo(() => {
     const serviceCat = appt.services?.category ?? null;
     const needsMassageTherapist = isMassageCategory(serviceCat);
@@ -310,15 +323,16 @@ function ManagerRow({
     });
   }, [staff, appt.services?.category]);
 
-  const canSave = Boolean(date && time && staffId && roomId);
+  const canSave = Boolean(date && time && staffId && roomId && !isPast);
 
   return (
-    <tr>
+    <tr style={isPast ? { opacity: 0.7 } : undefined}>
       <td>
         <input
           className="input"
           type="date"
           value={date}
+          disabled={isPast}
           onChange={(e) => setDate(e.target.value)}
         />
       </td>
@@ -328,6 +342,7 @@ function ManagerRow({
           className="input"
           type="time"
           value={time}
+          disabled={isPast}
           onChange={(e) => setTime(e.target.value)}
         />
       </td>
@@ -342,7 +357,11 @@ function ManagerRow({
       </td>
 
       <td>
-        <select value={staffId} onChange={(e) => setStaffId(e.target.value)}>
+        <select
+          value={staffId}
+          disabled={isPast}
+          onChange={(e) => setStaffId(e.target.value)}
+        >
           <option value="">Select</option>
           {allowedStaff.map((s) => (
             <option key={s.id} value={String(s.id)}>
@@ -353,7 +372,11 @@ function ManagerRow({
       </td>
 
       <td>
-        <select value={roomId} onChange={(e) => setRoomId(e.target.value)}>
+        <select
+          value={roomId}
+          disabled={isPast}
+          onChange={(e) => setRoomId(e.target.value)}
+        >
           <option value="">Select</option>
           {rooms.map((r) => (
             <option key={r.id} value={String(r.id)}>
@@ -364,20 +387,36 @@ function ManagerRow({
       </td>
 
       <td>
-        <button
-          className="btn btnPrimary"
-          disabled={!canSave}
-          onClick={() =>
-            onSave({
-              appt_date: date,
-              appt_time: time,
-              staff_id: Number(staffId),
-              room_id: Number(roomId),
-            })
-          }
-        >
-          Save
-        </button>
+        {isPast ? (
+          <span
+            style={{
+              display: "inline-block",
+              padding: "4px 10px",
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 700,
+              background: "#e8f7ec",
+              color: "#18794e",
+            }}
+          >
+            Done
+          </span>
+        ) : (
+          <button
+            className="btn btnPrimary"
+            disabled={!canSave}
+            onClick={() =>
+              onSave({
+                appt_date: date,
+                appt_time: time,
+                staff_id: Number(staffId),
+                room_id: Number(roomId),
+              })
+            }
+          >
+            Save
+          </button>
+        )}
       </td>
     </tr>
   );
