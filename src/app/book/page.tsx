@@ -89,6 +89,28 @@ function BookPageInner() {
     return "#7e5a36";
   }
 
+  function getWarmCategoryBadgeStyle(category: string | null | undefined) {
+    const cat = normalizeCategory(category);
+
+    if (cat.includes("massage")) {
+      return { color: "#7f431d", background: "#f8e7d8", border: "1px solid #e2bea0" };
+    }
+
+    if (cat.includes("facial")) {
+      return { color: "#8f4a36", background: "#fae6df", border: "1px solid #e8b9ac" };
+    }
+
+    if (cat.includes("body") || cat.includes("scrub") || cat.includes("wrap")) {
+      return { color: "#7f4331", background: "#f7e1da", border: "1px solid #dfb1a4" };
+    }
+
+    if (cat.includes("addon")) {
+      return { color: "#70542d", background: "#f7ecd8", border: "1px solid #e1c79b" };
+    }
+
+    return { color: "#6d5030", background: "#f3e6d8", border: "1px solid #dcc3a7" };
+  }
+
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -304,6 +326,19 @@ function BookPageInner() {
     () => addons.filter((a) => selectedAddons.includes(a.id)),
     [addons, selectedAddons]
   );
+
+  const servicesByCategory = useMemo(() => {
+    const grouped = new Map<string, Service[]>();
+
+    services.forEach((s) => {
+      const key = s.category?.trim() || "Other Services";
+      const current = grouped.get(key) ?? [];
+      current.push(s);
+      grouped.set(key, current);
+    });
+
+    return Array.from(grouped.entries());
+  }, [services]);
 
   const totalDuration = useMemo(() => {
     const main = mainService?.duration_minutes ?? 0;
@@ -919,35 +954,35 @@ function BookPageInner() {
             <label>Service</label>
             <select
               value={serviceId}
-              style={
-                mainService
-                  ? {
-                      color: getWarmCategoryTextColor(mainService.category),
-                      fontWeight: 600,
-                    }
-                  : undefined
-              }
               onChange={(e) => setServiceId(e.target.value ? Number(e.target.value) : "")}
             >
               <option value="">Select service</option>
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} — ₱{s.price} • {s.duration_minutes} mins ({s.category || "service"})
-                </option>
+              {servicesByCategory.map(([categoryName, list]) => (
+                <optgroup key={categoryName} label={categoryName}>
+                  {list.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} — ₱{s.price} • {s.duration_minutes} mins
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
 
             {mainService?.category && (
-              <p
+              <div
                 style={{
                   marginTop: 8,
-                  fontSize: 13,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  fontSize: 12,
                   fontWeight: 700,
-                  color: getWarmCategoryTextColor(mainService.category),
+                  ...getWarmCategoryBadgeStyle(mainService.category),
                 }}
               >
                 Category: {mainService.category}
-              </p>
+              </div>
             )}
           </div>
 
@@ -994,7 +1029,11 @@ function BookPageInner() {
                                   marginLeft: 8,
                                   fontSize: 12,
                                   fontWeight: 700,
-                                  color: getWarmCategoryTextColor(a.category),
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  padding: "2px 8px",
+                                  borderRadius: 999,
+                                  ...getWarmCategoryBadgeStyle(a.category),
                                 }}
                               >
                                 {a.category}

@@ -49,6 +49,28 @@ function getWarmCategoryTextColor(category: string | null | undefined) {
   return "#7e5a36";
 }
 
+function getWarmCategoryBadgeStyle(category: string | null | undefined) {
+  const cat = normalizeCategory(category);
+
+  if (cat.includes("massage")) {
+    return { color: "#7f431d", background: "#f8e7d8", border: "1px solid #e2bea0" };
+  }
+
+  if (cat.includes("facial")) {
+    return { color: "#8f4a36", background: "#fae6df", border: "1px solid #e8b9ac" };
+  }
+
+  if (cat.includes("body") || cat.includes("scrub") || cat.includes("wrap")) {
+    return { color: "#7f4331", background: "#f7e1da", border: "1px solid #dfb1a4" };
+  }
+
+  if (cat.includes("addon")) {
+    return { color: "#70542d", background: "#f7ecd8", border: "1px solid #e1c79b" };
+  }
+
+  return { color: "#6d5030", background: "#f3e6d8", border: "1px solid #dcc3a7" };
+}
+
 function toLocalDateTime(date: string, time: string) {
   if (!date || !time) return null;
   const safeTime = String(time).slice(0, 5);
@@ -427,6 +449,12 @@ function ManagerRow({
             color: getWarmCategoryTextColor(appt.services?.category),
             fontSize: 12,
             fontWeight: 600,
+            display: "inline-flex",
+            alignItems: "center",
+            marginTop: 4,
+            padding: "2px 8px",
+            borderRadius: 999,
+            ...getWarmCategoryBadgeStyle(appt.services?.category),
           }}
         >
           {appt.services?.category ?? ""}
