@@ -36,10 +36,16 @@ export default function ManagerPage() {
   const router = useRouter();
   const [msg, setMsg] = useState("");
   const [appts, setAppts] = useState<Appt[]>([]);
+  const [selectedDate, setSelectedDate] = useState("");
   const [staff, setStaff] = useState<StaffRow[]>([]);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [managerName, setManagerName] = useState("Manager");
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const visibleAppts = useMemo(() => {
+    if (!selectedDate) return appts;
+    return appts.filter((a) => a.appt_date === selectedDate);
+  }, [appts, selectedDate]);
 
   useEffect(() => {
     (async () => {
@@ -207,6 +213,37 @@ export default function ManagerPage() {
       </div>
 
       <div className="card cardPad" style={{ marginTop: 14 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+            flexWrap: "wrap",
+            marginBottom: 12,
+          }}
+        >
+          <label htmlFor="manager-day-filter" style={{ fontWeight: 700 }}>
+            Calendar:
+          </label>
+          <input
+            id="manager-day-filter"
+            className="input"
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
+          {selectedDate && (
+            <button className="btn" onClick={() => setSelectedDate("")}>
+              Show all
+            </button>
+          )}
+          <span style={{ color: "var(--muted)" }}>
+            {selectedDate
+              ? `Showing schedules on ${selectedDate}`
+              : "Showing all schedules"}
+          </span>
+        </div>
+
         <table className="table">
           <thead>
             <tr>
@@ -220,12 +257,16 @@ export default function ManagerPage() {
             </tr>
           </thead>
           <tbody>
-            {appts.length === 0 ? (
+            {visibleAppts.length === 0 ? (
               <tr>
-                <td colSpan={7}>No appointments found.</td>
+                <td colSpan={7}>
+                  {selectedDate
+                    ? "No appointments found for this day."
+                    : "No appointments found."}
+                </td>
               </tr>
             ) : (
-              appts.map((a) => (
+              visibleAppts.map((a) => (
                 <ManagerRow
                   key={a.id}
                   appt={a}

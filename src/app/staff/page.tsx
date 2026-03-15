@@ -22,7 +22,12 @@ export default function StaffPage() {
   const [msg, setMsg] = useState("");
   const [staffName, setStaffName] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
+  const [selectedDate, setSelectedDate] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const visibleRows = selectedDate
+    ? rows.filter((r) => r.appt_date === selectedDate)
+    : rows;
 
   useEffect(() => {
     (async () => {
@@ -186,6 +191,37 @@ export default function StaffPage() {
       </div>
 
       <div className="card cardPad" style={{ marginTop: 14 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+            flexWrap: "wrap",
+            marginBottom: 12,
+          }}
+        >
+          <label htmlFor="staff-day-filter" style={{ fontWeight: 700 }}>
+            Calendar:
+          </label>
+          <input
+            id="staff-day-filter"
+            className="input"
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
+          {selectedDate && (
+            <button className="btn" onClick={() => setSelectedDate("")}>
+              Show all
+            </button>
+          )}
+          <span style={{ color: "var(--muted)" }}>
+            {selectedDate
+              ? `Showing schedules on ${selectedDate}`
+              : "Showing all schedules"}
+          </span>
+        </div>
+
         <table className="table">
           <thead>
             <tr>
@@ -200,13 +236,15 @@ export default function StaffPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {visibleRows.length === 0 ? (
               <tr>
                 <td colSpan={isAdmin ? 8 : 6}>
-                  No massage appointments assigned.
+                  {selectedDate
+                    ? "No massage appointments assigned for this day."
+                    : "No massage appointments assigned."}
                 </td>
               </tr>
-            ) : rows.map((r) => (
+            ) : visibleRows.map((r) => (
               <tr
                 key={r.id}
                 style={
